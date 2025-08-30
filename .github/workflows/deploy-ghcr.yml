@@ -75,7 +75,7 @@ jobs:
 
       # Verify the JAR actually exists:
       - name: Verify build artifacts
-        run: ls -l app-backend/target
+        run: ls -l aggregator/target
 
       # ✅ Step 3: Set up Docker Buildx (advanced build tool for Docker)
       - name: ⚙️ Set up Docker Buildx

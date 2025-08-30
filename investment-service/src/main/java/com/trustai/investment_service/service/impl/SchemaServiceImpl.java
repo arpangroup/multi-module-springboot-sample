@@ -1,9 +1,8 @@
 package com.trustai.investment_service.service.impl;
 
-import com.trustai.common.dto.RankConfigDto;
+import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.dto.RankConfigDto;
 import com.trustai.common.enums.CurrencyType;
-import com.trustai.investment_service.constants.CommonConstants;
 import com.trustai.investment_service.dto.SchemaUpsertRequest;
 import com.trustai.investment_service.entity.InvestmentSchema;
 import com.trustai.investment_service.entity.Schedule;

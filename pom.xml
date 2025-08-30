@@ -37,6 +37,7 @@
         <module>common</module>
         <module>user-service</module>
         <module>investment-service</module>
+        <module>income-service</module>
         <module>order-service</module>
         <module>payment-service</module>
     </modules>

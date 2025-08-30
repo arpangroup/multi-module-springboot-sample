@@ -1,0 +1,192 @@
+# RUN:
+# chmod +x setup_apache_ssl.sh
+# ./setup_apache_ssl.sh
+
+#!/bin/bash
+
+
+# ========= Variables ==========
+DOMAIN="trustai.co.in"
+SUBDOMAIN="admin.${DOMAIN}"
+DOC_ROOT="/var/www"
+APACHE_CONF_DIR="/etc/apache2/sites-available"
+CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+JKS_PASSWORD=<CHANGEIT>
+ALIAS="trustai"
+JKS_OUTPUT="/root/${DOMAIN}.jks"
+EMAIL="trustai007@gmail.com"
+
+
+echo "=============================="
+echo "🚀 Starting full Apache + SSL setup"
+echo "=============================="
+
+# ========= Install Apache ==========
+echo "📦 Installing Apache..."
+sudo apt update
+sudo apt install -y apache2
+
+# Enable required Apache modules
+sudo a2enmod rewrite ssl
+
+# ========= Create Web Root ==========
+echo "📁 Creating website directories..."
+sudo mkdir -p ${DOC_ROOT}/${DOMAIN}
+sudo mkdir -p ${DOC_ROOT}/${SUBDOMAIN}
+
+echo "📝 Creating index.html files..."
+echo "<h1>Welcome to ${DOMAIN}</h1>" | sudo tee ${DOC_ROOT}/${DOMAIN}/index.html
+echo "<h1>Welcome to ${SUBDOMAIN}</h1>" | sudo tee ${DOC_ROOT}/${SUBDOMAIN}/index.html
+
+# Set permissions
+sudo chown -R www-data:www-data ${DOC_ROOT}
+sudo chmod -R 755 ${DOC_ROOT}
+
+# ========= Create Virtual Host Files ==========
+
+echo "🧾 Creating Apache virtual host for ${DOMAIN}..."
+sudo tee ${APACHE_CONF_DIR}/${DOMAIN}.conf > /dev/null <<EOF
+<VirtualHost *:80>
+    ServerName ${DOMAIN}
+    ServerAlias www.${DOMAIN}
+    DocumentRoot ${DOC_ROOT}/${DOMAIN}
+
+    <Directory ${DOC_ROOT}/${DOMAIN}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/${DOMAIN}_error.log
+    CustomLog \${APACHE_LOG_DIR}/${DOMAIN}_access.log combined
+</VirtualHost>
+EOF
+
+echo "🧾 Creating Apache virtual host for ${SUBDOMAIN}..."
+sudo tee ${APACHE_CONF_DIR}/${SUBDOMAIN}.conf > /dev/null <<EOF
+<VirtualHost *:80>
+    ServerName ${SUBDOMAIN}
+    DocumentRoot ${DOC_ROOT}/${SUBDOMAIN}
+
+    <Directory ${DOC_ROOT}/${SUBDOMAIN}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/${SUBDOMAIN}_error.log
+    CustomLog \${APACHE_LOG_DIR}/${SUBDOMAIN}_access.log combined
+</VirtualHost>
+EOF
+
+# ========= Enable Sites ==========
+echo "🔗 Enabling virtual hosts..."
+sudo a2dissite 000-default.conf
+sudo a2ensite ${DOMAIN}.conf
+sudo a2ensite ${SUBDOMAIN}.conf
+
+# ========= Reload Apache ==========
+echo "🔄 Reloading Apache..."
+sudo systemctl reload apache2
+
+
+
+# ================= Setup SSL Certificate =================
+echo "Setup SSL Certificate..........."
+
+# ========= Install Certbot ==========
+echo "🔐 Installing Certbot for SSL..."
+#sudo apt install -y certbot python3-certbot-apache openssl default-jdk
+sudo apt install -y certbot python3-certbot-apache openssl
+
+# ========= Obtain and Install SSL Certificates ==========
+echo "📜 Obtaining Let's Encrypt SSL certificate for ${DOMAIN} and ${SUBDOMAIN}..."
+
+sudo certbot --apache \
+  -d ${DOMAIN} \
+  -d www.${DOMAIN} \
+  -d ${SUBDOMAIN} \
+  --non-interactive \
+  --agree-tos \
+  -m ${EMAIL} \
+  --redirect
+
+# ========= SSL Complete ==========
+echo "✅ SSL setup complete. HTTPS is now enabled."
+
+# ========= Generate PKCS#12 ==========
+echo "📦 Generating PKCS#12 (.p12) from SSL certificate..."
+sudo openssl pkcs12 -export \
+  -in ${CERT_DIR}/fullchain.pem \
+  -inkey ${CERT_DIR}/privkey.pem \
+  -out /tmp/${DOMAIN}.p12 \
+  -name ${ALIAS} \
+  -CAfile ${CERT_DIR}/chain.pem \
+  -caname root \
+  -passout pass:${JKS_PASSWORD}
+
+
+# ========= Convert to Java Keystore (JKS) ==========
+echo "🔑 Importing .p12 into Java Keystore (.jks)..."
+# sudo keytool -importkeystore \
+#   -deststorepass ${JKS_PASSWORD} \
+#   -destkeypass ${JKS_PASSWORD} \
+#   -destkeystore ${JKS_OUTPUT} \
+#   -srckeystore /tmp/${DOMAIN}.p12 \
+#   -srcstoretype PKCS12 \
+#   -srcstorepass ${JKS_PASSWORD} \
+#   -alias ${ALIAS}
+
+# ========= SSL + JKS Setup Done ==========
+echo "✅ Setup complete!"
+echo "📁 Java Keystore saved at: ${JKS_OUTPUT}"
+echo "🔐 Keystore password: ${JKS_PASSWORD}"
+
+
+# ================= Install Docker =================
+echo "🐳 Installing Docker..."
+
+# Remove old versions if any
+sudo apt remove -y docker docker-engine docker.io containerd runc
+
+# Set up the Docker repository
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Add Docker's GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Set up Docker repo
+echo \
+  "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Start and enable Docker service
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Add your user to the docker group (optional: avoids needing sudo for docker commands)
+sudo usermod -aG docker $USER
+
+echo "✅ Docker installed successfully"
+
+# ================= Verify Docker =================
+echo "🐳 Docker version:"
+docker --version
+
+echo "🔧 Docker Compose version:"
+docker compose version
+
+# ================= Docker Install Complete =================
+echo "✅ Docker and Docker Compose installation complete!"
+echo "🔄 You may need to log out and back in for docker group changes to apply."

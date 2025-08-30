@@ -25,6 +25,11 @@
         </dependency>
         <dependency>
             <groupId>com.trustai</groupId>
+            <artifactId>rank-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.trustai</groupId>
             <artifactId>investment-service</artifactId>
             <version>${project.version}</version>
         </dependency>

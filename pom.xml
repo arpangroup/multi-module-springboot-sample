@@ -36,6 +36,7 @@
         <module>aggregator</module>
         <module>common</module>
         <module>user-service</module>
+        <module>rank-service</module>
         <module>investment-service</module>
         <module>income-service</module>
         <module>notification-service</module>

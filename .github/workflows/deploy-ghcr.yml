@@ -1,0 +1,265 @@
+# .github/workflows/deploy-ghcr.yml
+
+# 🔧 Workflow to build a Docker image, push it to GitHub Container Registry (GHCR),
+# and deploy it to a remote server using SSH + Docker Compose.
+
+# REMOTE_HOST → your server IP or DNS
+# REMOTE_USER → the SSH user (e.g., deploy)
+# REMOTE_SSH_PORT → 22 (or custom)
+# SSH_PRIVATE_KEY → private key that matches ~/.ssh/authorized_keys on server
+# GHCR_USERNAME → your GitHub username
+# GHCR_PAT → a PAT with read:packages (for server pulls).
+# DOCKER_USERNAME
+# DOCKER_PASSWORD
+
+name: Deploy (Docker + GHCR)
+
+# 🟡 Trigger the workflow:
+# - On push to the main branch
+# - Or manually via the GitHub UI (workflow_dispatch)
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Override image tag to deploy (default: commit SHA)"
+        required: false
+        default: ""
+
+# 🌍 Environment variables available to all jobs
+env:
+  REGISTRY: ghcr.io                         # GHCR registry
+  IMAGE_NAME: ${{ github.repository }}      # Repo name as image name (owner/repo)
+  IMAGE_TAG: ${{ github.sha }}
+  REMOTE_USER: ${{ secrets.REMOTE_USER }}
+  REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+  GHCR_USER: "arpangroup"
+  GHCR_PAT: ${{ secrets.GHCR_PAT }}
+
+jobs:
+  # 🔨 Job 1: Build Docker image and push to GHCR
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write                      # Needed to push to GitHub Packages (GHCR)
+    steps:
+      # ✅ Step 1: Checkout the code from the repo
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+      # ✅ Step 2: Create .env file dynamically from GitHub secrets
+      - name: 📄 Write environment variables
+        run: |
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
+
+      # Setup JDK21
+      - name: Setup JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: 21
+
+#      # Setup Run Unit Tests
+#      - name: Unit Tests
+#        run: mvn -B test --file pom.xml   # po.xml from root directory
+
+      # Build the application
+      - name: Build the application
+        run: |
+          mvn -B package -DskipTests --file pom.xml
+
+      # Verify the JAR actually exists:
+      - name: Verify build artifacts
+        run: ls -l app-backend/target
+
+      # ✅ Step 3: Set up Docker Buildx (advanced build tool for Docker)
+      - name: ⚙️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ✅ Step 4: Log in to GHCR using GitHub token (acts like a personal access token)
+      - name: 🔐 Log in to GHCR using GitHub token
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}               # Automatically uses the GitHub user
+          password: ${{ secrets.GITHUB_TOKEN }}       # GitHub-provided token (no need to create manually)
+
+      # ✅ Step 5: Build Docker image and push to GHCR
+      - name: 🔨📤 Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .                                  # Build context is the root directory
+          push: true                                  # Push the image to registry
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # Logout from Docker
+      - name: 🚪 Logout from Docker
+        run: docker logout ${{ env.REGISTRY }}
+
+
+  # 🚀 Job 2: Deploy the Docker image to remote server using SSH
+  deploy:
+    needs: build-and-push                           # This job depends on the build-and-push job
+    runs-on: ubuntu-latest
+
+    steps:
+      # ✅ Step 0: Checkout repository so docker-compose.yml is available
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+
+      # ✅ Step 1: Decide which image tag to deploy
+      - name: 🎯 Pick image tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "val=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "val=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+        # ➕ This allows for manual override of image tag via workflow_dispatch input
+
+      # ✅ Step 2: Load SSH private key to connect to remote server
+      - name: 🔑 Use SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # ✅ Step 3: Add remote server’s host key to known_hosts (avoids "Are you sure you want to continue connecting?")
+      - name: 🛡️ Add host key
+        run: ssh-keyscan -p ${PORT:-22} ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
+        env:
+          PORT: ${{ secrets.REMOTE_SSH_PORT }}
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 22 ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: ssh -i ~/.ssh/id_rsa -p 22 ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "echo connected ✅"
+          
+      # ✅ Step 3.5: Copy docker-compose.yml to remote server
+      - name: 📦 Copy docker-compose.yml to remote
+        run: |
+          scp -i ~/.ssh/id_rsa -P ${{ secrets.REMOTE_SSH_PORT }} \
+            docker-compose.yml \
+            ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/home/trustaiapp/
+
+
+      # ✅ Step 4: Connect to server, log in to GHCR, pull image, update Docker Compose, and restart services
+      - name: 🚀 Deploy to Remote Server
+        run: |
+          ssh -i ~/.ssh/id_rsa -p 22 ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << EOF
+            set -e
+
+            echo "Available directories:"
+            ls -ld /
+            echo "Listing home directory:"
+            ls -ld /home
+            echo "Listing deploy path directory:"
+            ls -ld "$DEPLOY_PATH"
+
+            echo "📂 Moving into deploy path: $DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+
+            echo "📍 Current directory: \$(pwd)"
+
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            echo "📦 Pulling Docker image: ghcr.io/$REPO:$IMAGE_TAG"
+            docker pull ghcr.io/$REPO:$IMAGE_TAG
+
+            echo "🛠️ Updating .env file"
+            touch .env
+            
+            # Ensure REGISTRY is set
+            if grep -q "^REGISTRY=" .env; then
+            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env
+            else
+            echo "REGISTRY=$REGISTRY" >> .env
+            fi
+            
+            # Ensure IMAGE_NAME is set
+            if grep -q "^IMAGE_NAME=" .env; then
+            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env
+            else
+            echo "IMAGE_NAME=$IMAGE_NAME" >> .env
+            fi
+            
+            # Ensure IMAGE_TAG is set
+            if grep -q "^IMAGE_TAG=" .env; then
+            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env
+            else
+            echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+            fi
+
+            echo "🔄 Pulling updated services"
+            docker compose pull || docker-compose pull
+
+            echo "🚀 Restarting containers"
+            docker compose up -d --remove-orphans || docker-compose up -d --remove-orphans
+
+            echo "🧹 Pruning unused Docker images"
+            docker image prune -f
+          EOF
+
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.val }}     # Image tag chosen above
+          IMAGE_NAME: ${{ github.repository }}
+          REGISTRY: ghcr.io
+          REPO: ${{ github.repository }}              # e.g., username/repo
+          GHCR_USER: ${{ secrets.GHCR_USERNAME }}     # GHCR username (same as GitHub)
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}           # GitHub Personal Access Token with packages write scope
+          PORT: ${{ secrets.REMOTE_SSH_PORT }}        # SSH port
+#          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}     # Directory on remote server with docker-compose.yml
+          DEPLOY_PATH: "/home/trustaiapp"
+
+
+
+
+
+#          "GHCR_USER='${GHCR_USER}' \
+#            GHCR_PAT='${GHCR_PAT}' \
+#            TAG='${TAG}' \
+#            REPO='${REPO}' \
+#            DEPLOY_PATH='${DEPLOY_PATH}' \
+#            bash -s" << 'ENDSSH'
+#          'set -e
+#
+#           # ➡️ Move into the deployment directory on the server
+#           cd ${DEPLOY_PATH:-/opt/myapp}
+#
+#           # 🔐 Login to GHCR
+#           echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+#
+#           # 📌 Export variables for use in shell
+#           export IMAGE_TAG="${TAG}"
+#           export REPO="${REPO}"
+#
+#           # ⬇️ Pull the desired image version
+#           docker pull ghcr.io/${REPO}:${IMAGE_TAG}
+#
+#           # ⚙️ Update the IMAGE_TAG in .env (used by docker-compose)
+#           if grep -q "^IMAGE_TAG=" .env; then
+#             sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${IMAGE_TAG}/" .env
+#           else
+#             echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
+#           fi
+#
+#           # 🔁 Pull updated images and restart containers
+#           docker compose pull
+#           docker compose up -d --remove-orphans
+#
+#           # 🧹 Clean up unused images to save disk space
+#           docker image prune -f
+#          '

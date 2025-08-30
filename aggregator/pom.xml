@@ -33,6 +33,12 @@
         </dependency>
         <dependency>
             <groupId>com.trustai</groupId>
+            <artifactId>notification-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.trustai</groupId>
             <artifactId>order-service</artifactId>
             <version>${project.version}</version>
         </dependency>

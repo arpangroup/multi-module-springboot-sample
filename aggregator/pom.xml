@@ -43,6 +43,11 @@
             <artifactId>income-service</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.trustai</groupId>
+            <artifactId>transaction-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!--<dependency>
             <groupId>com.trustai</groupId>
             <artifactId>product-service</artifactId>

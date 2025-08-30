@@ -42,9 +42,9 @@
         <module>income-service</module>
         <module>transaction-service</module>
         <module>notification-service</module>
+        <!--<module>product-service</module>
         <module>order-service</module>
-        <module>payment-service</module>
-        <module>product-service</module>
+        <module>payment-service</module>-->
     </modules>
 
     <dependencyManagement>

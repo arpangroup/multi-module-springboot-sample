@@ -1,0 +1,67 @@
+#server:
+#  port: 8443
+#  ssl:
+#    enabled: true
+#    key-store: classpath:keystore.p12
+#    key-store-type: PKCS12
+#    key-alias: local_ssl
+#    key-store-password: local_ssl
+
+spring:
+  application:
+    name: nft_app
+  profiles:
+    active: DEV
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+  #  cloud:
+  #    config:
+  #      uri: http://localhost:8888
+  #      enabled: true
+  security:
+    user:
+      name: admin
+      password: password
+      roles: ADMIN
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false  # Important to prevent static fallback
+
+feign:
+  client:
+    enabled:
+      income: false
+      rank: false
+      investment: false
+      transaction: false
+      user: false
+      core: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, info
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] %-5level %logger{36} - %msg%n"
+
+
+jwt:
+  secret: "replace_with_a_secure_random_secret_very_long"
+  issuer: "your-app"
+  expiration-ms: 3600000  # 1 hour
+otp:
+  length: 6
+  ttl-seconds: 300

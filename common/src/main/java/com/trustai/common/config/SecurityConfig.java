@@ -52,7 +52,7 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider, userDetailsService);
-//        InternalTokenAuthFilter internalTokenAuthFilter = new InternalTokenAuthFilter(internalToken);
+        InternalTokenAuthFilter internalTokenAuthFilter = new InternalTokenAuthFilter(internalToken);
 
         http
                 .securityMatcher("/api/**")
@@ -70,8 +70,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Order is important: check internal token before JWT
                 // The order of these two lines matters — whichever you call last will run first. So to run internalTokenAuthFilter before JWT, make sure it’s added after JWT:
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-//                .addFilterBefore(internalTokenAuthFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalTokenAuthFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

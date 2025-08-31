@@ -22,7 +22,7 @@ public class WebConfig {
                         //.allowedOrigins("*") // Change in production
 //                        .allowedOriginPatterns("*") // // allow all origins
 //                        .allowedOrigins("https://trustai.co.in")  // ✅ your frontend domain
-                        .allowedOrigins("http://localhost:5173", "https://trustai.co.in")
+                        .allowedOrigins("http://localhost:5173", "https://trustai.co.in", "https://admin.trustai.co.in")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

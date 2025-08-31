@@ -21,6 +21,7 @@ public class UserReservationMapper {
                 .returnRate(schema.getReturnRate())
                 .handlingFee(schema.getHandlingFee())
                 .valuationDelta(reservation.getValuationDelta())
+                .isSold(reservation.isSold())
                 .build();
     }
 }

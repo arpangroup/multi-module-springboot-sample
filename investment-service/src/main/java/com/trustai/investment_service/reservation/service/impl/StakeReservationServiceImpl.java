@@ -91,11 +91,11 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         UserInfo user = userApi.getUserById(userId);
 
         // Step 1. CCheck if the user already has a reservation for today
-        boolean alreadyReserved = reservationRepository.existsByUserIdAndReservationDate(userId, LocalDate.now());
+        /*boolean alreadyReserved = reservationRepository.existsByUserIdAndReservationDate(userId, LocalDate.now());
         if (alreadyReserved) {
             log.warn("Reservation failed: User has already reserved today - userId: {}", userId);
             throw new ValidationException("User has already reserved a stake today", ErrorCode.STAKE_ALREADY_RESERVED );
-        }
+        }*/
 
         // Step 2. Get highest-priced eligible active stake schema
         InvestmentSchema schema = schemaRepository

@@ -22,7 +22,8 @@ services:
     networks:
       - backend
     volumes:
-      - ./app-logs:/logs  # Logs are saved to host directory
+      - /home/logs:/logs  # Logs are saved to host directory
+      - /home/uploads:/app/uploads
 
   db:
     image: mysql:8.0

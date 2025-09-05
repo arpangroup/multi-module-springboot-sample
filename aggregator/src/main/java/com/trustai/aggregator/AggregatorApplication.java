@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @SpringBootApplication(scanBasePackages = "com.trustai")
 @ComponentScan(basePackages = {"com.trustai"})
+@EnableAsync
 public class AggregatorApplication implements CommandLineRunner {
     @Autowired UserRepository userRepository;
     @Autowired

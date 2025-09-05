@@ -6,6 +6,7 @@ import com.trustai.notification_service.template.render.TemplateRenderer;
 import com.trustai.notification_service.template.service.impl.EmailTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,6 +17,7 @@ public class NotificationService {
     private final TemplateRenderer templateRenderer;
     private final EmailTemplateService emailTemplateService;
 
+    @Async
     public void send(NotificationRequest request) {
         log.info("Preparing to send notification with request: {}", request);
 

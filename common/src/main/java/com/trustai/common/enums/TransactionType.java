@@ -1,22 +1,44 @@
 package com.trustai.common.enums;
 
 public enum TransactionType {
-    DEPOSIT,
-    DEPOSIT_MANUAL,
-    WITHDRAWAL,
-    REFUND,
-    ADD,
-    SUBTRACT,      // ADJUSTMENT
-    SEND_MONEY,    // TRANSFER
-    RECEIVE_MONEY, // TRANSFER
-    INVESTMENT,
-    INVESTMENT_RESERVE,
-    EXCHANGE,
+    // Deposit & Withdrawal
+    DEPOSIT("Deposit"),
+    DEPOSIT_MANUAL("Manual Deposit"),
+    WITHDRAWAL("Withdrawal"),
+    REFUND("Refund"),
 
-    SIGNUP_BONUS,
-    REFERRAL,
-    BONUS,
-    DAILY_INCOME,
-    TEAM_INCOME,
-    INTEREST,
+    // Adjustments
+    ADD("Credit"),
+    SUBTRACT("Debit"),      // ADJUSTMENT
+
+    // Transfers
+    SEND_MONEY("TRANSFER"), // TRANSFER
+    RECEIVE_MONEY("TRANSFER"), // TRANSFER
+
+    // Investments
+    INVESTMENT("Investment"),
+    INVESTMENT_RESERVE("Reserve"),
+
+    // Currency Operations
+    EXCHANGE("Exchange"),
+
+    // Bonuses & Incentives
+    SIGNUP_BONUS("Signup"),
+    REFERRAL("Referral"),
+    BONUS("BONUS"),
+
+    // Earnings
+    DAILY_INCOME("Daily Income"),
+    TEAM_INCOME("Team Income"),
+    INTEREST("Interest");
+
+    private final String displayName;
+
+    TransactionType(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

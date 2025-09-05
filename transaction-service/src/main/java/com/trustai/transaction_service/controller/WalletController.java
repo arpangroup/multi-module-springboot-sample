@@ -1,8 +1,12 @@
 package com.trustai.transaction_service.controller;
 
+import com.trustai.common.controller.BaseController;
 import com.trustai.common.dto.WalletUpdateRequest;
+import com.trustai.common.enums.CurrencyType;
+import com.trustai.transaction_service.dto.response.WalletResponse;
 import com.trustai.transaction_service.entity.Transaction;
 import com.trustai.transaction_service.service.WalletService;
+import jakarta.annotation.security.RolesAllowed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +18,20 @@ import java.math.BigDecimal;
 @RequestMapping("/api/v1/wallet")
 @RequiredArgsConstructor
 @Slf4j
-public class WalletController {
+public class WalletController extends BaseController {
     private final WalletService walletService;
 
+    @GetMapping("/balance")
+    public ResponseEntity<WalletResponse> getWalletBalance() {
+        Long userId = getCurrentUserId();
+        log.info("Fetching wallet balance for userId: {}", userId);
+        BigDecimal walletBalance = walletService.getWalletBalance(userId);
+        return ResponseEntity.ok(new WalletResponse(walletBalance, CurrencyType.USD.getSymbol()));
+    }
+
+//    @RolesAllowed("ADMIN")
     @GetMapping("/balance/{userId}")
-    public ResponseEntity<BigDecimal> getWalletBalance(@PathVariable Long userId) {
+    public ResponseEntity<BigDecimal> getWalletBalanceOfUser(@PathVariable Long userId) {
         log.info("Fetching wallet balance for userId: {}", userId);
         return ResponseEntity.ok(walletService.getWalletBalance(userId));
     }

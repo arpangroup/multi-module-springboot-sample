@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service("localStorageService")
 @RequiredArgsConstructor
@@ -61,20 +62,40 @@ public class LocalStorageService implements StorageService {
     public boolean isFileExist(String id) {
         Path filePath = root.resolve(id);
         return Files.exists(filePath) && Files.isRegularFile(filePath);
+
+        /*try (Stream<Path> paths = Files.walk(root)) {
+            return paths
+                    .filter(Files::isRegularFile)
+                    .anyMatch(path -> path.getFileName().toString().equals(id));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to check if file exists: " + id, e);
+        }*/
+    }
+
+    @Override
+    public FileInfo upload(MultipartFile file, String bucketName) {
+        try {
+            Path directory = (bucketName == null || bucketName.isBlank()) ? root : root.resolve(bucketName);
+
+            // Create directory if it doesn't exist
+            if (!Files.exists(directory)) {
+                Files.createDirectories(directory);
+            }
+
+            Path destination = directory.resolve(file.getOriginalFilename());
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+
+            return mapper.mapToFileInfo(destination, request);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not store the file" + (bucketName != null ? " in bucket " + bucketName : ""), e);
+        }
     }
 
     @Override
     public FileInfo upload(MultipartFile file) {
-        try {
-            Path destination = root.resolve(file.getOriginalFilename());
-            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-            //return destination.toString();
-
-            return mapper.mapToFileInfo(destination, request);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not store the file", e);
-        }
+        return upload(file, null);
     }
+
 
     @Override
     public String upload(File file) {

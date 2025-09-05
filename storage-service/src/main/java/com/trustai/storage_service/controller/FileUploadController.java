@@ -34,7 +34,6 @@ public class FileUploadController {
 
         for (MultipartFile file : files) {
             try {
-                Thread.sleep(2000);
                 FileInfo fileInfo = storageService.upload(file);
                 //uploadedFiles.put(file.getOriginalFilename(), fileId);
                 uploadedFiles.put(fileInfo.getId(), fileInfo);

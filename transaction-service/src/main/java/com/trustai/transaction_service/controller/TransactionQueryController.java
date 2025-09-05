@@ -1,5 +1,7 @@
 package com.trustai.transaction_service.controller;
 
+import com.trustai.common.controller.BaseController;
+import com.trustai.transaction_service.dto.response.TransactionDTO;
 import com.trustai.transaction_service.entity.Transaction;
 import com.trustai.transaction_service.service.TransactionQueryService;
 import lombok.RequiredArgsConstructor;
@@ -12,19 +14,29 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
 @Slf4j
-public class TransactionQueryController {
+public class TransactionQueryController extends BaseController {
     private final TransactionQueryService transactionService;
 
     @GetMapping
-    public ResponseEntity<Page<Transaction>> getTransactions(
+    public ResponseEntity<Page<TransactionDTO>> getTransactions(
             @RequestParam(required = false) Transaction.TransactionStatus status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
+        Long currentUserId = getCurrentUserId();
         log.info("Received request to get transactions with status: {}, page: {}, size: {}", status, page, size);
-        Page<Transaction> paginatedTransactions = transactionService.getTransactions(status, page, size);
-        log.info("Returning {} transactions", paginatedTransactions.getNumberOfElements());
-        return ResponseEntity.ok(paginatedTransactions);
+
+        Page<Transaction> paginatedTransactions;
+        if (!isAdmin()) {
+            paginatedTransactions = transactionService.getTransactionsByUserId(currentUserId, page, size);
+        } else {
+            paginatedTransactions = transactionService.getTransactions(status, page, size);
+        }
+
+        // Convert to DTOs
+        Page<TransactionDTO> dtoPage = paginatedTransactions.map(TransactionDTO::new);
+
+        return ResponseEntity.ok(dtoPage);
     }
 
     @GetMapping("/user/{userId}")

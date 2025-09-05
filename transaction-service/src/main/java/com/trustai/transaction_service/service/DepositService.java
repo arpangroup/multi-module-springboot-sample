@@ -8,6 +8,7 @@ import com.trustai.transaction_service.entity.Transaction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 
@@ -23,7 +24,8 @@ public interface DepositService {
      * @param remarks    additional remarks or comments regarding the manual deposit (optional)
      * @return           a {@link PendingDeposit} object representing the manual deposit
      */
-    PendingDeposit depositManual(ManualDepositRequest request, String createdBy);
+//    PendingDeposit depositManual(long userId, ManualDepositRequest request, String createdBy);
+    PendingDeposit depositManual(long userId, BigDecimal amount, String paymentGateway, String txnId, MultipartFile screenshot);
 
 
     /**
@@ -42,7 +44,7 @@ public interface DepositService {
      * @return           a {@link Transaction} object representing the completed deposit
      */
     //Transaction deposit(long userId, @NonNull BigDecimal amount, @NonNull PaymentGateway paymentGateway, Optional<BigDecimal> txnFee, String txnRefId, Transaction.TransactionStatus status, String metaInfo);
-    PendingDeposit deposit(@NonNull DepositRequest depositRequest);
+    PendingDeposit deposit(long userId, @NonNull DepositRequest depositRequest);
 
 
     PendingDeposit approvePendingDeposit(Long depositId, String adminUser);

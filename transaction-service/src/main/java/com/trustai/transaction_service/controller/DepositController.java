@@ -1,5 +1,6 @@
 package com.trustai.transaction_service.controller;
 
+import com.trustai.common.controller.BaseController;
 import com.trustai.common.dto.ApiResponse;
 import com.trustai.transaction_service.dto.request.RejectDepositRequest;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
@@ -15,14 +16,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/v1/deposits")
 @RequiredArgsConstructor
 @Slf4j
-public class DepositController {
+public class DepositController extends BaseController {
     private final DepositService depositService;
     private String ADMIN_USER = "Admin";
 
@@ -43,19 +48,36 @@ public class DepositController {
     public ResponseEntity<ApiResponse> depositNow(@RequestBody @Valid DepositRequest request) {
         //return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Automatic Deposit is Currently Disabled in Backend"));
         log.info("Received deposit request: {}", request);
-        PendingDeposit deposit = depositService.deposit(request);
-        log.info("Standard deposit completed for userId: {}. Transaction ID: {}", request.getUserId(), deposit.getId());
+        Long currentUserId = getCurrentUserId();
+        PendingDeposit deposit = depositService.deposit(currentUserId, request);
+        log.info("Standard deposit completed for userId: {}. Transaction ID: {}", currentUserId, deposit.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Deposit successfully completed."));
+    }
+
+    @PostMapping(value = "/manual", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse> manualDeposit(
+            @RequestParam("amount") BigDecimal amount,
+            @RequestParam("paymentGateway") String paymentGateway,
+            @RequestParam("txnId") String txnId,
+            @RequestPart("screenshot") MultipartFile screenshot
+    ) {
+        //return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Automatic Deposit is Currently Disabled in Backend"));
+        Long currentUserId = getCurrentUserId();
+        log.info("Received deposit request for userId: {}, amount: {}, txnId: {}", currentUserId, amount, txnId);
+        PendingDeposit deposit = depositService.depositManual(currentUserId, amount, paymentGateway, txnId, screenshot);
+        log.info("Standard deposit completed for userId: {}. Transaction ID: {}", currentUserId, deposit.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Deposit successfully completed."));
     }
 
     // Only by ADMIN
-    @PostMapping("/manual")
+    /*@PostMapping("/manual")
     public ResponseEntity<ApiResponse> manualDeposit(@RequestBody @Valid ManualDepositRequest request) {
         log.info("Received manualDeposit request: {}", request);
-        PendingDeposit pendingDeposit = depositService.depositManual(request, ADMIN_USER);
-        log.info("Manual deposit completed for userId: {}. PendingDeposit ID: {}", request.getUserId(), pendingDeposit.getId());
+        Long currentUserId = getCurrentUserId();
+        PendingDeposit pendingDeposit = depositService.depositManual(currentUserId, request, ADMIN_USER);
+        log.info("Manual deposit completed for userId: {}. PendingDeposit ID: {}", currentUserId, pendingDeposit.getId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success("Deposit Request Accepted!"));
-    }
+    }*/
 
     @PostMapping("/approve/{id}")
     public ResponseEntity<ApiResponse> approve(@PathVariable Long id) {

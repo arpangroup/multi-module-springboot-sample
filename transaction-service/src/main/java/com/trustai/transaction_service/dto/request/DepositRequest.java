@@ -27,8 +27,8 @@ public class DepositRequest extends ManualDepositRequest {
     /*@Size(max = 3, message = "currencyCode must not exceed 3 characters")
     private String currencyCode;*/
 
-    public DepositRequest(Long userId, BigDecimal amount, String paymentGateway, String txnRefId, String remarks, String metaInfo) {
-        super(userId, amount, metaInfo, remarks);
+    public DepositRequest(BigDecimal amount, String paymentGateway, String txnRefId, String remarks, String metaInfo) {
+        super(amount, txnRefId, metaInfo, remarks);
         this.paymentGateway = paymentGateway;
         this.txnRefId = txnRefId;
     }

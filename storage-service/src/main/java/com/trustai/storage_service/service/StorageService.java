@@ -12,6 +12,7 @@ public interface StorageService {
     List<FileInfo> listAllFiles();
     FileInfo getFile(String id);
     boolean isFileExist(String id);
+    FileInfo upload(MultipartFile file, String bucketName);
     FileInfo upload(MultipartFile file);
     String upload(File file);
     InputStream  download(String fileId);

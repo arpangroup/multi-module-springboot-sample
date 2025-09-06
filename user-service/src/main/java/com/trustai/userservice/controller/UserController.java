@@ -80,13 +80,15 @@ public class UserController extends BaseController {
         return ResponseEntity.ok(userService.updateUser(userId, fieldsToUpdate));
     }
 
-    @PutMapping("/{userId}/account-status")
+    @PutMapping("/account-status/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> updateAccountStatus(@PathVariable Long userId, @RequestParam User.AccountStatus status) {
         User user = userAccountService.updateAccountStatus(userId, status);
         return ResponseEntity.ok(user);
     }
 
-    @PutMapping("/{userId}/transaction-status")
+    @PutMapping("/transaction-status/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> updateTransactionStatus(@PathVariable Long userId,
                                         @RequestParam(required = false) User.TransactionStatus depositStatus,
                                         @RequestParam(required = false) User.TransactionStatus withdrawStatus,
@@ -96,7 +98,8 @@ public class UserController extends BaseController {
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping("/{userId}/update-password")
+    @PostMapping("/update-password/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updatePassword(@PathVariable Long userId, @RequestBody PasswordUpdateRequest passwordUpdateRequest) {
         log.info("Updating password for user ID: {}", userId);
         boolean success = userService.updatePassword(

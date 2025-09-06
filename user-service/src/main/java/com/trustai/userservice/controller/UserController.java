@@ -3,6 +3,7 @@ package com.trustai.userservice.controller;
 import com.trustai.common.auth.registration.RegistrationService;
 import com.trustai.common.controller.BaseController;
 import com.trustai.common.domain.user.User;
+import com.trustai.common.dto.UserDetailsInfo;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.repository.user.UserRepository;
 import com.trustai.userservice.user.dto.PasswordUpdateRequest;
@@ -14,8 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,24 +44,28 @@ public class UserController extends BaseController {
     }*/
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserInfo>> users(
             @RequestParam(required = false) User.AccountStatus status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
+        List<String> roles = getCurrentUserRoles();
+        boolean isAdminUser = isAdmin();
         Page<UserInfo> paginatedUsers = userService.getUsers(status, page, size);
         return ResponseEntity.ok(paginatedUsers);
     }
 
-    /*
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDetailsInfo> getUserInfoDetails(@PathVariable Long userId) {
         log.info("getUserInfo for User ID: {}......", userId);
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(mapper.mapToDetails(user));
-    }*/
+    }
 
     @GetMapping("/info")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserInfo> getUserInfo() {
         log.info("getUserInfo ..............");
         Long userId = getCurrentUserId();

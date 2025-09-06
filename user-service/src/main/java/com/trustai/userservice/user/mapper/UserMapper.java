@@ -51,7 +51,7 @@ public class UserMapper {
 
     public UserDetailsInfo mapToDetails(User user) {
         final User referrer = user.getReferrer();
-        String referrerId = IdConverter.encode(referrer.getId());
+        //String referrerId = IdConverter.encode(referrer.getId());
         return UserDetailsInfo.builder()
                 .id(user.getId())
                 .username(user.getUsername())

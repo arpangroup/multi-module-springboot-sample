@@ -33,6 +33,7 @@ public class CustomUserDetails implements UserDetails {
         this.roles = user.getRoles() != null ? user.getRoles() : Collections.emptySet();
         this.authorities = roles.stream()
                 .map(Role::getName)
+                .map(name -> "ROLE_" + name)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet());
         this.accountStatus = user.accountStatus;

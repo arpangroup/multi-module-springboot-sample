@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/files")
-public class FileUploadController {
+@RequestMapping("/api/v1/images")
+public class StorageController {
     private final StorageService storageService;
 
     @Autowired
-    public FileUploadController(StorageService storageService) {
+    public StorageController(StorageService storageService) {
         this.storageService = storageService;
     }
 

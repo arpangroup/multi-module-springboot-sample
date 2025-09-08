@@ -18,5 +18,7 @@ public class SchemaUpsertRequest {
     private Integer totalReturnPeriods;
     private Long returnScheduleId;
     private Boolean capitalReturned;
+    private String imageUrl;
     private Boolean active;
+    private Boolean imageUrlSet;
 }

@@ -128,6 +128,8 @@ public class SchemaServiceImpl implements SchemaService {
         schema.setLinkedRank(request.getLinkedRankCode());
         schema.setTitle(title);                 // default ==> title is mandatory
         schema.setSchemaBadge(title);           // default
+        schema.setImageUrl(request.getImageUrl());
+        schema.setInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
         schema.setSchemaType(SchemaType.RANGE); // default
         schema.setMinimumInvestmentAmount(minInvestAmount);
         schema.setMaximumInvestmentAmount(maxInvestAmount);
@@ -158,6 +160,10 @@ public class SchemaServiceImpl implements SchemaService {
                     case "schemaBadge" -> {
                         schema.setSchemaBadge((String) value);
                         log.debug("Updated field 'schemaBadge' to '{}'", value);
+                    }
+                    case "imageUrl" -> {
+                        schema.setImageUrl((String) value);
+                        log.debug("Updated field 'imageUrl' to '{}'", value);
                     }
                     case "schemaType" -> {
                         schema.setSchemaType(SchemaType.valueOf((String) value));
@@ -327,6 +333,7 @@ public class SchemaServiceImpl implements SchemaService {
         if (request.getReturnRate() != null) schema.setReturnRate(request.getReturnRate());
         if (request.getTotalReturnPeriods() != null) schema.setTotalReturnPeriods(request.getTotalReturnPeriods());
         if (request.getCapitalReturned() != null) schema.setCapitalReturned(request.getCapitalReturned());
+        if (request.getImageUrl() != null) schema.setImageUrl(request.getImageUrl());
         if (request.getActive() != null) schema.setActive(request.getActive());
 
         if (request.getReturnScheduleId() != null) {

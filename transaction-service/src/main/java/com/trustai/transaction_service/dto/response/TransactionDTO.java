@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 public class TransactionDTO {
     private Long id;
+    private String user;
     private BigDecimal amount;
     private BigDecimal balance;
     private String txnRefId;
@@ -22,6 +23,7 @@ public class TransactionDTO {
     // Constructor
     public TransactionDTO(Transaction txn) {
         this.id = txn.getId();
+        this.user = txn.getCreatedBy();
         this.amount = txn.getAmount();
         this.balance = txn.getBalance();
         this.txnRefId = txn.getTxnRefId();

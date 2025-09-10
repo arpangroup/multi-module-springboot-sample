@@ -1,11 +1,15 @@
 package com.trustai.common.config;
 
+import com.trustai.common.constants.CommonConstants;
+import com.trustai.common.constants.SecurityConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestClient;
 
 @Configuration
@@ -35,6 +39,19 @@ public class RestClientConfig {
         };
     }
 
+    private ClientHttpRequestInterceptor userPropagationInterceptor() {
+        return (request, body, execution) -> {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated()) {
+                String username = auth.getName();
+                // Add custom header to propagate user
+                request.getHeaders().add(CommonConstants.HEADER_X_USERNAME, username);
+                log.debug("Propagating X-User-Name: {}", username);
+            }
+            return execution.execute(request, body);
+        };
+    }
+
     @Bean
     public RestClient userServiceRestClient(RestClient.Builder builder) {
         return builder
@@ -44,6 +61,7 @@ public class RestClientConfig {
 //                    return execution.execute(request, body);
 //                })
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + internalToken)
+                .requestInterceptor(userPropagationInterceptor())
                 .requestInterceptor(loggingInterceptor())
                 //.requestInterceptor(loggingResponseInterceptor())
                 .build();
@@ -54,6 +72,7 @@ public class RestClientConfig {
         return builder
                 .baseUrl("http://localhost:8080/api/v1")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + internalToken)
+                .requestInterceptor(userPropagationInterceptor())
                 .requestInterceptor(loggingInterceptor())
                 //.requestInterceptor(loggingResponseInterceptor())
                 .build();

@@ -238,6 +238,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                 .canCancelNow(periodHelper.isCancellableNow(investment))
                 .isWithdrawableNow(isWithdrawable(investment))
                 .daysRemaining((int) Duration.between(LocalDateTime.now(), maturity).toDays())
+                .createdBy(investment.getCreatedBy())
                 .build();
     }
 

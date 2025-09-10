@@ -6,6 +6,7 @@ public class CommonConstants {
     public static final String IMAGE_PATH = "/images";
 
     public static final String HEADER_ACTING_USER_ID = "X-Acting-User-Id";
+    public static final String HEADER_X_USERNAME =  "X-User-Name";
 
 
     public static final String ROLE_USER = "USER";

@@ -25,13 +25,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     Page<Transaction> findByStatus(Transaction.TransactionStatus status, Pageable pageable);
 
 
-    Page<Transaction> findByUserId(Long userId, Pageable pageable);
-    Page<Transaction> findByUserIdAndTxnType(Long userId, TransactionType transactionType, Pageable pageable);
+    Page<Transaction> findByUserId(String userId, Pageable pageable);
+    Page<Transaction> findByUserIdAndTxnType(String userId, TransactionType transactionType, Pageable pageable);
 
-    boolean existsByUserIdAndTxnType(Long userId, TransactionType txnType);
+    boolean existsByUserIdAndTxnType(String userId, TransactionType txnType);
 
     // 2. Date range filter
-    Page<Transaction> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
+    Page<Transaction> findByUserIdAndCreatedAtBetween(String userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // 3. Reference ID lookup
     Optional<Transaction> findByTxnRefId(String txnRefId);
@@ -40,7 +40,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     Page<Transaction> findBySenderId(Long senderId, Pageable pageable);
 
     // 5. Composite filter
-    Page<Transaction> findByUserIdAndStatusAndGateway(Long userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable);
+    Page<Transaction> findByUserIdAndStatusAndGateway(String userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable);
 
     // 6. Meta info search
     Page<Transaction> findByMetaInfoContainingIgnoreCase(String keyword, Pageable pageable);
@@ -50,12 +50,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             "WHERE t.userId = :userId AND " +
             "(LOWER(t.remarks) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(t.metaInfo) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<Transaction> searchByUserIdAndKeyword(@Param("userId") Long userId, @Param("keyword") String keyword, Pageable pageable);
+    Page<Transaction> searchByUserIdAndKeyword(@Param("userId") String userId, @Param("keyword") String keyword, Pageable pageable);
 
     // 8. Aggregation
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
             "WHERE t.userId = :userId AND t.txnType = :txnType")
-    BigDecimal sumAmountByUserIdAndTxnType(@Param("userId") Long userId, @Param("txnType") TransactionType txnType);
+    BigDecimal sumAmountByUserIdAndTxnType(@Param("userId") String userId, @Param("txnType") TransactionType txnType);
 
     @Query("""
     SELECT SUM(t.amount)
@@ -65,21 +65,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
       AND t.status IN :statuses
     """)
     BigDecimal sumAmountByUserIdAndTxnTypeAndStatusIn(
-            @Param("userId") Long userId,
+            @Param("userId") String userId,
             @Param("txnTypes") List<TransactionType> txnTypes,
             @Param("statuses") List<Transaction.TransactionStatus> statuses
     );
 
     // 9. Recent N transactions
-    List<Transaction> findTop10ByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Transaction> findTop10ByUserIdOrderByCreatedAtDesc(String userId);
 
     // 10. Suspicious transactions
     List<Transaction> findByAmountGreaterThanEqual(BigDecimal threshold);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.txnType IN (:creditTypes)")
-    BigDecimal sumCredits(@Param("userId") Long userId);
+    BigDecimal sumCredits(@Param("userId") String userId);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.txnType IN (:debitTypes)")
-    BigDecimal sumDebits(@Param("userId") Long userId);
+    BigDecimal sumDebits(@Param("userId") String userId);
 
 }

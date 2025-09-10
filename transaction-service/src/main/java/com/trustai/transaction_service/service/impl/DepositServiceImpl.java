@@ -171,7 +171,7 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public BigDecimal getTotalDeposit(long userId) {
+    public BigDecimal getTotalDeposit(String userId) {
         BigDecimal total = transactionRepository.sumAmountByUserIdAndTxnTypeAndStatusIn(
                 userId,
                 List.of(TransactionType.DEPOSIT, TransactionType.DEPOSIT_MANUAL),
@@ -186,7 +186,7 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public Page<DepositHistoryItem> getDepositHistory(Long userId, Pageable pageable) {
+    public Page<DepositHistoryItem> getDepositHistory(String userId, Pageable pageable) {
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"));
 
         Page<Transaction> transactions = transactionRepository.findByUserIdAndTxnType(userId, TransactionType.DEPOSIT, pageable);

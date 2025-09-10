@@ -53,7 +53,7 @@ public interface DepositService {
     /**
      * Returns total deposited amount for a user.
      */
-    BigDecimal getTotalDeposit(long userId);
+    BigDecimal getTotalDeposit(String userId);
 
     /**
      * To prevent duplicate deposits due to retries from client/paymentGateway:
@@ -71,7 +71,7 @@ public interface DepositService {
      * @param pageable
      * @return
      */
-    Page<DepositHistoryItem> getDepositHistory(Long userId, Pageable pageable);
+    Page<DepositHistoryItem> getDepositHistory(String userId, Pageable pageable);
     Page<DepositHistoryItem> getDepositHistory(PendingDeposit.DepositStatus status, Pageable pageable);
 
     /**

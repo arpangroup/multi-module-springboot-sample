@@ -16,13 +16,13 @@ public interface TransactionQueryService {
     // ------------------------------------------------------------------------
     Page<Transaction> getTransactions(Transaction.TransactionStatus status, Integer page, Integer size);
     Page<Transaction> getProfits(Integer page, Integer size);
-    Page<Transaction> getTransactionsByUserId(Long userId, Integer page, Integer size);
-    Boolean hasDepositTransaction(Long userId);
+    Page<Transaction> getTransactionsByUserId(String userId, Integer page, Integer size);
+    Boolean hasDepositTransaction(String userId);
 
     // ------------------------------------------------------------------------
     // 2. Time-based and Range Filters
     // ------------------------------------------------------------------------
-    Page<Transaction> getTransactionsByUserIdAndDateRange(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
+    Page<Transaction> getTransactionsByUserIdAndDateRange(String userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
 
     // ------------------------------------------------------------------------
@@ -35,13 +35,13 @@ public interface TransactionQueryService {
     // 4. Transfer-Specific Queries: Search by Sender & Receiver (for transfers)
     // ------------------------------------------------------------------------
     Page<Transaction> findTransfersBySenderId(Long senderId, Pageable pageable);
-    Page<Transaction> findTransfersByReceiverId(Long receiverId, Pageable pageable);
+    Page<Transaction> findTransfersByReceiverId(String receiverId, Pageable pageable);
 
     // ------------------------------------------------------------------------
     // 5. Filtering by Combined Criteria
     // ------------------------------------------------------------------------
-    Page<Transaction> findByUserIdAndStatusAndGateway(Long userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable);
-    Page<Transaction> searchTransactions(Long userId,
+    Page<Transaction> findByUserIdAndStatusAndGateway(String userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable);
+    Page<Transaction> searchTransactions(String userId,
                                          Transaction.TransactionStatus status,
                                          TransactionType type,
                                          PaymentGateway gateway,
@@ -54,18 +54,18 @@ public interface TransactionQueryService {
     // 6. Free Text Search (Meta Info / Remarks) : Admin Use: Search by Meta Info (like investmentType, bonusReason)
     // ------------------------------------------------------------------------
     Page<Transaction> searchByMetaInfo(String keyword, Pageable pageable); // e.g., LIKE '%staking%'
-    Page<Transaction> searchByKeyword(Long userId, String keyword, Pageable pageable);
+    Page<Transaction> searchByKeyword(String userId, String keyword, Pageable pageable);
 
     // ------------------------------------------------------------------------
     // 7. Aggregation and Reporting
     // ------------------------------------------------------------------------
-    BigDecimal getTotalAmountByUserIdAndTxnType(Long userId, TransactionType txnType);
+    BigDecimal getTotalAmountByUserIdAndTxnType(String userId, TransactionType txnType);
 
 
     // ------------------------------------------------------------------------
     // 8. Recent Activity : Recent N Transactions
     // ------------------------------------------------------------------------
-    List<Transaction> findTop10ByUserIdOrderByTxnDateDesc(Long userId);
+    List<Transaction> findTop10ByUserIdOrderByTxnDateDesc(String userId);
 
 
     // ------------------------------------------------------------------------

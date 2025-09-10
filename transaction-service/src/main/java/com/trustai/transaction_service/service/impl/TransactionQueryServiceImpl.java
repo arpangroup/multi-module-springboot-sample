@@ -68,7 +68,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
 
     @Override
     //@Timed(value = "transaction.getTransactionsByUserId.time", description = "Time taken to fetch user transactions")
-    public Page<Transaction> getTransactionsByUserId(Long userId, Integer page, Integer size) {
+    public Page<Transaction> getTransactionsByUserId(String userId, Integer page, Integer size) {
         int pageNumber = (page != null) ? page : 0;
         int pageSize = (size != null) ? size : 10;
         log.info("Fetching transactions for userId: {}, page: {}, size: {}", userId, pageNumber, pageSize);
@@ -81,7 +81,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public Boolean hasDepositTransaction(Long userId) {
+    public Boolean hasDepositTransaction(String userId) {
         log.info("Checking if userId: {} has any DEPOSIT transactions", userId);
         boolean exists = transactionRepository.existsByUserIdAndTxnType(userId, TransactionType.DEPOSIT);
         log.info("UserId: {} has DEPOSIT transaction: {}", userId, exists);
@@ -89,7 +89,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public Page<Transaction> getTransactionsByUserIdAndDateRange(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable) {
+    public Page<Transaction> getTransactionsByUserIdAndDateRange(String userId, LocalDateTime start, LocalDateTime end, Pageable pageable) {
         log.info("Fetching transactions for userId: {} between {} and {}", userId, start, end);
         return transactionRepository.findByUserIdAndCreatedAtBetween(userId, start, end, pageable);
     }
@@ -114,19 +114,19 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public Page<Transaction> findTransfersByReceiverId(Long receiverId, Pageable pageable) {
+    public Page<Transaction> findTransfersByReceiverId(String receiverId, Pageable pageable) {
         log.info("Fetching transfers by receiverId: {}", receiverId);
         return transactionRepository.findByUserId(receiverId, pageable);
     }
 
     @Override
-    public Page<Transaction> findByUserIdAndStatusAndGateway(Long userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable) {
+    public Page<Transaction> findByUserIdAndStatusAndGateway(String userId, Transaction.TransactionStatus status, PaymentGateway gateway, Pageable pageable) {
         log.info("Fetching transactions for userId: {}, status: {}, paymentGateway: {}", userId, status, gateway);
         return transactionRepository.findByUserIdAndStatusAndGateway(userId, status, gateway, pageable);
     }
 
     @Override
-    public Page<Transaction> searchTransactions(Long userId, Transaction.TransactionStatus status, TransactionType type,
+    public Page<Transaction> searchTransactions(String userId, Transaction.TransactionStatus status, TransactionType type,
                                                 PaymentGateway gateway,
                                                 LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
         log.info("Searching transactions with filters - userId: {}, status: {}, type: {}, paymentGateway: {}, from: {}, to: {}",
@@ -154,13 +154,13 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public Page<Transaction> searchByKeyword(Long userId, String keyword, Pageable pageable) {
+    public Page<Transaction> searchByKeyword(String userId, String keyword, Pageable pageable) {
         log.info("Searching transactions for userId: {} with keyword: {}", userId, keyword);
         return transactionRepository.searchByUserIdAndKeyword(userId, keyword, pageable);
     }
 
     @Override
-    public BigDecimal getTotalAmountByUserIdAndTxnType(Long userId, TransactionType txnType) {
+    public BigDecimal getTotalAmountByUserIdAndTxnType(String userId, TransactionType txnType) {
         log.info("Calculating total amount for userId: {}, txnType: {}", userId, txnType);
         BigDecimal total = transactionRepository.sumAmountByUserIdAndTxnType(userId, txnType);
         log.info("Total amount: {} for userId: {}, txnType: {}", total, userId, txnType);
@@ -168,7 +168,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public List<Transaction> findTop10ByUserIdOrderByTxnDateDesc(Long userId) {
+    public List<Transaction> findTop10ByUserIdOrderByTxnDateDesc(String userId) {
         log.info("Fetching top 10 recent transactions for userId: {}", userId);
         return transactionRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
     }

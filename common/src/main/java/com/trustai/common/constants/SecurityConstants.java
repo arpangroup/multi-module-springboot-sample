@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class SecurityConstants {
+
     private static final long VALIDITY_1_HOUR   = 3600_000; // 60 * 60 * 1000
     private static final long VALIDITY_1_MINUTE = 60_000;   // 1 * 60 * 1000
     private static final long VALIDITY_2_MINUTE = 120_000;   // 2 * 60 * 1000

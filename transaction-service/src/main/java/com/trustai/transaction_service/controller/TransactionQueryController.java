@@ -23,7 +23,7 @@ public class TransactionQueryController extends BaseController {
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
-        Long currentUserId = getCurrentUserId();
+        String currentUserId = getCurrentUserId() + "";
         log.info("Received request to get transactions with status: {}, page: {}, size: {}", status, page, size);
 
         Page<Transaction> paginatedTransactions;
@@ -41,7 +41,7 @@ public class TransactionQueryController extends BaseController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<Transaction>> getTransactionsByUserId(
-            @PathVariable Long userId,
+            @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {

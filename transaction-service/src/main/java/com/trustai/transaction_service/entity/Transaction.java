@@ -2,12 +2,15 @@ package com.trustai.transaction_service.entity;
 
 import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import com.trustai.transaction_service.util.TransactionIdGenerator;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,8 +24,8 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
+    @Column(nullable = false, length = 10)
+    private String userId;
 
     @Column(nullable = true)
     @Setter
@@ -96,15 +99,21 @@ public class Transaction {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        this.createdBy = getCurrentUsername();
+        this.updatedBy = getCurrentUsername();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+
+        String currentUserId = getCurrentUserId();
+        this.updatedBy = currentUserId;
     }
 
     public Transaction(long userId, BigDecimal amount, @NotNull TransactionType transactionType, BigDecimal balance, boolean isCredit) {
-        this.userId = userId;
+        this.userId = String.valueOf(userId);
         this.amount = amount;
         this.txnType = transactionType;
         this.balance = balance == null ? BigDecimal.ZERO : balance;
@@ -118,5 +127,13 @@ public class Transaction {
         SUCCESS,
         FAILED,
         CANCELLED;
+    }
+
+    private String getCurrentUserId() {
+        return RequestContextHolderUtils.getCurrentUserId() + "";
+    }
+
+    private String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
     }
 }

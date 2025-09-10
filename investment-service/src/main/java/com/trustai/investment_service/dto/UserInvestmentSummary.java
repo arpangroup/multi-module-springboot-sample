@@ -76,4 +76,6 @@ public class UserInvestmentSummary {
     private boolean canCancelNow; // Add logic to check grace period
     private boolean isWithdrawableNow; // Based on periodic returns
     private int daysRemaining;  // Add via helper for Duration.between(now, maturityAt)
+
+    private String createdBy;
 }

@@ -2,7 +2,7 @@ name: Deploy (Docker + GHCR)
 
 on:
   push:
-    branches: ["main", "fix-sept-05"]
+    branches: ["main", "fix-10-sept-investment-schema"]
   workflow_dispatch:
     inputs:
       image_tag:

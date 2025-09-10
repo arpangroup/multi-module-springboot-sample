@@ -1,6 +1,7 @@
 package com.trustai.investment_service.repository;
 
 import com.trustai.investment_service.entity.InvestmentSchema;
+import com.trustai.investment_service.enums.InvestmentType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,14 +12,15 @@ import java.util.Optional;
 
 @Repository
 public interface SchemaRepository extends JpaRepository<InvestmentSchema, Long> {
+    boolean existsByName(String name);
     List<InvestmentSchema> findByLinkedRank(String linkedRank);
     Page<InvestmentSchema> findByLinkedRank(String linkedRank, Pageable pageable);
-    Page<InvestmentSchema> findByLinkedRankAndInvestmentSubType(String rankCode, InvestmentSchema.InvestmentSubType investmentSubType, Pageable pageable);
-    Page<InvestmentSchema> findByInvestmentSubType(InvestmentSchema.InvestmentSubType investmentSubType, Pageable pageable);
+    Page<InvestmentSchema> findByLinkedRankAndInvestmentType(String rankCode, InvestmentType investmentSubType, Pageable pageable);
+    Page<InvestmentSchema> findByInvestmentType(InvestmentType investmentType, Pageable pageable);
 
-    List<InvestmentSchema> findByIsActiveTrueAndInvestmentSubType(InvestmentSchema.InvestmentSubType investmentSubType);
+    List<InvestmentSchema> findByIsActiveTrueAndInvestmentType(InvestmentType investmentSubType);
 
     //List<InvestmentSchema> findByLinkedRankAndIsActiveTrue(String linkedRank);
 
-    Optional<InvestmentSchema> findTopByInvestmentSubTypeAndIsActiveTrueOrderByPriceDesc(InvestmentSchema.InvestmentSubType subType);
+    Optional<InvestmentSchema> findTopByInvestmentTypeAndIsActiveTrueOrderByMinimumInvestmentAmountDesc(InvestmentType investmentType);
 }

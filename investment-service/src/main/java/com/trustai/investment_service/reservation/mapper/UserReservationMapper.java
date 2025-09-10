@@ -11,7 +11,7 @@ public class UserReservationMapper {
         InvestmentSchema schema = reservation.getSchema();
         return UserReservationDto.builder()
                 .reservationId(reservation.getId())
-                .schemaTitle(reservation.getSchema().getTitle())
+                .schemaTitle(reservation.getSchema().getName())
                 .imageUrl(reservation.getSchema().getImageUrl())
                 .reservedAmount(reservation.getReservedAmount())
                 .reservedAt(reservation.getReservedAt())

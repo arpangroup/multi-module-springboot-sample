@@ -7,6 +7,7 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.investment_service.dto.EligibleInvestmentSummary;
 import com.trustai.investment_service.dto.SchemaSummary;
 import com.trustai.investment_service.entity.InvestmentSchema;
+import com.trustai.investment_service.enums.InvestmentType;
 import com.trustai.investment_service.repository.SchemaRepository;
 import com.trustai.investment_service.reservation.service.ReservationEligibilityService;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,7 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
                 });
         log.info("Generating investment summary for ranks (userRankOrder={}): {}", userRank.getRankOrder(), userRankCode);
 
-        List<InvestmentSchema> activeSchemas = schemaRepository.findByIsActiveTrueAndInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
+        List<InvestmentSchema> activeSchemas = schemaRepository.findByIsActiveTrueAndInvestmentType(InvestmentType.STAKE);
         log.debug("Fetched total active schemas: {}", activeSchemas.size());
 
         return allRanks.stream().map(rank -> {
@@ -77,7 +78,7 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
 
             // Convert to SchemaSummary DTO
             List<SchemaSummary> schemaSummaries = eligibleSchemas.stream()
-                    .map(schema -> new SchemaSummary(schema.getId(), schema.getTitle(), schema.getReturnRate()))
+                    .map(schema -> new SchemaSummary(schema.getId(), schema.getName(), schema.getReturnRate()))
                     .toList();
 
             EligibleInvestmentSummary dto = new EligibleInvestmentSummary();

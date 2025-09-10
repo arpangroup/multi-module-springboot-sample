@@ -61,7 +61,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                 TransactionType.INVESTMENT,
                 false,
                 "investment",
-                "Investment subscription: " + schema.getTitle(),
+                "Investment subscription: " + schema.getName(),
                 null
         );
         TransactionDto txn = walletApi.updateWalletBalance(userId, deductRequest);
@@ -171,7 +171,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                 TransactionType.REFUND,
                 true,
                 "investment-cancel",
-                "Investment cancelled: " + schema.getTitle(),
+                "Investment cancelled: " + schema.getName(),
                 null
         );
         TransactionDto refundTxn = walletApi.updateWalletBalance(investment.getUserId(), refundCreditRequest);
@@ -211,7 +211,7 @@ public class InvestmentServiceImpl implements InvestmentService {
 
         return UserInvestmentSummary.builder()
                 .investmentId(investment.getId())
-                .schemaName(schema.getTitle())
+                .schemaName(schema.getName())
                 .amountRange(formatAmountRange(schema.getMinimumInvestmentAmount(), schema.getMaximumInvestmentAmount()))
                 .imageUrl(schema.getImageUrl())
                 .investedAmount(investment.getInvestedAmount())

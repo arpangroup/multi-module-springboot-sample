@@ -39,7 +39,7 @@ public class InvestmentSchemaDataInitializer {
 
         // Investment Schema 1 - FIXED + PERIOD + cancellable
         InvestmentSchema schema1 = new InvestmentSchema();
-        schema1.setTitle("Fixed 1-Year Plan");
+        schema1.setName("Fixed 1-Year Plan");
         schema1.setSchemaBadge("FIXED_PLAN");
         schema1.setSchemaType(SchemaType.FIXED);
         schema1.setMinimumInvestmentAmount(new BigDecimal("1000.00"));
@@ -66,7 +66,7 @@ public class InvestmentSchemaDataInitializer {
 
         // Investment Schema 2 - RANGE + LIFETIME + not cancellable
         InvestmentSchema schema2 = new InvestmentSchema();
-        schema2.setTitle("Flexible Lifetime Growth Plan");
+        schema2.setName("Flexible Lifetime Growth Plan");
         schema2.setSchemaBadge("LIFETIME_PLAN");
         schema2.setSchemaType(SchemaType.RANGE);
         schema2.setMinimumInvestmentAmount(new BigDecimal("500.00"));
@@ -92,7 +92,7 @@ public class InvestmentSchemaDataInitializer {
 
         // Investment Schema 3 - FIXED + LIFETIME + cancellable
         InvestmentSchema schema3 = new InvestmentSchema();
-        schema3.setTitle("Fixed Income for Life");
+        schema3.setName("Fixed Income for Life");
         schema3.setSchemaBadge("CRYPTO");
         schema3.setSchemaType(SchemaType.FIXED);
         schema3.setMinimumInvestmentAmount(new BigDecimal("2500.00"));
@@ -118,7 +118,7 @@ public class InvestmentSchemaDataInitializer {
 
         // Investment Schema 4 - RANGE + PERIOD + not cancellable
         InvestmentSchema schema4 = new InvestmentSchema();
-        schema4.setTitle("Dynamic Tiered Plan");
+        schema4.setName("Dynamic Tiered Plan");
         schema4.setSchemaBadge("DYNAMIC");
         schema4.setSchemaType(SchemaType.RANGE);
         schema4.setMinimumInvestmentAmount(new BigDecimal("1000.00"));
@@ -144,7 +144,7 @@ public class InvestmentSchemaDataInitializer {
         schemaRepository.save(schema4);
 
         InvestmentSchema weeklyRoiSchema = new InvestmentSchema();
-        weeklyRoiSchema.setTitle("Weekly Growth Plan");
+        weeklyRoiSchema.setName("Weekly Growth Plan");
         weeklyRoiSchema.setSchemaType(SchemaType.FIXED);
         weeklyRoiSchema.setMinimumInvestmentAmount(new BigDecimal("1000"));
         weeklyRoiSchema.setMaximumInvestmentAmount(new BigDecimal("1000"));
@@ -162,7 +162,7 @@ public class InvestmentSchemaDataInitializer {
         schemaRepository.save(weeklyRoiSchema);
 
         InvestmentSchema monthlySchema = new InvestmentSchema();
-        monthlySchema.setTitle("Monthly Growth Plan");
+        monthlySchema.setName("Monthly Growth Plan");
         monthlySchema.setSchemaType(SchemaType.FIXED);
         monthlySchema.setMinimumInvestmentAmount(new BigDecimal("1000"));
         monthlySchema.setMaximumInvestmentAmount(new BigDecimal("1000"));
@@ -181,7 +181,7 @@ public class InvestmentSchemaDataInitializer {
 
 
         InvestmentSchema schema15 = new InvestmentSchema();
-        schema15.setTitle("CRYPTO_15$");
+        schema15.setName("CRYPTO_15$");
         schema15.setSchemaBadge("LIFETIME_PLAN");
         schema15.setSchemaType(SchemaType.FIXED);
         schema15.setMinimumInvestmentAmount(new BigDecimal("15.00"));
@@ -207,7 +207,7 @@ public class InvestmentSchemaDataInitializer {
         schemaRepository.save(schema15);
 
         InvestmentSchema schema40 = new InvestmentSchema();
-        schema40.setTitle("CRYPTO_40$");
+        schema40.setName("CRYPTO_40$");
         schema40.setSchemaBadge("LIFETIME_PLAN");
         schema40.setSchemaType(SchemaType.FIXED);
         schema40.setMinimumInvestmentAmount(new BigDecimal("40.00"));

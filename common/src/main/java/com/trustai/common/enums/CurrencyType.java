@@ -1,5 +1,7 @@
 package com.trustai.common.enums;
 
+import java.util.Arrays;
+
 public enum CurrencyType {
     BTC("₿"),      // Bitcoin
     ETH("Ξ"),      // Ethereum
@@ -17,5 +19,13 @@ public enum CurrencyType {
 
     public String getSymbol() {
         return symbol;
+    }
+
+
+    public static CurrencyType fromString(String value) {
+        return Arrays.stream(CurrencyType.values())
+                .filter(e -> e.name().equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid schema type: " + value));
     }
 }

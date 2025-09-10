@@ -1,9 +1,12 @@
 package com.trustai.investment_service.controller;
 
+import com.trustai.investment_service.dto.SchemaRequest;
 import com.trustai.investment_service.dto.SchemaUpsertRequest;
 import com.trustai.investment_service.entity.InvestmentSchema;
+import com.trustai.investment_service.enums.InvestmentType;
 import com.trustai.investment_service.service.SchemaService;
 import io.micrometer.common.util.StringUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,20 +38,20 @@ public class SchemaController {
         log.info("Received request for all investment schemas");
         Pageable pageable = PageRequest.of(page, size);
 
-        InvestmentSchema.InvestmentSubType investmentSubType = null;
+        InvestmentType investmentType = null;
         if (StringUtils.isNotEmpty(type)) {
             try {
-                investmentSubType = InvestmentSchema.InvestmentSubType.valueOf(type);
+                investmentType = InvestmentType.valueOf(type);
             } catch (Exception e) {
-                log.warn("invalid investmentSubType: {}", investmentSubType);
+                log.warn("invalid investmentSubType: {}", investmentType);
             }
         }
 
         Page<InvestmentSchema> schemas;
         if (StringUtils.isNotEmpty(rankCode)) {
-            schemas = schemaService.getSchemaByLinkedRank(rankCode, investmentSubType, pageable);
+            schemas = schemaService.getSchemaByLinkedRank(rankCode, investmentType, pageable);
         } else {
-            schemas = schemaService.getAllSchemas(investmentSubType, pageable);
+            schemas = schemaService.getAllSchemas(investmentType, pageable);
         }
         return ResponseEntity.ok(schemas);
     }
@@ -60,8 +63,8 @@ public class SchemaController {
     }
 
     @PostMapping
-    public ResponseEntity<InvestmentSchema> createSchema(@RequestBody InvestmentSchema investmentSchema) {
-        InvestmentSchema created = schemaService.createSchema(investmentSchema);
+    public ResponseEntity<InvestmentSchema> createSchema(@RequestBody @Valid SchemaRequest schemaRequest) {
+        InvestmentSchema created = schemaService.createSchema(schemaRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -75,16 +78,16 @@ public class SchemaController {
     }
 
     @PostMapping("/bulk-upsert")
-    public ResponseEntity<?> createOrUpdateSchemas(@RequestBody List<SchemaUpsertRequest> requests) {
+    public ResponseEntity<?> createOrUpdateStake(@RequestBody List<SchemaUpsertRequest> requests) {
         log.info("Received bulk request to create or update {} InvestmentSchemas", requests.size());
 
         for (SchemaUpsertRequest request : requests) {
             if (request.getId() != null) {
                 log.info("Updating InvestmentSchema with ID: {}", request.getId());
-                schemaService.updateSchema(request.getId(), request);
+                schemaService.updateStake(request.getId(), request);
             } else {
                 log.info("Creating new InvestmentSchema");
-                schemaService.createSchema(request);
+                schemaService.createStake(request);
             }
         }
         log.info("Bulk createOrUpdateSchemas operation completed successfully");

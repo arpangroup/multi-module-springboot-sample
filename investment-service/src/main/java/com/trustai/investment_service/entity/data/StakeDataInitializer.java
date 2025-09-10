@@ -2,14 +2,10 @@ package com.trustai.investment_service.entity.data;
 
 import com.trustai.common.api.RankConfigApi;
 import com.trustai.common.constants.CommonConstants;
-import com.trustai.common.dto.RankConfigDto;
 import com.trustai.common.enums.CurrencyType;
 import com.trustai.investment_service.entity.InvestmentSchema;
 import com.trustai.investment_service.entity.Schedule;
-import com.trustai.investment_service.enums.InterestCalculationType;
-import com.trustai.investment_service.enums.PayoutMode;
-import com.trustai.investment_service.enums.ReturnType;
-import com.trustai.investment_service.enums.SchemaType;
+import com.trustai.investment_service.enums.*;
 import com.trustai.investment_service.repository.ScheduleRepository;
 import com.trustai.investment_service.repository.SchemaRepository;
 import jakarta.annotation.PostConstruct;
@@ -70,12 +66,12 @@ public class StakeDataInitializer {
         // Investment Schema 1 - FIXED + PERIOD + cancellable
         InvestmentSchema stake1 = new InvestmentSchema();
         stake1.setLinkedRank(rank);
-        stake1.setTitle(rank + " " + days +" days plan of " + stakePrice + " for roi " + roi);
+        stake1.setName(rank + " " + days +" days plan of " + stakePrice + " for roi " + roi);
         stake1.setSchemaBadge("STAKE_" + rank + "_" + days);
         stake1.setImageUrl(imageList.get(++count));
-        stake1.setInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
+        stake1.setInvestmentType(InvestmentType.STAKE);
         stake1.setSchemaType(SchemaType.RANGE);
-        stake1.setPrice(new BigDecimal(stakePrice));
+        stake1.setStakePrice(new BigDecimal(stakePrice));
         stake1.setMinimumInvestmentAmount(new BigDecimal(minInvest));
         stake1.setMaximumInvestmentAmount(new BigDecimal(maxInvest));
         stake1.setHandlingFee(BigDecimal.ZERO);

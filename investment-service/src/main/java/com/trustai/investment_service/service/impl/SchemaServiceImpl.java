@@ -3,10 +3,14 @@ package com.trustai.investment_service.service.impl;
 import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.dto.RankConfigDto;
 import com.trustai.common.enums.CurrencyType;
+import com.trustai.common.exceptions.ValidationException;
+import com.trustai.investment_service.dto.SchemaRequest;
 import com.trustai.investment_service.dto.SchemaUpsertRequest;
 import com.trustai.investment_service.entity.InvestmentSchema;
 import com.trustai.investment_service.entity.Schedule;
+import com.trustai.investment_service.entity.SchemaBuilder;
 import com.trustai.investment_service.enums.InterestCalculationType;
+import com.trustai.investment_service.enums.InvestmentType;
 import com.trustai.investment_service.enums.ReturnType;
 import com.trustai.investment_service.enums.SchemaType;
 import com.trustai.investment_service.exception.ResourceNotFoundException;
@@ -39,7 +43,7 @@ public class SchemaServiceImpl implements SchemaService {
 
     @Override
     public Page<InvestmentSchema> getAllSchemas(
-            @Nullable InvestmentSchema.InvestmentSubType investmentSubType,
+            @Nullable InvestmentType investmentSubType,
             @Nullable Pageable pageable
     ) {
         log.info("Fetching all investment schemas for investmentSubType: {}...", investmentSubType);
@@ -49,10 +53,12 @@ public class SchemaServiceImpl implements SchemaService {
         pageable = PageRequest.of(
                 pageable != null ? pageable.getPageNumber() : 0,
                 pageable != null ? pageable.getPageSize(): 10,
-                Sort.by(Sort.Order.asc("linkedRank"), Sort.Order.asc("minimumInvestmentAmount"))
+                //Sort.by(Sort.Order.asc("linkedRank"), Sort.Order.asc("minimumInvestmentAmount"))
+                //Sort.by(Sort.Order.asc("stakePrice"))
+                Sort.by(Sort.Order.desc("id"))
         );
         if (investmentSubType != null) {
-            return schemaRepository.findByInvestmentSubType(investmentSubType, pageable);
+            return schemaRepository.findByInvestmentType(investmentSubType, pageable);
         } else {
             return schemaRepository.findAll(pageable);
         }
@@ -67,32 +73,113 @@ public class SchemaServiceImpl implements SchemaService {
     @Override
     public Page<InvestmentSchema> getSchemaByLinkedRank(
             @NonNull String rankCode,
-            @Nullable InvestmentSchema.InvestmentSubType investmentSubType,
+            @Nullable InvestmentType investmentType,
             @Nullable Pageable pageable
     ) {
-        log.info("Fetching investment schemas for rankCode: {} and investmentSubType: {}", rankCode, investmentSubType);
+        log.info("Fetching investment schemas for rankCode: {} and investmentSubType: {}", rankCode, investmentType);
         if (pageable == null) pageable = PageRequest.of(0, CommonConstants.DEFAULT_PAGE_SIZE);
 
-        if (investmentSubType != null) {
-            return schemaRepository.findByLinkedRankAndInvestmentSubType(rankCode, investmentSubType, pageable);
+        if (investmentType != null) {
+            return schemaRepository.findByLinkedRankAndInvestmentType(rankCode, investmentType, pageable);
         } else {
             return schemaRepository.findByLinkedRank(rankCode, pageable);
         }
     }
 
     @Override
-    public InvestmentSchema createSchema(InvestmentSchema investmentSchema) {
-        log.info("Attempting to persist InvestmentSchema: {}", investmentSchema);
-        investmentSchema.setCreatedAt(java.time.LocalDateTime.now());
-        investmentSchema.setUpdatedAt(java.time.LocalDateTime.now());
-        log.info("Creating new investment schema: {}", investmentSchema.getTitle());
-        InvestmentSchema savedSchema = schemaRepository.save(investmentSchema);
+    public InvestmentSchema createSchema(SchemaRequest request) {
+        log.info("Received request to create investment schema: {}", request);
+
+        /*if (request.getLinkedRankCode() == null) throw new ResourceNotFoundException("Invalid rank: " + request.getLinkedRankCode());
+
+        log.debug("Fetching rank config for rank code: {}", request.getLinkedRankCode());
+        RankConfigDto linkedRank = rankConfigApi.getRankConfigByRankCode(request.getLinkedRankCode());
+        if (linkedRank == null) {
+            log.error("Rank not found for rank code: {}", request.getLinkedRankCode());
+            throw new ResourceNotFoundException("Invalid rank: " + request.getLinkedRankCode());
+        }
+
+        if (request.getMinimumInvestmentAmount().compareTo(linkedRank.getMinInvestmentAmount()) < 0) {
+            throw new ResourceNotFoundException("minimumInvestmentAmount should be more than " + linkedRank.getMinInvestmentAmount());
+        }*/
+
+        if (schemaRepository.existsByName(request.getName())) {
+            throw  new ValidationException("schema name already exist");
+        }
+
+        log.debug("Fetching schedule by ID: {}", request.getReturnScheduleId());
+        Schedule schedule = scheduleRepository.findById(request.getReturnScheduleId())
+                .orElseThrow(() -> {
+                    log.error("Schedule not found for ID: {}", request.getReturnScheduleId());
+                    return new IllegalArgumentException("Invalid schedule ID: " + request.getReturnScheduleId());
+                });
+
+        log.info("Creating new investment schema: {}", request.getName());
+        InvestmentSchema schema = SchemaBuilder.buildFromRequest(request)
+                .withReturnSchedule(schedule)
+                .withImageUrl(request.getImageUrl())
+                .build();
+
+        log.info("Attempting to persist InvestmentSchema: {}", request);
+        InvestmentSchema savedSchema = schemaRepository.save(schema);
         log.info("Successfully created investment schema with ID: {}", savedSchema.getId());
+
         return savedSchema;
     }
 
+
     @Override
-    public InvestmentSchema createSchema(SchemaUpsertRequest request) {
+    public InvestmentSchema createStake(SchemaUpsertRequest request) {
+        log.info("Received request to create investment schema: {}", request);
+        if (request.getLinkedRankCode() == null) throw new ResourceNotFoundException("Invalid rank: " + request.getLinkedRankCode());
+        if (schemaRepository.existsByName(request.getName()))throw  new ValidationException("schema name already exist");
+
+
+        /*log.debug("Fetching rank config for rank code: {}", request.getLinkedRankCode());
+        RankConfigDto linkedRank = rankConfigApi.getRankConfigByRankCode(request.getLinkedRankCode());
+        if (linkedRank == null) {
+            log.error("Rank not found for rank code: {}", request.getLinkedRankCode());
+            throw new ResourceNotFoundException("Invalid rank: " + request.getLinkedRankCode());
+        }
+
+        if (request.getMinimumInvestmentAmount().compareTo(linkedRank.getMinInvestmentAmount()) < 0) {
+            throw new ResourceNotFoundException("minimumInvestmentAmount should be more than " + linkedRank.getMinInvestmentAmount());
+        }*/
+
+        log.debug("Fetching schedule by ID: {}", request.getReturnScheduleId());
+        Schedule schedule = scheduleRepository.findById(request.getReturnScheduleId())
+                .orElseThrow(() -> {
+                    log.error("Schedule not found for ID: {}", request.getReturnScheduleId());
+                    return new IllegalArgumentException("Invalid schedule ID: " + request.getReturnScheduleId());
+                });
+
+        String name = request.getName();
+        BigDecimal stakePrice = request.getStakePrice();
+        BigDecimal minInvestAmount = request.getMinimumInvestmentAmount() != null ? request.getMinimumInvestmentAmount() : BigDecimal.ZERO;
+        BigDecimal maxInvestAmount = request.getMaximumInvestmentAmount() != null ? request.getMaximumInvestmentAmount() : BigDecimal.ZERO;
+        BigDecimal returnRate      = request.getReturnRate() != null ? request.getReturnRate() : BigDecimal.ZERO;
+        int totalReturnPeriods     = request.getTotalReturnPeriods() != null ? request.getTotalReturnPeriods() : 0;
+        boolean capitalReturned    = request.getCapitalReturned() != null ? request.getCapitalReturned() : false;
+        boolean active             = request.getActive() != null ? request.getActive() : false;
+        String title               = generateTitle(request.getLinkedRankCode(), returnRate);
+
+        log.info("Creating schema with title: {}", title);
+
+        InvestmentSchema schema = SchemaBuilder.stakingSchema(name, stakePrice, returnRate, totalReturnPeriods)
+                .withReturnSchedule(schedule)
+                .withImageUrl(request.getImageUrl())
+                .build();
+
+        log.info("Attempting to persist InvestmentSchema: {}", request);
+        InvestmentSchema savedSchema = schemaRepository.save(schema);
+        log.info("Successfully created investment schema with ID: {}", savedSchema.getId());
+
+        return savedSchema;
+    }
+
+
+    /*@Override
+    public InvestmentSchema createStake(SchemaUpsertRequest request) {
         log.info("Received request to create investment schema: {}", request);
         if (request.getLinkedRankCode() == null) throw new ResourceNotFoundException("Invalid rank: " + request.getLinkedRankCode());
 
@@ -125,11 +212,11 @@ public class SchemaServiceImpl implements SchemaService {
         String title               = generateTitle(request.getLinkedRankCode(), returnRate);
 
         log.info("Creating schema with title: {}", title);
+        schema.setInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
         schema.setLinkedRank(request.getLinkedRankCode());
         schema.setTitle(title);                 // default ==> title is mandatory
         schema.setSchemaBadge(title);           // default
         schema.setImageUrl(request.getImageUrl());
-        schema.setInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
         schema.setSchemaType(SchemaType.RANGE); // default
         schema.setMinimumInvestmentAmount(minInvestAmount);
         schema.setMaximumInvestmentAmount(maxInvestAmount);
@@ -143,7 +230,7 @@ public class SchemaServiceImpl implements SchemaService {
 
         log.debug("Final schema object before persistence: {}", schema);
         return createSchema(schema);
-    }
+    }*/
 
     @Override
     public InvestmentSchema updateSchema(Long id, Map<String, Object> updates) {
@@ -154,7 +241,7 @@ public class SchemaServiceImpl implements SchemaService {
             try {
                 switch (key) {
                     case "title" -> {
-                        schema.setTitle((String) value);
+                        schema.setName((String) value);
                         log.debug("Updated field 'title' to '{}'", value);
                     }
                     case "schemaBadge" -> {
@@ -168,6 +255,10 @@ public class SchemaServiceImpl implements SchemaService {
                     case "schemaType" -> {
                         schema.setSchemaType(SchemaType.valueOf((String) value));
                         log.debug("Updated field 'schemaType' to '{}'", value);
+                    }
+                    case "stakePrice" -> {
+                        schema.setStakePrice(new BigDecimal(value.toString()));
+                        log.debug("Updated field 'stakePrice' to '{}'", value);
                     }
                     case "minimumInvestmentAmount" -> {
 
@@ -206,7 +297,7 @@ public class SchemaServiceImpl implements SchemaService {
                         log.debug("Updated field 'returnType' to '{}'", value);
                     }
                     case "totalReturnPeriods" -> {
-                        schema.setTotalReturnPeriods(Integer.parseInt((String) value));
+                        schema.setTotalReturnPeriods((Integer) value);
                         log.debug("Updated field 'totalReturnPeriods' to '{}'", value);
                     }
                     case "isCapitalReturned", "capitalReturned" -> {
@@ -308,7 +399,7 @@ public class SchemaServiceImpl implements SchemaService {
     }
 
     @Override
-    public InvestmentSchema updateSchema(Long schemaId, SchemaUpsertRequest request) {
+    public InvestmentSchema updateStake(Long schemaId, SchemaUpsertRequest request) {
         log.info("Initiating update for InvestmentSchema with ID: {}", schemaId);
 
         InvestmentSchema schema = schemaRepository.findById(schemaId).orElseThrow(() -> {
@@ -328,6 +419,8 @@ public class SchemaServiceImpl implements SchemaService {
         }
 
         log.debug("Applying updates to schema fields...");
+        if (request.getName() != null) schema.setName(request.getName());
+        if (request.getStakePrice() != null) schema.setStakePrice(request.getStakePrice());
         if (request.getMinimumInvestmentAmount() != null) schema.setMinimumInvestmentAmount(request.getMinimumInvestmentAmount());
         if (request.getMaximumInvestmentAmount() != null) schema.setMaximumInvestmentAmount(request.getMaximumInvestmentAmount());
         if (request.getReturnRate() != null) schema.setReturnRate(request.getReturnRate());

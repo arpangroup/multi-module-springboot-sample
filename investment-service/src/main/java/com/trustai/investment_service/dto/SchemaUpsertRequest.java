@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @ToString
 public class SchemaUpsertRequest {
     private Long id;
+    private String name;
+    private BigDecimal stakePrice;
     private String linkedRankCode;
     private BigDecimal minimumInvestmentAmount;
     private BigDecimal maximumInvestmentAmount;

@@ -53,7 +53,7 @@ public class FileUploadApiRestClientImpl implements FileUploadApi {
         // Perform REST call with error handling using your RestCallHandler
         return RestCallHandler.handleRestCall(() ->
                         restClient.post()
-                                .uri("/files/upload-multiple")
+                                .uri("/images/upload-multiple")
                                 .contentType(MediaType.MULTIPART_FORM_DATA)
                                 .body(multipartBody)
                                 .retrieve()
@@ -62,7 +62,28 @@ public class FileUploadApiRestClientImpl implements FileUploadApi {
     }
 
     @Override
-    public ResponseEntity<Map<String, Object>> uploadFile(MultipartFile file) {
-        return uploadMultipleFiles(new MultipartFile[]{file});
+    public String uploadFile(MultipartFile file) {
+//        return uploadMultipleFiles(new MultipartFile[]{file});
+        String imageUrl = null;
+        try {
+            Map<String, Object> uploadFileMap = uploadMultipleFiles(new MultipartFile[]{file}).getBody();
+            Map.Entry<String, Object> entry = uploadFileMap.entrySet().stream().findFirst().orElse(null);
+            if (entry != null) {
+                Object innerValue = entry.getValue();
+
+                if (innerValue instanceof Map) {
+                    Map<String, Object> innerMap = (Map<String, Object>) innerValue;
+
+                    String downloadUrl = (String) innerMap.get("downloadUrl");
+                    //System.out.println("Download URL: " + downloadUrl);
+                    imageUrl = downloadUrl;
+                }
+            }
+            //imageUrl = (String) upload.get("downloadUrl");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("file upload failed");
+        }
+        return imageUrl;
     }
 }

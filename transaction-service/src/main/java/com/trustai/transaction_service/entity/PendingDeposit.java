@@ -22,6 +22,7 @@ public class PendingDeposit {
 
     @Column(nullable = false)
     private Long userId;
+    private String imageUrl;
 
     @Column(nullable = false)
     private BigDecimal amount = BigDecimal.ZERO;
@@ -91,10 +92,10 @@ public class PendingDeposit {
     }
 
     // For Manual Deposit:
-    public PendingDeposit(long userId, BigDecimal amount, String linkedAccountNumber) {
+    public PendingDeposit(long userId, BigDecimal amount, String linkedTxnId) {
         this.userId = userId;
         this.amount = amount;
-        this.linkedTxnId = linkedAccountNumber;
+        this.linkedTxnId = linkedTxnId;
     }
 
     // For Standard Deposit:

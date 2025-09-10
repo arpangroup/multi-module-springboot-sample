@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -51,11 +52,16 @@ public class DepositServiceImpl implements DepositService {
     @Transactional
     //public PendingDeposit depositManual(long userId, ManualDepositRequest request, String createdBy) {
     public PendingDeposit depositManual(long userId, BigDecimal amount, String gateway, String txnId, MultipartFile screenshot) {
-        log.info("Processing manual deposit for userId: {}, amount: {}, txnId: {}", userId, amount, txnId);
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new TransactionException("Deposit amount must be greater than zero"); // IllegalArgumentException
+        log.info("Starting manual deposit for userId={}, amount={}, txnId={}", userId, amount, txnId);
+
+        validateManualDepositInput(amount, txnId);
+
+        if (pendingDepositRepository.existsByLinkedTxnIdAndStatus(txnId, PendingDeposit.DepositStatus.PENDING)) {
+            log.info("Duplicate transaction ID detected: [{}] already exists with PENDING status.", txnId);
+            throw new TransactionException("Transaction ID  is already linked to a pending deposit.");
         }
 
+        String imageUrl = fileUploadApi.uploadFile(screenshot);
         PaymentGateway paymentGateway = PaymentGateway.BINANCE; // or SYSTEM
         BigDecimal fee = calculateTxnFee(paymentGateway, amount);
         BigDecimal netAmount = amount.subtract(fee);
@@ -66,20 +72,19 @@ public class DepositServiceImpl implements DepositService {
         PendingDeposit deposit = buildPendingDeposit(
                 userId,
                 amount,
+                imageUrl,
                 txnRefId,
                 fee,
                 paymentGateway,
                 "Manual deposit Request for Binance Payment",
                 null,
                 CurrencyType.INR.name(), // or make this configurable
-                null, // linkedAccountId is required to identify from which account the txn happened (eg: upiID)
+                txnId, // linkedAccountId is required to identify from which account the txn happened (eg: upiID)
                 PendingDeposit.DepositStatus.PENDING, // AS Deposited by ADMIN directly
                 String.valueOf(userId) // IMPORTANT for AUDIT
         );
         pendingDepositRepository.save(deposit);
         log.info("Manual PendingDeposit created with ID: {} and status: {}", deposit.getId(), deposit.getStatus());
-
-        fileUploadApi.uploadFile(screenshot);
 
         return deposit;
     }
@@ -99,6 +104,7 @@ public class DepositServiceImpl implements DepositService {
         PendingDeposit deposit = buildPendingDeposit(
                 userId,
                 request.getAmount(),
+                null,
                 request.getTxnRefId(),
                 fee,
                 paymentGateway,
@@ -285,6 +291,7 @@ public class DepositServiceImpl implements DepositService {
     private PendingDeposit buildPendingDeposit(
             long userId,
             BigDecimal amount,
+            String imageUrl,
             String txnRefId,
             BigDecimal txnFee,
             PaymentGateway gateway,
@@ -296,7 +303,8 @@ public class DepositServiceImpl implements DepositService {
             String createdBy
     ) {
         if (txnRefId == null) txnRefId = TransactionIdGenerator.generateTransactionId();
-        return new PendingDeposit(userId, amount)
+        return new PendingDeposit(userId, amount, linkedTxnId)
+                .setImageUrl(imageUrl)
                 .setTxnRefId(txnRefId)
                 .setTxnFee(txnFee)
                 .setGateway(gateway)
@@ -306,6 +314,23 @@ public class DepositServiceImpl implements DepositService {
                 .setLinkedTxnId(linkedTxnId)
                 .setStatus(status)
                 .setCreatedBy(createdBy);
+    }
+
+    private void validateManualDepositInput(BigDecimal amount, String txnId) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Validation failed: amount is null or not greater than zero.");
+            throw new TransactionException("Deposit amount must be greater than zero.");
+        }
+
+        if (txnId == null || txnId.isEmpty()) {
+            log.warn("Validation failed: linkedTxnId is null or empty.");
+            throw new TransactionException("Transaction ID must not be null or empty.");
+        }
+
+        if (txnId.length() < 5) {
+            log.warn("Validation failed: linkedTxnId [{}] is shorter than 5 characters.", txnId);
+            throw new TransactionException("Transaction ID must be at least 5 characters long.");
+        }
     }
 
 }

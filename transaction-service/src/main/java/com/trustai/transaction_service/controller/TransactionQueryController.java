@@ -1,6 +1,7 @@
 package com.trustai.transaction_service.controller;
 
 import com.trustai.common.controller.BaseController;
+import com.trustai.common.dto.PagedResponse;
 import com.trustai.transaction_service.dto.response.TransactionDTO;
 import com.trustai.transaction_service.entity.Transaction;
 import com.trustai.transaction_service.service.TransactionQueryService;
@@ -18,7 +19,7 @@ public class TransactionQueryController extends BaseController {
     private final TransactionQueryService transactionService;
 
     @GetMapping
-    public ResponseEntity<Page<TransactionDTO>> getTransactions(
+    public ResponseEntity<PagedResponse<TransactionDTO>> getTransactions(
             @RequestParam(required = false) Transaction.TransactionStatus status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
@@ -36,11 +37,11 @@ public class TransactionQueryController extends BaseController {
         // Convert to DTOs
         Page<TransactionDTO> dtoPage = paginatedTransactions.map(TransactionDTO::new);
 
-        return ResponseEntity.ok(dtoPage);
+        return ResponseEntity.ok(PagedResponse.from(dtoPage));
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<Transaction>> getTransactionsByUserId(
+    public ResponseEntity<PagedResponse<Transaction>> getTransactionsByUserId(
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -48,7 +49,7 @@ public class TransactionQueryController extends BaseController {
         log.info("Received request to get transactions for userId: {}, page: {}, size: {}", userId, page, size);
         Page<Transaction> paginatedTransactions = transactionService.getTransactionsByUserId(userId, page, size);
         log.info("Returning {} transactions for userId: {}", paginatedTransactions.getNumberOfElements(), userId);
-        return ResponseEntity.ok(paginatedTransactions);
+        return ResponseEntity.ok(PagedResponse.from(paginatedTransactions));
     }
 
     @GetMapping("/{txnRefId}")

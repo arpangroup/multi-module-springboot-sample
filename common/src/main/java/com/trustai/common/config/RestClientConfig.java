@@ -23,8 +23,24 @@ public class RestClientConfig {
         return (request, body, execution) -> {
             log.info("RestClient - Request URI: {} {}", request.getMethod(), request.getURI());
             request.getHeaders().forEach((k, v) -> log.info("Header '{}': {}", k, v));
+
+            // Skip logging for binary or large files
+            String contentType = request.getHeaders().getContentType() != null
+                    ? request.getHeaders().getContentType().toString()
+                    : "";
+
+
             if (body != null && body.length > 0) {
-                log.debug("Request body: {}", new String(body));
+                boolean isBinary = contentType.startsWith("image/") ||
+                        contentType.startsWith("video/") ||
+                        contentType.equalsIgnoreCase("application/octet-stream") ||
+                        contentType.startsWith("multipart/form-data");
+
+                if (isBinary) {
+                    log.debug("Request body skipped due to binary content type: {}", contentType);
+                } else {
+                    log.debug("Request body: {}", new String(body));
+                }
             }
             return execution.execute(request, body);
         };

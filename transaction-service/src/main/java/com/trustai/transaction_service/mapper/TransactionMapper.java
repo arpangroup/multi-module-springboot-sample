@@ -14,7 +14,7 @@ public class TransactionMapper {
                 .id(transaction.getId())
                 .txnRefId(transaction.getTxnRefId())
                 .amount(transaction.getAmount())
-                .linkedAccountId(transaction.getSenderId() != null ? transaction.getSenderId().toString() : null)
+                .linkedTxnId(transaction.getSenderId() != null ? transaction.getSenderId().toString() : null)
                 .paymentGateway(transaction.getGateway().name())
                 .txnFee(transaction.getTxnFee())
                 .currencyCode(transaction.getCurrencyCode())
@@ -29,13 +29,14 @@ public class TransactionMapper {
                 .id(deposit.getId())
                 .txnRefId(deposit.getTxnRefId())
                 .amount(deposit.getAmount())
-                .linkedAccountId(deposit.getLinkedTxnId())
+                .linkedTxnId(deposit.getLinkedTxnId())
                 .paymentGateway(deposit.getGateway().name())
                 .txnFee(deposit.getTxnFee())
                 .currencyCode(deposit.getCurrencyCode())
                 .status(deposit.getStatus().name())
                 .remarks(deposit.getRemarks())
                 .txnDate(DateUtils.formatDisplayDate(deposit.getCreatedAt()))
+                .imageUrl(deposit.getImageUrl())
                 .build();
     }
 }

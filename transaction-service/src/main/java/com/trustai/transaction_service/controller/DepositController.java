@@ -2,6 +2,7 @@ package com.trustai.transaction_service.controller;
 
 import com.trustai.common.controller.BaseController;
 import com.trustai.common.dto.ApiResponse;
+import com.trustai.common.dto.PagedResponse;
 import com.trustai.transaction_service.dto.request.RejectDepositRequest;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
@@ -32,7 +33,7 @@ public class DepositController extends BaseController {
     private String ADMIN_USER = "Admin";
 
     @GetMapping
-    public ResponseEntity<Page<DepositHistoryItem>> depositHistory(
+    public ResponseEntity<PagedResponse<DepositHistoryItem>> depositHistory(
             @RequestParam(required = false) PendingDeposit.DepositStatus status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
@@ -41,7 +42,7 @@ public class DepositController extends BaseController {
         Pageable pageable = PageRequest.of(page, size);
         Page<DepositHistoryItem> transactions = depositService.getDepositHistory(status, pageable);
         log.info("Fetched {} deposit transactions.", transactions.getNumberOfElements());
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(PagedResponse.from(transactions));
     }
 
     @PostMapping

@@ -10,6 +10,6 @@ import java.util.Map;
 public interface FileUploadApi {
     ResponseEntity<Map<String, Object>> uploadMultipleFiles(@RequestPart("files") MultipartFile[] files);
 
-    public ResponseEntity<Map<String, Object>> uploadFile(MultipartFile file) ;
+    public String uploadFile(MultipartFile file) ;
 
 }

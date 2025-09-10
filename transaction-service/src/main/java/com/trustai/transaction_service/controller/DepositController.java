@@ -3,6 +3,7 @@ package com.trustai.transaction_service.controller;
 import com.trustai.common.controller.BaseController;
 import com.trustai.common.dto.ApiResponse;
 import com.trustai.common.dto.PagedResponse;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import com.trustai.transaction_service.dto.request.RejectDepositRequest;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
@@ -19,10 +20,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/deposits")
@@ -30,22 +33,28 @@ import java.math.BigDecimal;
 @Slf4j
 public class DepositController extends BaseController {
     private final DepositService depositService;
-    private String ADMIN_USER = "Admin";
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PagedResponse<DepositHistoryItem>> depositHistory(
             @RequestParam(required = false) PendingDeposit.DepositStatus status,
-            @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer size
+            Pageable pageable
     ) {
-        log.info("Received request for deposit history. Status: {}, Page: {}, Size: {}", status, page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<DepositHistoryItem> transactions = depositService.getDepositHistory(status, pageable);
+        String currentUserId = getCurrentUserId() + "";
+        log.info("Received request for deposit history. userId: {}, Status: {}, Page: {}, Size: {}", currentUserId, status, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<DepositHistoryItem> transactions;
+        if (isAdmin()) {
+            transactions = depositService.getDepositHistory(status, pageable);
+        } else {
+            transactions = depositService.getDepositHistory(status, pageable);
+        }
         log.info("Fetched {} deposit transactions.", transactions.getNumberOfElements());
         return ResponseEntity.ok(PagedResponse.from(transactions));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> depositNow(@RequestBody @Valid DepositRequest request) {
         //return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Automatic Deposit is Currently Disabled in Backend"));
         log.info("Received deposit request: {}", request);
@@ -56,6 +65,7 @@ public class DepositController extends BaseController {
     }
 
     @PostMapping(value = "/manual", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse> manualDeposit(
             @RequestParam("amount") BigDecimal amount,
             @RequestParam("paymentGateway") String paymentGateway,
@@ -81,14 +91,16 @@ public class DepositController extends BaseController {
     }*/
 
     @PostMapping("/approve/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> approve(@PathVariable Long id) {
-        depositService.approvePendingDeposit(id, "ADMIN_USER");
+        depositService.approvePendingDeposit(id, getCurrentUsername());
         return ResponseEntity.ok(ApiResponse.success("Deposit approved successfully."));
     }
 
     @PostMapping("/reject/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> reject(@PathVariable Long id, @RequestBody @Valid RejectDepositRequest request) {
-        depositService.rejectPendingDeposit(id, ADMIN_USER, request.rejectionReason());
+        depositService.rejectPendingDeposit(id, getCurrentUsername(), request.rejectionReason());
         return ResponseEntity.ok(ApiResponse.error("Deposit rejected successfully."));
     }
 

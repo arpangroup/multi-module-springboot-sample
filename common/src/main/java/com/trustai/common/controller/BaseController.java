@@ -2,6 +2,7 @@ package com.trustai.common.controller;
 
 import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.security.service.CustomUserDetails;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -26,6 +27,10 @@ public abstract class BaseController {
         }
 
         return getExternalUserId(authentication);
+    }
+
+    protected String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
     }
 
     protected boolean isAdmin() {

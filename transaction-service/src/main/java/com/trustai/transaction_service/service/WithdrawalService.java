@@ -1,13 +1,21 @@
 package com.trustai.transaction_service.service;
 
+import com.trustai.transaction_service.dto.response.WithdrawHistoryItem;
+import com.trustai.transaction_service.entity.PendingWithdraw;
 import com.trustai.transaction_service.entity.Transaction;
 import com.trustai.transaction_service.exception.InsufficientBalanceException;
 import com.trustai.transaction_service.exception.InvalidPaymentGatewayException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import java.math.BigDecimal;
 
 public interface WithdrawalService {
+
+    Page<WithdrawHistoryItem> getPendingWithdrawHistory(Long userId, Pageable pageable);
+    Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, Pageable pageable);
 
     /**
      * Processes a withdrawal request made by the user.
@@ -34,6 +42,10 @@ public interface WithdrawalService {
      * @throws InsufficientBalanceException if the user does not have enough funds.
      * @throws InvalidPaymentGatewayException if the destination account or channel is not supported.
      */
-    Transaction withdraw(long userId, @NonNull BigDecimal amount, String destinationAccount, String remarks);
+    PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal amount, String remarks);
+
+    PendingWithdraw approveWithdraw(long withdrawId, String approver);
+    PendingWithdraw rejectWithdraw(long withdrawId, String approver, String rejectReason);
+
 
 }

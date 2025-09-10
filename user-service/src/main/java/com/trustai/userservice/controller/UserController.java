@@ -3,6 +3,7 @@ package com.trustai.userservice.controller;
 import com.trustai.common.auth.registration.RegistrationService;
 import com.trustai.common.controller.BaseController;
 import com.trustai.common.domain.user.User;
+import com.trustai.common.dto.PagedResponse;
 import com.trustai.common.dto.UserDetailsInfo;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.repository.user.UserRepository;
@@ -45,7 +46,7 @@ public class UserController extends BaseController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Page<UserInfo>> users(
+    public ResponseEntity<PagedResponse<UserInfo>> users(
             @RequestParam(required = false) User.AccountStatus status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
@@ -53,7 +54,7 @@ public class UserController extends BaseController {
         List<String> roles = getCurrentUserRoles();
         boolean isAdminUser = isAdmin();
         Page<UserInfo> paginatedUsers = userService.getUsers(status, page, size);
-        return ResponseEntity.ok(paginatedUsers);
+        return ResponseEntity.ok(PagedResponse.from(paginatedUsers));
     }
 
     @GetMapping("/{userId}")

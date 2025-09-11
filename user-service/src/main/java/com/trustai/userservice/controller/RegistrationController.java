@@ -1,13 +1,13 @@
-package com.trustai.common.auth.controller;
+package com.trustai.userservice.controller;
 
 import com.trustai.common.auth.dto.request.OtpVerifyRequest;
-import com.trustai.common.auth.registration.RegistrationRequest;
-import com.trustai.common.auth.registration.RegistrationService;
 import com.trustai.common.auth.service.otp.OtpSession;
 import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.ApiResponse;
 import com.trustai.common.exceptions.NotFoundException;
 import com.trustai.common.repository.user.UserRepository;
+import com.trustai.userservice.user.registration.RegistrationRequest;
+import com.trustai.userservice.user.registration.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +30,7 @@ public class RegistrationController {
     public ResponseEntity<OtpSession> createPendingRegistration(@RequestBody RegistrationRequest request) {
         log.info("Received registration request for email: {}", request.getEmail());
         OtpSession session = registrationService.createPendingRegistration(request);
+        log.info("Created OtpSession: {}", session);
         log.info("OTP successfully sent to email: {}", request.getEmail());
         return ResponseEntity.ok(session);
     }

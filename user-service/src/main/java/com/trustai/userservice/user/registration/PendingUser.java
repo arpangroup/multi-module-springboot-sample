@@ -1,4 +1,4 @@
-package com.trustai.common.auth.registration;
+package com.trustai.userservice.user.registration;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

@@ -29,6 +29,7 @@ public class DatabaseOtpService implements OtpService {
 
     @Override
     public OtpSession createSession(String username, String flow, int maxAttempts) {
+        log.info("createSession...");
         String sessionId = UUID.randomUUID().toString();
         String otp = generateOtp();
 

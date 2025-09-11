@@ -1,0 +1,3 @@
+otp:
+  test-mode: true
+  fixed-otp: 123456

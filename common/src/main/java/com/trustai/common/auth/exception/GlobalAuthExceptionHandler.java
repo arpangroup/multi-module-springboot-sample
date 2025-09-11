@@ -1,6 +1,7 @@
 package com.trustai.common.auth.exception;
 
 import com.trustai.common.dto.ErrorResponse;
+import com.trustai.common.exceptions.RegistrationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -34,6 +35,19 @@ public class GlobalAuthExceptionHandler {
         String errorType = (ex instanceof BadCredentialsException)
                 ? "Bad credential"
                 : "Unsupported authentication flow";
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", errorType);
+        body.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({RegistrationException.class})
+    public ResponseEntity<Map<String, Object>> handleRegistrationExceptions(RegistrationException ex) {
+        String errorType = "Registration Exception";
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());

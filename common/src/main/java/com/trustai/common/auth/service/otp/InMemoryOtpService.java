@@ -2,6 +2,7 @@ package com.trustai.common.auth.service.otp;
 
 import com.trustai.common.constants.SecurityConstants;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //@Service
 @RequiredArgsConstructor
+@Slf4j
 public class InMemoryOtpService implements OtpService {
 
     private final SecureRandom random = new SecureRandom();
@@ -23,6 +25,7 @@ public class InMemoryOtpService implements OtpService {
 
     @Override
     public OtpSession createSession(String username, String flow, int maxAttempts) {
+        log.info("createSession...");
         String sessionId = UUID.randomUUID().toString();
         String otp = generateOtp();
 

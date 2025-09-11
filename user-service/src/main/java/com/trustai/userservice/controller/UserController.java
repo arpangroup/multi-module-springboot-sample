@@ -1,6 +1,6 @@
 package com.trustai.userservice.controller;
 
-import com.trustai.common.auth.registration.RegistrationService;
+import com.trustai.userservice.user.registration.RegistrationService;
 import com.trustai.common.controller.BaseController;
 import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.PagedResponse;

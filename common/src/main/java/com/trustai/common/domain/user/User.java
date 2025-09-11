@@ -49,7 +49,7 @@ public class User {
     private User referrer;
 
     @Column(name = "rank_code", nullable = true)
-    private String rankCode;
+    private String rankCode = "RANK_0";
 
     // KycInfo..................
 //    @OneToOne(optional = false, cascade = CascadeType.ALL) // Makes the association required (not null)
@@ -59,7 +59,7 @@ public class User {
     // Status
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    public AccountStatus accountStatus = AccountStatus.PENDING;
+    public AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

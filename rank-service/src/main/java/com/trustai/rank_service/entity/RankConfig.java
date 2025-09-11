@@ -80,7 +80,7 @@ public class RankConfig {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String code; // RANK_1, RANK_2
+    private String code = "RANK_0"; // RANK_0, RANK_1, RANK_2
     private String displayName; // e.g., Bronze, Silver, Gold
     @Column(unique = true)
     private int rankOrder; // Order of rank evaluation

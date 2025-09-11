@@ -1,4 +1,4 @@
-package com.trustai.common.auth.registration;
+package com.trustai.userservice.user.registration;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

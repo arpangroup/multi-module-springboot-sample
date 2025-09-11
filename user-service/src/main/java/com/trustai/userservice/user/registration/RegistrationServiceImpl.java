@@ -1,11 +1,6 @@
-package com.trustai.common.auth.registration;
+package com.trustai.userservice.user.registration;
 
-import com.trustai.common.auth.dto.request.OtpVerifyRequest;
 import com.trustai.common.auth.dto.response.AuthResponse;
-import com.trustai.common.auth.entity.RegistrationProgress;
-import com.trustai.common.auth.entity.VerificationToken;
-import com.trustai.common.auth.entity.VerificationType;
-import com.trustai.common.auth.exception.AuthException;
 import com.trustai.common.auth.exception.BadCredentialsException;
 import com.trustai.common.auth.repository.RoleRepository;
 import com.trustai.common.auth.service.AuthService;
@@ -16,9 +11,10 @@ import com.trustai.common.constants.SecurityConstants;
 import com.trustai.common.domain.user.Role;
 import com.trustai.common.domain.user.User;
 import com.trustai.common.event.UserRegisteredEvent;
+import com.trustai.common.exceptions.RegistrationException;
 import com.trustai.common.repository.user.UserRepository;
-import com.trustai.common.utils.IdConverter;
 import com.trustai.common.utils.StringUtils;
+import com.trustai.userservice.hierarchy.service.UserHierarchyService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +42,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
+    private final UserHierarchyService userHierarchyService;
     private final ApplicationEventPublisher publisher;
 
     private static final String REG_FLOW = "REGISTER";
@@ -58,14 +55,14 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         // Step 1: Step 1: Check permanent users
         if (userRepo.existsByUsername(request.getUsername())) {
-            throw new BadCredentialsException("Username already exists");
+            throw new RegistrationException("Username already exists");
         }
         if (userRepo.existsByEmail(request.getEmail())) {
-            throw new BadCredentialsException("Email already exists");
+            throw new RegistrationException("Email already exists");
         }
         if (!userRepo.existsByReferralCode(request.getReferralCode())) { // Step4: Verify ReferralCode:
             log.warn("Invalid referral code: {}", request.getReferralCode());
-            throw new BadCredentialsException("referralCode is invalid");
+            throw new RegistrationException("referralCode is invalid");
         }
 
         // Step 2: Clean up expired pending records for username/email
@@ -127,7 +124,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         OtpSession session = otpService.getSession(sessionId)
                 .orElseThrow(() -> {
                     log.warn("Invalid or expired OTP session: {}", sessionId);
-                    return new BadCredentialsException("Invalid or expired OTP session");
+                    return new RegistrationException("Invalid or expired OTP session");
                 });
 
 
@@ -137,14 +134,14 @@ public class RegistrationServiceImpl implements RegistrationService {
         // 3. Verify OTP
         if (!otpService.verifyOtp(sessionId, otp)) {
             log.warn("Invalid OTP provided for session: {}", sessionId);
-            throw new BadCredentialsException("Invalid OTP");
+            throw new RegistrationException("Invalid OTP");
         }
 
         // 4. OTP verified → promote PendingUser → User
         PendingUser pendingUser = pendingRepo.findByEmail(session.username())// we are storing email as username o=in otp session
                 .orElseThrow(() -> {
                     log.error("Pending user not found for username: {}", session.username());
-                    return new RuntimeException("username not found in pending user");
+                    return new RegistrationException("username not found in pending user");
                 });
 
         log.info("Mapping pending user to permanent user: {}", pendingUser.getUsername());
@@ -185,15 +182,21 @@ public class RegistrationServiceImpl implements RegistrationService {
         User newUser = doRegister(user, referralCode);
         log.info("Direct registration completed for userId: {}", newUser.getId());
 
-        return doRegister(user, referralCode);
+        return newUser;
     }
 
     private User doRegister(User user, String inviteCode) {
         log.info("Registering user: {}", user.getUsername());
-        userRepo.findByReferralCode(inviteCode).ifPresent(user::setReferrer);
-
         User newUser = userRepo.save(user);
         log.info("User persisted with ID: {}", newUser.getId());
+
+
+        userRepo.findByReferralCode(inviteCode).ifPresent(referrer -> {
+            if (referrer.getId() != null && referrer.getId().equals(user.getId())) {
+                throw new RegistrationException("User cannot refer themselves");
+            }
+            newUser.setReferrer(referrer);
+        });
 
         // Generate a unique referral code
         log.info("Generating referralCode for userId: {}.....", newUser.getId());
@@ -204,8 +207,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         if (newUser.getReferrer() != null) {
             log.info("User has referrer (ID: {}). Updating hierarchy...", newUser.getReferrer().getId());
-            // TODO handle UserHierarchy Update
-//            userHierarchyService.updateHierarchy(newUser.getReferrer().getId(), newUser.getId());
+            userHierarchyService.updateHierarchy(newUser.getReferrer().getId(), newUser.getId());
         }
 
         log.info("Publishing UserRegisteredEvent for userId: {}", newUser.getId());
@@ -235,24 +237,24 @@ public class RegistrationServiceImpl implements RegistrationService {
         // Validate input
         if (StringUtils.isBlank(request.getUsername())) {
             log.warn("Validation failed: username is blank");
-            throw new BadCredentialsException("Invalid username");
+            throw new RegistrationException("Invalid username");
         }
         if (StringUtils.isBlank(request.getPassword())) {
             log.warn("Validation failed: password is blank");
-            throw new BadCredentialsException("Invalid password");
+            throw new RegistrationException("Invalid password");
         }
         if (StringUtils.isBlank(request.getEmail())) {
             log.warn("Validation failed: email is blank");
-            throw new BadCredentialsException("Invalid email");
+            throw new RegistrationException("Invalid email");
         }
         if (StringUtils.isBlank(request.getReferralCode())) {
             log.warn("Validation failed: referralCode is blank");
-            throw new BadCredentialsException("Invalid referralCode");
+            throw new RegistrationException("Invalid referralCode");
         }
     }
 
 
-    private User mapFromPending(PendingUser pendingUser) {
+    public User mapFromPending(PendingUser pendingUser) {
         log.debug("Mapping PendingUser to User for: {}", pendingUser.getUsername());
         User newUser = new User();
         newUser.setUsername(pendingUser.getUsername());
@@ -263,13 +265,18 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         // Fetch existing role from DB
         Role userRole = roleRepository.findByName(CommonConstants.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("Default role not found: " + CommonConstants.ROLE_USER));
+                .orElseThrow(() -> new RegistrationException("Default role not found: " + CommonConstants.ROLE_USER));
 
-        newUser.setRoles(new HashSet<>(List.of(userRole)));
+        if (newUser.getRoles() == null) {
+            newUser.setRoles(new HashSet<>());
+        }
+
+        //newUser.setRoles(new HashSet<>(List.of(userRole)));
+        newUser.getRoles().add(userRole);
         return newUser;
     }
 
-    private String generateUniqueReferralCode() {
+    public String generateUniqueReferralCode() {
         String code;
         int attempts = 0;
         do {

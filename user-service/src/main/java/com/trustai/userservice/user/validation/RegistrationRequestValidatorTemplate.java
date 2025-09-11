@@ -1,6 +1,6 @@
 package com.trustai.userservice.user.validation;
 
-import com.trustai.common.auth.registration.RegistrationRequest;
+import com.trustai.userservice.user.registration.RegistrationRequest;
 import com.trustai.common.repository.user.UserRepository;
 import com.trustai.userservice.user.exception.DuplicateRecordException;
 import com.trustai.userservice.user.exception.InvalidRequestException;

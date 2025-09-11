@@ -1,6 +1,5 @@
-package com.trustai.common.auth.registration;
+package com.trustai.userservice.user.registration;
 
-import com.trustai.common.auth.dto.request.OtpVerifyRequest;
 import com.trustai.common.auth.dto.response.AuthResponse;
 import com.trustai.common.auth.service.otp.OtpSession;
 import com.trustai.common.domain.user.User;

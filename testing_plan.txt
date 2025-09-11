@@ -1,0 +1,175 @@
+1. Test Registration Flow:
+=================================
+1.1. validate registration request like
+	- non empty and non null username or password
+	- unique username
+	- unique email
+	- valid referralCode
+1.2. otp send on registration or not
+1.3. max attempt exceeded
+1.4. verify otp
+1.5. referralCode is generating or not:
+	- it should be unique referral code
+1.6. Users default rank should be "RANK_0" and default role as "USER"
+1.7. token genrated or not after successful registration
+1.8. User Hierarchy should be update under the parent user with active status as 0
+1.9. New registered user should be in depth 0
+1.10. registration success email published or not
+1.11. New user should be in default PENDING (untill first DEPOSIT) status
+
+1.12. Provide SignUp bonus / points
+1.13.
+
+
+2. Deposit Balance:
+===============================
+2.1. Only status = PENDING/ACTIVE userer can deposit, LOCKED/BLOCKED user cant deposit (But we will allow any user to deposit)
+2.2. Deposit Amount should be more then minimum DepositAmount
+2.3. Max 10 depoit in a day by a single user (to restrict proof file upload)
+2.4. Default status of Deposit request should be = PENDING, Only after approve by admin the amount will be reflect in Wallet
+2.4. When Admin Approve the deposit
+	- 2.4.1. If its a first deposit, then referrer (parent) will receive referrer balance
+	- 2.4.2. Update the referres status to ACTIVE in hierarchy table
+	- 2.4.3. Re-Calculate the Rank Calculation for all the parents
+	- 2.4.4. Referrer (parent) will receive Email & InApp notification about the referralBonus
+	- 2.4.5. If rank get updated then notify using EMAIl/INAPP
+	- 2.4.6. Current User (who is making deposit) will receive InApp/Email notification confirmation that amount is credited to his Wallt
+	- 2.4.7. After approve deposit screenshot will be delete from the system to cleanup memory
+	- 2.4.8. If its a first Deposit Only:
+		- apply referral bonus for the parent (referrer)
+
+2.5. On Deposit Reject (rejctionReason is mandatory):  =user will notify via email about the rejectiion reason
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Registration Flow:
+  1. RegistrationFormFillup (username, pwd, email, referralCode) ==> VerifyOTP
+  2. Create a new user with (accountId, username, email, mobile, referrer, referralCode)
+  3. Update user-hierarchy after user-registration
+  4. activateUser (automatic/manual)
+       --> trigger parent RankUpdate / Child SignupBonus / Achievement Point + Parent ReferralBonus
+  5. Send Welcome Mail
+  VERIFY after Registration:
+      1. user table: (accountId, username, pwd, email, referralCode, referrer, walletBalance)
+      2. user_hierarchy table
+      3. SignupBonus + referral Bonus for parent
+      4. parent rank update
+      5. Mail received or not
+
+2. Deposit Balance
+     1. after add money from Binance, add the transactionId to user app
+     2. Admin will approve the transaction
+     3. Update Users Wallet Balance after the approval
+3. Reserve/Buy Stake (Only 1/day)
+4. Sell Stake
+    - update users daily income
+    - update upline users team income
+5. Stake investment for 90 days
+
+
+3. how to log all the unauthorized request
+4. log all incoming request and response
+5. How to integrate registration logic for a customer  how to support passwordless regisration also along with username and password and 2-spep verification. also user can be able to register through form login
+
+6. how to get userId from SecurityUtils in other conttoller or service method? can we handle it in better way by using a BaseController or any other approach?
+
+7. how to integrate swagger
+8. Store deviceId, ip, location etc during login
+
+ @GetMapping("/summary")
+    public ResponseEntity<ReservationSummary> reservationSummary() {
+        Long userId = getCurrentUserId();
+        log.info("Fetching reservation info for userId: {}", userId);
+        ReservationSummary reservationSummary = reservationService.getReservationSummary(userId);
+        log.info("Retrieved {} active reservations for userId: {}", reservationSummary.getReservations().size(), userId);
+        return ResponseEntity.ok(reservationSummary);
+    }
+
+
+
+
+
+Trust AI
+---------------
+Test1: Show a Users Total Stake profit & Total Stake Invested amount
+  - Use UserInvestment table to fetch total "investedAmount"
+  - store the profit after a stake is mature in IncomeHistory table with type as "INVEST"
+     so that we can fetch total profit from all stake investment
+
+Test2: Check all incomes:
+1. Check Referral income is populating to "income_history" or not
+2. Check SignUp Bonus  is populating to "income_history" or not
+3. Sell Stake profit (Daily income, Team Income) is populating in "income_history"
+
+Test3: Reserve Stake
+1. After reserve a stake user's available balance for reservation should be deducted
+      - Deduct Wallet (Wallet - stakeAmount)
+2. After sell a reserved stake user will get
+     - DailyIncome will be update      (+ (profitPercentage * StakeCurentValue))
+     - Wallet Balance will be update    (+stakeAmount + valuationDelta)
+     - Reservation amount will update (+stakeAmount)
+
+Test4: Stake feature is working or not?
+1. User's wallet will deduct after stake invest
+2. Can buy multiple number of Stake if He has enough balance
+
+
+Test5: Order History:
+ 1. Buy
+ 2. Sold
+ 3. Reservation for NFT
+ 4. Swap Fees
+ 5. Event Reward
+ 6. Deposit
+
+Test6: MyTeam
+1. Community rewards
+2. Valid Members
+3. 1 enthusiast
+4. Community enthusiasts
+    - Total Registered Member: 56
+    - Total Valid Member: 1
+    - Members A: 10
+    - Valid A: 1
+    - Members A: 27
+    - Valid B: 0
+   - Member C: 19
+   - Valid C: 0
+  /app/group/member-summary?startTime=&endTime=
+  ?startTime=2025-08-09+18:30:00&endTime=2025-08-10+18:29:59
+  {
+    "totalUser": 56,
+    "direct": 10,
+    "indirect": 27,
+    "third": 19,
+    "totalActive": 1,
+    "activeDirect": 1,
+    "activeIndirect": 0,
+    "activeThird": 0,
+    "totalShare": 9.03337088
+}
+
+app/group/contribute-list?page=1&size=9999&startTime=&endTime=&type=totalUser
+[{
+    "makerId": "M05UUL4G8",
+    "account": "SXMD25",
+    "name": "SXMD25",
+    "related": "A",
+    "share": 16.51463311
+}]
+
+5. Community contribution
+6. Community Orders
+7. Referrals
+
+

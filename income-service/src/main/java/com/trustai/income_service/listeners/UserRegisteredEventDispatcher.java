@@ -1,6 +1,7 @@
 package com.trustai.income_service.listeners;
 
 import com.trustai.common.event.UserRegisteredEvent;
+import com.trustai.income_service.referral.service.SignupBonusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -12,6 +13,8 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 @Slf4j
 public class UserRegisteredEventDispatcher {
+    private final SignupBonusService signupBonusService;
+
     @EventListener
     public void dispatch(UserRegisteredEvent event) {
         // control order here
@@ -19,8 +22,12 @@ public class UserRegisteredEventDispatcher {
         Long referrerId = event.getReferrerId();
 
         // Step 1: Update the user hierarchy tree to reflect the new referral relationship
-        log.info("UserRegisteredEvent: Updating hierarchy - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
+        //log.info("UserRegisteredEvent: Updating hierarchy - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
         //userHierarchyService.updateHierarchy(event.getReferrerId(), event.getRefereeId());
+
+        // Step 2: Apply Signup Bonus for the newly registered user
+        log.info("UserRegisteredEvent: Apply Signup Bonus - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
+        signupBonusService.applySignupBonus(refereeId);
 
         // Step 2: Create a pending bonus (not immediately granted)
         /*

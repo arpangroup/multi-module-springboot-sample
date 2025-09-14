@@ -33,6 +33,7 @@
     </properties>
 
     <modules>
+        <module>config-service</module>
         <module>aggregator</module>
         <module>common</module>
         <module>storage-service</module>

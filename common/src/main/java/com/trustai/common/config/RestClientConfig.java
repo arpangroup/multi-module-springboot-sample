@@ -93,4 +93,11 @@ public class RestClientConfig {
                 //.requestInterceptor(loggingResponseInterceptor())
                 .build();
     }
+
+    @Bean
+    public RestClient restClient(RestClient.Builder builder) {
+        return builder
+                .requestInterceptor(loggingInterceptor())
+                .build();
+    }
 }

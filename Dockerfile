@@ -1,23 +1,32 @@
-#FROM maven:3.9-eclipse-temurin-21 AS build
-#WORKDIR /app
-#COPY pom.xml .
-#RUN mvn -B -q -DskipTests dependency:go-offline
-#COPY src ./src
-#RUN mvn -B -DskipTests package
+# ---------- Build Stage ----------
+FROM eclipse-temurin:21-jdk-alpine AS build
+WORKDIR /workspace
 
+# Install Maven
+RUN apk add --no-cache maven
 
-FROM eclipse-temurin:21-jre-alpine
-#FROM eclipse-temurin:17-jdk-alpine
+# Copy whole repo (adjust .dockerignore to skip target/, .git, etc.)
+COPY . .
+
+# Build both modules
+RUN #./mvnw -B clean package -DskipTests
+RUN mvn -B clean package -DskipTests
+
+# ---------- Config Service ----------
+FROM eclipse-temurin:21-jre-alpine AS config-service
 WORKDIR /app
+COPY --from=build /workspace/config-service/target/*.jar config-server.jar
+EXPOSE 8888
+ENTRYPOINT ["java", "-jar", "/app/config-server.jar"]
+
+# ---------- Aggregator App ----------
+FROM eclipse-temurin:21-jre-alpine AS aggregator
+WORKDIR /app
+COPY --from=build /workspace/aggregator/target/*.jar app.jar
+
 RUN addgroup -S cicd_deploy && adduser -S cicd_deploy -G cicd_deploy
-COPY aggregator/target/*.jar trustai_backend.jar
-
-# Create the log directory
-RUN mkdir -p /logs
-
-# Optional: give full access just in case
-RUN chmod -R 777 /logs
-
+RUN mkdir -p /logs && chmod -R 777 /logs
 USER cicd_deploy
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/trustai_backend.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

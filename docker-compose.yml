@@ -1,4 +1,28 @@
 services:
+  config-service-db: # 👈 separate DB for config server
+    image: mysql:8.0
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: configdb        # 👈 dedicated DB
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "3308:3306"                   # exposed on host at 3308
+    volumes:
+      - config_mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-prootpass" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   config-service:
 #    build:
 #      context: .
@@ -9,6 +33,12 @@ services:
       - "8888:8888"
     networks:
       - backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://config-service-db:3306/configdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]

@@ -3,7 +3,11 @@
 set -e
 
 echo "🔐 Logging in to GHCR..."
-echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+for i in {1..3}; do
+  echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin && break
+  echo "⚠️ Login failed, retrying..."
+  sleep 5
+done
 
 echo "📂 Switching to deploy directory"
 cd "$DEPLOY_PATH"

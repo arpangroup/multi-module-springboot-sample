@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   config-service:
 #    build:
@@ -18,10 +17,10 @@ services:
       retries: 10
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: aggregator   # 👈 make it explicit
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: aggregator   # 👈 make it explicit
     image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
     #image: trustai-backend
     #build: .                   # You only need build: . locally <--- If you're pulling from GHCR and not building locally, remove the build: . line.
@@ -43,6 +42,7 @@ services:
 #      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
 #      SPRING_JPA_HIBERNATE_DDL_AUTO: create #create, update
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-service:8888/
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}

@@ -185,6 +185,70 @@ public class RegistrationServiceImpl implements RegistrationService {
         return newUser;
     }
 
+    @Override
+    public void resendOtp(String sessionId) {
+        log.info("Resending OTP for sessionId: {}", sessionId);
+
+        // 1. Fetch OTP session
+        OtpSession oldSession = otpService.getSession(sessionId)
+                .orElseThrow(() -> {
+                    log.warn("Invalid or expired OTP session: {}", sessionId);
+                    return new RegistrationException("Invalid or expired OTP session");
+                });
+
+        // 2. Validate pending user exists for this session
+        PendingUser pendingUser = pendingRepo.findByEmail(oldSession.username()) // OTP session username = email
+                .orElseThrow(() -> {
+                    log.error("No pending user found for email: {}", oldSession.username());
+                    return new RegistrationException("Pending user not found");
+                });
+
+        /*
+        // Invalidate old session
+        otpService.invalidateSession(sessionId);
+
+        // Create new OTP session
+        OtpSession newSession = otpService.createSession(pendingUser.getEmail(), REG_FLOW, SecurityConstants.MAX_OTP_ATTEMPTS);
+
+        otpService.sendOtp(newSession, "EMAIL");
+         */
+
+        // 3. Increment attempts (protect against brute force / spam)
+        otpService.incrementAttempts(sessionId, SecurityConstants.MAX_OTP_ATTEMPTS);
+
+        // 4. Resend the OTP using configured channel (EMAIL here)
+        otpService.sendOtp(oldSession, "EMAIL");
+
+        log.info("OTP resent successfully for username: {}", pendingUser.getUsername());
+    }
+
+    /*@Override
+    public void resendOtp__withNewOTP(String sessionId) {
+        log.info("Resending OTP for sessionId: {}", sessionId);
+
+        OtpSession oldSession = otpService.getSession(sessionId)
+                .orElseThrow(() -> new RegistrationException("Invalid or expired OTP session"));
+
+        PendingUser pendingUser = pendingRepo.findByEmail(oldSession.username())
+                .orElseThrow(() -> new RegistrationException("Pending user not found"));
+
+        // Invalidate old session
+        otpService.invalidateSession(sessionId);
+
+        // Create new OTP session
+        OtpSession newSession = otpService.createSession(
+                pendingUser.getEmail(),
+                pendingUser.getEmail(), // using email as username
+                SecurityConstants.MAX_OTP_ATTEMPTS,
+                SecurityConstants.OTP_EXPIRE_MINUTES
+        );
+
+        // Send new OTP
+        otpService.sendOtp(newSession, "EMAIL");
+
+        log.info("New OTP generated and sent for username: {}", pendingUser.getUsername());
+    }*/
+
     private User doRegister(User user, String inviteCode) {
         log.info("Registering user: {}", user.getUsername());
         User newUser = userRepo.save(user);

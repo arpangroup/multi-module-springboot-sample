@@ -8,4 +8,6 @@ public interface RegistrationService {
     OtpSession createPendingRegistration(RegistrationRequest request);
     AuthResponse completeRegistration(String sessionId, String otp);
     User directRegister(User user, String referralCode);
+
+    void resendOtp(String sessionId);
 }

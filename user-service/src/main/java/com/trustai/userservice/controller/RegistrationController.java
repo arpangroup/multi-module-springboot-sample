@@ -6,6 +6,7 @@ import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.ApiResponse;
 import com.trustai.common.exceptions.NotFoundException;
 import com.trustai.common.repository.user.UserRepository;
+import com.trustai.userservice.user.dto.OtpResendRequest;
 import com.trustai.userservice.user.registration.RegistrationRequest;
 import com.trustai.userservice.user.registration.RegistrationService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,13 @@ public class RegistrationController {
         registrationService.completeRegistration(request.getSessionId(), request.getOtp());
         log.info("OTP verification successful for session ID: {}", request.getSessionId());
         return ResponseEntity.ok(ApiResponse.success("Registration completed successfully"));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse> resendOtp(@RequestBody OtpResendRequest request) {
+        log.info("Resend OTP requested for session: {}", request.getSessionId());
+        registrationService.resendOtp(request.getSessionId());
+        return ResponseEntity.ok(ApiResponse.success("OTP resent successfully"));
     }
 
 

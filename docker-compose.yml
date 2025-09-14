@@ -1,16 +1,17 @@
 version: "3.9"
 
 services:
+  # MySQL DB
   db:
     image: mysql:8.0
     container_name: app-db
     environment:
-      MYSQL_DATABASE: ${DB_NAME}          # main app DB
+      MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -32,7 +33,7 @@ services:
       - backend
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started  # only wait until DB container is started
     env_file:
       - .env
     environment:
@@ -41,11 +42,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
     restart: unless-stopped
 
   # Main App
@@ -57,9 +53,11 @@ services:
       - backend
     depends_on:
       db:
-        condition: service_healthy
-#      config-service:
-#        condition: service_healthy
+        condition: service_started
+      config-service:
+        condition: service_started  # wait until config-service container is started
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${DB_USER}

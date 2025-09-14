@@ -24,7 +24,7 @@ public class SignupBonusServiceImpl implements SignupBonusService {
     private final UserApi userApi;
     private final WalletApi walletApi;
 
-    @Value("${income.bonus.signup}")
+    @Value("${bonus.signup.flat-amount}")
     private BigDecimal signupBonus;
 
     @Override

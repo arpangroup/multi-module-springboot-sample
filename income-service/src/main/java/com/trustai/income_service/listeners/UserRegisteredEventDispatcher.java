@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
 
@@ -15,8 +17,11 @@ import java.math.BigDecimal;
 public class UserRegisteredEventDispatcher {
     private final SignupBonusService signupBonusService;
 
-    @EventListener
+//    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void dispatch(UserRegisteredEvent event) {
+        log.info("Handling UserRegisteredEvent AFTER COMMIT for userId={}", event.getRefereeId());
+
         // control order here
         Long refereeId = event.getRefereeId();
         Long referrerId = event.getReferrerId();

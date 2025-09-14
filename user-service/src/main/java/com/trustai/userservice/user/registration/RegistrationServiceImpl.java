@@ -249,6 +249,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         log.info("New OTP generated and sent for username: {}", pendingUser.getUsername());
     }*/
 
+    @Transactional
     private User doRegister(User user, String inviteCode) {
         log.info("Registering user: {}", user.getUsername());
         User newUser = userRepo.save(user);

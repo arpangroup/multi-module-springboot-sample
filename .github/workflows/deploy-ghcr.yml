@@ -61,17 +61,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-#      - name: 📦 Build and push Docker image
-#        uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          push: true
-#          tags: |
-#            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-#            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      # --- Build & Push Config Service ---
-      - name: 📦 Build and push Config Service
+      - name: 📦 Build & push Config Service
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -81,8 +71,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:latest
 
-      # --- Build & Push Aggregator ---
-      - name: 📦 Build and push Aggregator
+      - name: 📦 Build & push Aggregator
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -98,6 +87,19 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    env:
+      REGISTRY: ${{ env.REGISTRY }}
+      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      GHCR_USER: ${{ env.GHCR_USER }}
+      GHCR_PAT: ${{ env.GHCR_PAT }}
+      REMOTE_USER: ${{ env.REMOTE_USER }}
+      REMOTE_HOST: ${{ env.REMOTE_HOST }}
+      REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
+      DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
 
     steps:
       - name: 📥 Checkout repository
@@ -120,48 +122,28 @@ jobs:
       - name: 🛡️ Add host key to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p "$REMOTE_SSH_PORT" "$REMOTE_HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "❌ ssh-keyscan failed for $REMOTE_HOST:$REMOTE_SSH_PORT"
-            exit 1
-          }
+          ssh-keyscan -p "$REMOTE_SSH_PORT" "$REMOTE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: 📦 Copy docker-compose.yml to server
+      - name: 📄 Upload docker-compose.yml
         run: |
           scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
 
-      - name: 🚀 Deploy on remote server
+      - name: 📜 Upload deploy.sh script
         run: |
-          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-            set -e
+          scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no ./scripts/deploy.sh $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
+          ssh -p "$REMOTE_SSH_PORT" $REMOTE_USER@$REMOTE_HOST "chmod +x $DEPLOY_PATH/deploy.sh"
 
-            echo "🔐 Logging in to GHCR..."
-            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-            echo "📂 Switching to deploy directory: $DEPLOY_PATH"
-            cd "$DEPLOY_PATH"
-
-            echo "📄 Updating .env variables"
-            touch .env
-            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
-            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
-            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${{ steps.tag.outputs.val }}|" .env || echo "IMAGE_TAG=${{ steps.tag.outputs.val }}" >> .env
-
-            echo "⬇️ Pulling latest image"
-            docker compose pull || docker-compose pull
-
-            echo "🔄 Restarting services"
-            docker compose up -d --remove-orphans || docker-compose up -d --remove-orphans
-
-            echo "🧹 Cleaning up unused Docker images"
-            docker image prune -f
-          EOF
-
-        env:
-          REGISTRY: ${{ env.REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          GHCR_USER: ${{ env.GHCR_USER }}
-          GHCR_PAT: ${{ env.GHCR_PAT }}
-          REMOTE_USER: ${{ env.REMOTE_USER }}
-          REMOTE_HOST: ${{ env.REMOTE_HOST }}
-          REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+      - name: 🚀 Run deployment script on remote server
+        run: |
+          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST \
+            "REGISTRY='${{ env.REGISTRY }}' \
+             IMAGE_NAME='${{ env.IMAGE_NAME }}' \
+             IMAGE_TAG='${{ steps.tag.outputs.val }}' \
+             DB_NAME='${{ secrets.DB_NAME }}' \
+             DB_USER='${{ secrets.DB_USER }}' \
+             DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+             DB_ROOT_PASSWORD='${{ secrets.DB_ROOT_PASSWORD }}' \
+             GHCR_USER='${{ env.GHCR_USER }}' \
+             GHCR_PAT='${{ env.GHCR_PAT }}' \
+             DEPLOY_PATH='${{ env.DEPLOY_PATH }}' \
+             bash $DEPLOY_PATH/deploy.sh"

@@ -9,7 +9,6 @@ RUN apk add --no-cache maven
 COPY . .
 
 # Build both modules
-RUN #./mvnw -B clean package -DskipTests
 RUN mvn -B clean package -DskipTests
 
 # ---------- Config Service ----------

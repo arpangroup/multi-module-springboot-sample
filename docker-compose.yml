@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: config-service   # 👈 use the config-service stage
-    image: config-service:latest
+    image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
     ports:
       - "8888:8888"
     networks:
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: aggregator   # 👈 make it explicit
-    image: ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+    image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
     #image: trustai-backend
     #build: .                   # You only need build: . locally <--- If you're pulling from GHCR and not building locally, remove the build: . line.
     ports:
@@ -43,10 +43,10 @@ services:
 #      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
 #      SPRING_JPA_HIBERNATE_DDL_AUTO: create #create, update
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
-      spring.datasource.url: jdbc:mysql://db:3306/${DB_NAME}
-      spring.datasource.username: ${DB_USER}
-      spring.datasource.password: ${DB_PASSWORD}
-      spring.jpa.hibernate.ddl-auto: create
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
     restart: unless-stopped
     networks:
       - backend

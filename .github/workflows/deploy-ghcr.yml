@@ -61,14 +61,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📦 Build and push Docker image
+#      - name: 📦 Build and push Docker image
+#        uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          push: true
+#          tags: |
+#            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+#            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # --- Build & Push Config Service ---
+      - name: 📦 Build and push Config Service
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          target: config-service
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:latest
+
+      # --- Build & Push Aggregator ---
+      - name: 📦 Build and push Aggregator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          target: aggregator
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:latest
 
       - name: 🚪 Logout from GHCR
         run: docker logout ${{ env.REGISTRY }}

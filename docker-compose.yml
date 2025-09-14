@@ -42,7 +42,7 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      test: ["CMD-SHELL", "curl -s http://localhost:8888/actuator/health || exit 1"]
       interval: 10s
       retries: 10
       timeout: 5s

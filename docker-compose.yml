@@ -41,6 +41,11 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      retries: 10
+      timeout: 5s
     restart: unless-stopped
 
   # Main App
@@ -51,10 +56,8 @@ services:
     networks:
       - backend
     depends_on:
-      db:
-        condition: service_started
-      config-service:
-        condition: service_started  # wait until config-service container is started
+      - db
+      - config-service
     env_file:
       - .env
     environment:

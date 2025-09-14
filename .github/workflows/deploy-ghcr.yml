@@ -14,11 +14,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   IMAGE_TAG: ${{ github.sha }}
-  REMOTE_USER: ${{ secrets.REMOTE_USER }}
-  REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-  REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
-  GHCR_USER: ${{ secrets.GHCR_USERNAME }}
-  GHCR_PAT: ${{ secrets.GHCR_PAT }}
   DEPLOY_PATH: "/home/trustaiapp"
 
 jobs:
@@ -88,14 +83,14 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      REGISTRY: ${{ env.REGISTRY }}
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
-      GHCR_USER: ${{ env.GHCR_USER }}
-      GHCR_PAT: ${{ env.GHCR_PAT }}
-      REMOTE_USER: ${{ env.REMOTE_USER }}
-      REMOTE_HOST: ${{ env.REMOTE_HOST }}
-      REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
-      DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+      DEPLOY_PATH: "/home/trustaiapp"
+      GHCR_USER: ${{ secrets.GHCR_USERNAME }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+      REMOTE_USER: ${{ secrets.REMOTE_USER }}
+      REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+      REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -139,10 +134,10 @@ jobs:
             "REGISTRY='${{ env.REGISTRY }}' \
              IMAGE_NAME='${{ env.IMAGE_NAME }}' \
              IMAGE_TAG='${{ steps.tag.outputs.val }}' \
-             DB_NAME='${{ secrets.DB_NAME }}' \
-             DB_USER='${{ secrets.DB_USER }}' \
-             DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
-             DB_ROOT_PASSWORD='${{ secrets.DB_ROOT_PASSWORD }}' \
+             DB_NAME='${{ env.DB_NAME }}' \
+             DB_USER='${{ env.DB_USER }}' \
+             DB_PASSWORD='${{ env.DB_PASSWORD }}' \
+             DB_ROOT_PASSWORD='${{ env.DB_ROOT_PASSWORD }}' \
              GHCR_USER='${{ env.GHCR_USER }}' \
              GHCR_PAT='${{ env.GHCR_PAT }}' \
              DEPLOY_PATH='${{ env.DEPLOY_PATH }}' \

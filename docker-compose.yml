@@ -1,10 +1,10 @@
 version: "3.9"
 services:
   config-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: config-service   # 👈 use the config-service stage
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: config-service   # 👈 use the config-service stage
     image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
     ports:
       - "8888:8888"

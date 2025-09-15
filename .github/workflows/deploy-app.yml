@@ -134,15 +134,25 @@ jobs:
             cd "$DEPLOY_PATH"
 
             echo "📄 Updating .env variables"
-            touch .env
-            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
-            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
-            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
-            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
-            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
-            sed -i "s|^CONFIG_SERVER_HOST=.*|CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST|" .env || echo "CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST" >> .env
+            cat > .env << EOT
+            REGISTRY=$REGISTRY
+            IMAGE_NAME=$IMAGE_NAME
+            IMAGE_TAG=$IMAGE_TAG
+            DB_NAME=$DB_NAME
+            DB_USER=$DB_USER
+            DB_PASSWORD=$DB_PASSWORD
+            DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+            CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
+            EOT
+#            touch .env
+#            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
+#            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
+#            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+#            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
+#            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
+#            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+#            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
+#            sed -i "s|^CONFIG_SERVER_HOST=.*|CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST|" .env || echo "CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST" >> .env
 
 
             echo "⬇️ Pulling latest image"

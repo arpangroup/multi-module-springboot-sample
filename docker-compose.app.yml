@@ -17,7 +17,7 @@ services:
 #      - backend
     restart: unless-stopped
     volumes:
-      - /home/logs:/logs
+      - ./logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
       - /home/uploads:/app/uploads
 
 

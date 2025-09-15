@@ -24,7 +24,6 @@ services:
   config-service:
     image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
     container_name: config-service
-    container_name: config-service
     depends_on:
       db:
         condition: service_healthy

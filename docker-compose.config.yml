@@ -33,20 +33,19 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-root}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-password}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-
       # JPA/ Hibernate
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
-
       # Force Spring Boot to run data.sql
       SPRING_SQL_INIT_MODE: always
-
       # Optional: Logging
+      LOGGING_FILE_NAME: /app/logs/config-service.log
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE_INIT: DEBUG
     ports:
       - "8888:8888"
     volumes:
       - ./data.sql:/app/data.sql:ro   # ensure your SQL is mounted
+      - ./logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
     networks:
       - backend
     restart: unless-stopped

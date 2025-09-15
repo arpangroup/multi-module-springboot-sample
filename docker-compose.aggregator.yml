@@ -13,9 +13,13 @@ services:
 #      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
 #      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
-      - backend:
-          external: true
+      - backend
     restart: unless-stopped
     volumes:
       - /home/logs:/logs
       - /home/uploads:/app/uploads
+
+
+networks:
+  backend:
+    external: true       # <-- declare external network here

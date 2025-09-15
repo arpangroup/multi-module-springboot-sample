@@ -18,7 +18,13 @@ public class RankDataInitializer {
     @PostConstruct
     public void init() {
         List<RankConfig> configs = getAllRanks();
-        rankConfigRepository.saveAll(configs);
+
+        // Only save ranks that do not already exist
+        for (RankConfig config : configs) {
+            if (!rankConfigRepository.existsByCode(config.getCode())) {
+                rankConfigRepository.save(config);
+            }
+        }
     }
 
     public static List<RankConfig> getAllRanks() {

@@ -11,8 +11,8 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3307:3306"
-    networks:
-      - backend
+#    networks:
+#      - backend
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -46,13 +46,13 @@ services:
     volumes:
       - ./data.sql:/app/data.sql:ro   # ensure your SQL is mounted
       - ./logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
-    networks:
-      - backend
+#    networks:
+#      - backend
     restart: unless-stopped
 
 volumes:
   mysql_data:
 
-networks:
-  backend:
-    external: true
+#networks:
+#  backend:
+#    external: true

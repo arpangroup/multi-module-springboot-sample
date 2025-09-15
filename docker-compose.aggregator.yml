@@ -22,4 +22,4 @@ services:
 
 networks:
   backend:
-    external: true       # <-- declare external network here
+    driver: bridge

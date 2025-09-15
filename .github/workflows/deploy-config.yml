@@ -2,7 +2,7 @@ name: Deploy Config Server With MySql
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "fix-15-sept-config-service"]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -149,7 +149,7 @@ jobs:
             docker compose -f docker-compose.config.yml pull
 
             echo "🔄 Restarting services"
-            docker compose -f docker-compose.config.yml up -d config-service --remove-orphans
+            docker compose -f docker-compose.config.yml up -d config-service
 
             echo "🧹 Cleaning up unused Docker images"
             docker image prune -f

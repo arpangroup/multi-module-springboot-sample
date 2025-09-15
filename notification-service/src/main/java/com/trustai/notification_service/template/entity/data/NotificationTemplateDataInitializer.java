@@ -22,11 +22,18 @@ public class NotificationTemplateDataInitializer {
         var pushTemplates = getPushTemplates();
 
         System.out.println("Saving notification templates...");
-        templateRepository.saveAll(emailTemplates);
+        emailTemplates.forEach(this::createIfNotExists);
         System.out.println("Saving smsTemplates...");
-        templateRepository.saveAll(smsTemplates);
+        smsTemplates.forEach(this::createIfNotExists);
         System.out.println("Saving pushTemplates...");
-        templateRepository.saveAll(pushTemplates);
+        pushTemplates.forEach(this::createIfNotExists);
+    }
+
+    private void createIfNotExists(NotificationTemplate template) {
+        if (templateRepository.existsByCode(template.getCode())) {
+            return; // skip insertion if template already exists
+        }
+        templateRepository.save(template);
     }
 
     private List<NotificationTemplate> getEmailTemplates() {

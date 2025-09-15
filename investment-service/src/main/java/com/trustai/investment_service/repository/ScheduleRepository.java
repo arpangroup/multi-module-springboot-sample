@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     Schedule findByScheduleNameIgnoreCase(String scheduleName);
+
+    boolean existsByScheduleName(String name);
 }

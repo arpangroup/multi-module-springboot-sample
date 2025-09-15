@@ -63,10 +63,17 @@ public class StakeDataInitializer {
             throw new RuntimeException("StakePrice should be between the investment schema range");
         }
 
+        String stakeName = rank + " " + days + " days plan of " + stakePrice + " for roi " + roi;
+
+        // Check if already exists
+        if (schemaRepository.existsByName(stakeName)) {
+            return; // skip insertion
+        }
+
         // Investment Schema 1 - FIXED + PERIOD + cancellable
         InvestmentSchema stake1 = new InvestmentSchema();
         stake1.setLinkedRank(rank);
-        stake1.setName(rank + " " + days +" days plan of " + stakePrice + " for roi " + roi);
+        stake1.setName(stakeName);
         stake1.setSchemaBadge("STAKE_" + rank + "_" + days);
         stake1.setImageUrl(imageList.get(++count));
         stake1.setInvestmentType(InvestmentType.STAKE);

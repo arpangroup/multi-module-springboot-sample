@@ -13,18 +13,18 @@ public class ScheduleDataInitializer {
 
     @PostConstruct
     public void init() {
-        Schedule scheduleHourly = new Schedule(null, "Hourly", 60, "Every hour");                     // 60 minutes
-        Schedule scheduleDaily = new Schedule(null, "Daily", 24 * 60, "Every day");                  // 1440 minutes
-        Schedule scheduleWeekly = new Schedule(null, "Weekly", 7 * 24 * 60, "Every week");            // 10080 minutes
-        Schedule schedule2Weekly = new Schedule(null, "2 Week", 14 * 24 * 60, "Every 2 weeks");        // 20160 minutes <== 14 days
-        Schedule scheduleMonthly = new Schedule(null, "Monthly", 30 * 24 * 60, "Every month (approx)");// 43200 minutes
-        Schedule noSchedule = new Schedule(null, "No Schedule", 100 * 30 * 24 * 60, "100Yrs (approx)");// 43200 minutes
+        createIfNotExists("Hourly", 60, "Every hour");
+        createIfNotExists("Daily", 24 * 60, "Every day");
+        createIfNotExists("Weekly", 7 * 24 * 60, "Every week");
+        createIfNotExists("2 Week", 14 * 24 * 60, "Every 2 weeks");
+        createIfNotExists("Monthly", 30 * 24 * 60, "Every month (approx)");
+        createIfNotExists("No Schedule", 100 * 30 * 24 * 60, "100Yrs (approx)");
+    }
 
-        scheduleHourly = scheduleRepository.save(scheduleHourly);
-        scheduleDaily = scheduleRepository.save(scheduleDaily);
-        scheduleWeekly = scheduleRepository.save(scheduleWeekly);
-        schedule2Weekly = scheduleRepository.save(schedule2Weekly);
-        scheduleMonthly = scheduleRepository.save(scheduleMonthly);
-        noSchedule = scheduleRepository.save(noSchedule);
+    private void createIfNotExists(String name, int intervalMinutes, String description) {
+        if (!scheduleRepository.existsByScheduleName(name)) {
+            Schedule schedule = new Schedule(null, name, intervalMinutes, description);
+            scheduleRepository.save(schedule);
+        }
     }
 }

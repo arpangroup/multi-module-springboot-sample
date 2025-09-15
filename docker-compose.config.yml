@@ -45,7 +45,7 @@ services:
       - "8888:8888"
     volumes:
       - ./data.sql:/app/data.sql:ro   # ensure your SQL is mounted
-      - ./logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
+      - /home/trustaiapp/logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
 #    networks:
 #      - backend
     restart: unless-stopped

@@ -1,14 +1,14 @@
 name: Deploy (Docker + GHCR)
 
 on:
-#  push:
-#    branches: ["main", "fix-14-sept-implement-forgot-password"]
+  push:
+    branches: ["main", "fix-14-sept-config-service"]
   workflow_dispatch:
     inputs:
       image_tag:
         description: "Override image tag to deploy (default: commit SHA)"
-        required: false
-        default: ""
+        required: true
+        default: "latest"
 
 env:
   REGISTRY: ghcr.io

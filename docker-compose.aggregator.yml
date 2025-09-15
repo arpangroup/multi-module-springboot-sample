@@ -8,10 +8,10 @@ services:
     environment:
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
       SPRING_CONFIG_IMPORT: configserver:http://config-service:8888/
-      SPRING_DATASOURCE_URL: jdbc:mysql://config-db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${DB_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#      SPRING_DATASOURCE_URL: jdbc:mysql://config-db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+#      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+#      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
       - backend:
           external: true

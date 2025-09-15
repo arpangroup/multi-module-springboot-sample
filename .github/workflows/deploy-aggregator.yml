@@ -2,7 +2,7 @@ name: Deploy (Docker + GHCR)
 
 on:
   push:
-    branches: ["main", "fix-14-sept-config-service"]
+    branches: ["main", "fix-15-sept-config-service"]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -32,12 +32,12 @@ jobs:
       - name: 📥 Checkout source code
         uses: actions/checkout@v4
 
-      - name: 📄 Create .env file from secrets
-        run: |
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
+#      - name: 📄 Create .env file from secrets
+#        run: |
+#          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+#          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+#          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+#          echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
 
       - name: ☕ Setup JDK 21
         uses: actions/setup-java@v3
@@ -61,15 +61,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📦 Build and push Docker image
+      - name: 📦 Build & push Aggregator
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          target: config-service
+          target: aggregator
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-config:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:latest
 
       - name: 🚪 Logout from GHCR
         run: docker logout ${{ env.REGISTRY }}
@@ -99,14 +99,11 @@ jobs:
       - name: 🛡️ Add host key to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p "$REMOTE_SSH_PORT" "$REMOTE_HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "❌ ssh-keyscan failed for $REMOTE_HOST:$REMOTE_SSH_PORT"
-            exit 1
-          }
+          ssh-keyscan -p "$REMOTE_SSH_PORT" "$REMOTE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: 📦 Copy docker-compose.config.yml to server
+      - name: 📄 Copy docker-compose.aggregator.yml to server
         run: |
-          scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.config.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
+          scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.aggregator.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
 
       - name: 🚀 Deploy on remote server
         run: |
@@ -120,10 +117,6 @@ jobs:
             export REGISTRY="$REGISTRY"
             export IMAGE_NAME="$IMAGE_NAME"
             export IMAGE_TAG="$IMAGE_TAG"
-            export DB_NAME="$DB_NAME"
-            export DB_USER="$DB_USER"
-            export DB_PASSWORD="$DB_PASSWORD"
-            export DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD"
 
             # Log the image tag being deployed
             echo "Deploying image tag: $IMAGE_TAG"
@@ -139,17 +132,13 @@ jobs:
             sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
             sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
             sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
-            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
-            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
 
 
             echo "⬇️ Pulling latest image"
-            docker compose -f docker-compose.config.yml pull
+            docker compose -f docker-compose.aggregator.yml pull
 
             echo "🔄 Restarting services"
-            docker compose -f docker-compose.config.yml up -d --remove-orphans
+            docker compose -f docker-compose.aggregator.yml up -d --remove-orphans
 
             echo "🧹 Cleaning up unused Docker images"
             docker image prune -f
@@ -164,7 +153,3 @@ jobs:
           REMOTE_HOST: ${{ env.REMOTE_HOST }}
           REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
           DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}

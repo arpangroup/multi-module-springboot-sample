@@ -110,8 +110,23 @@ jobs:
 
       - name: 🚀 Deploy on remote server
         run: |
+          # Precompute the image tag in the GH action shell
+          IMAGE_TAG=${{ steps.tag.outputs.val }}
+          
           ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
             set -e
+          
+            # Export environment variables for docker-compose
+            export REGISTRY="$REGISTRY"
+            export IMAGE_NAME="$IMAGE_NAME"
+            export IMAGE_TAG="$IMAGE_TAG"
+            export DB_NAME="$DB_NAME"
+            export DB_USER="$DB_USER"
+            export DB_PASSWORD="$DB_PASSWORD"
+            export DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD"
+          
+            # Log the image tag being deployed
+            echo "Deploying image tag: $IMAGE_TAG"
 
             echo "🔐 Logging in to GHCR..."
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
@@ -123,20 +138,18 @@ jobs:
             touch .env
             sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
             sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
-            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${{ steps.tag.outputs.val }}|" .env || echo "IMAGE_TAG=${{ steps.tag.outputs.val }}" >> .env
-
-            # ✅ Inject DB secrets
+            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
             sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
             sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
             sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
             sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
-
+  
 
             echo "⬇️ Pulling latest image"
-            docker compose -f docker-compose.config.yml pull || docker-compose -f docker-compose.config.yml pull
+            docker compose -f docker-compose.config.yml pull
 
             echo "🔄 Restarting services"
-            docker compose -f docker-compose.config.yml up -d --remove-orphans || docker-compose -f docker-compose.config.yml up -d --remove-orphans
+            docker compose -f docker-compose.config.yml up -d --remove-orphans
 
             echo "🧹 Cleaning up unused Docker images"
             docker image prune -f

@@ -126,7 +126,7 @@ async function updateConfigs() {
 
   console.log("changedConfigs: ", changedConfigs);
 
-  const response = await fetch(`${configBaseUrl}/api/v1/configs/update`, {
+  const response = await fetch(`/api/v1/configs/update`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(changedConfigs)
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      const response = await fetch(`${configBaseUrl}/api/v1/configs/add`, {
+      const response = await fetch(`/api/v1/configs/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)

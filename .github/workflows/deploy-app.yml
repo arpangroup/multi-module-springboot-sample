@@ -106,71 +106,90 @@ jobs:
         run: |
           scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.app.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
 
-      - name: 🚀 Deploy on remote server
-        run: |
-          # Precompute the image tag in the GH action shell
-          IMAGE_TAG=${{ steps.tag.outputs.val }}
-
-          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-            set -e
-
-            # Export environment variables for docker-compose
-            export REGISTRY="$REGISTRY"
-            export IMAGE_NAME="$IMAGE_NAME"
-            export IMAGE_TAG="$IMAGE_TAG"
-            export DB_NAME="$DB_NAME"
-            export DB_USER="$DB_USER"
-            export DB_PASSWORD="$DB_PASSWORD"
-            export DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD"
-            export CONFIG_SERVER_HOST="$CONFIG_SERVER_HOST"
-
-            # Log the image tag being deployed
-            echo "Deploying image tag: $IMAGE_TAG"
-
-            echo "🔐 Logging in to GHCR..."
-            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-            echo "📂 Switching to deploy directory: $DEPLOY_PATH"
-            cd "$DEPLOY_PATH"
-
-            echo "📄 Updating .env variables"
-            cat > .env << EOT
-            REGISTRY=$REGISTRY
-            IMAGE_NAME=$IMAGE_NAME
-            IMAGE_TAG=$IMAGE_TAG
-            DB_NAME=$DB_NAME
-            DB_USER=$DB_USER
-            DB_PASSWORD=$DB_PASSWORD
-            DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
-            CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
-            EOT
-#            touch .env
-#            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
-#            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
-#            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-#            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
-#            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
-#            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-#            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
-#            sed -i "s|^CONFIG_SERVER_HOST=.*|CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST|" .env || echo "CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST" >> .env
-
-
-            echo "⬇️ Pulling latest image"
-            docker compose -f docker-compose.app.yml pull
-
-            echo "🔄 Restarting services"
-            docker compose -f docker-compose.app.yml up -d
-
-            echo "🧹 Cleaning up unused Docker images"
-            docker image prune -f
-          EOF
-
+      - name: 🚀 Run deploy.sh
+        run: bash scripts/deploy.sh
         env:
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ steps.tag.outputs.val }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          CONFIG_SERVER_HOST: ${{ env.CONFIG_SERVER_HOST }}
           GHCR_USER: ${{ env.GHCR_USER }}
           GHCR_PAT: ${{ env.GHCR_PAT }}
-          REMOTE_USER: ${{ env.REMOTE_USER }}
-          REMOTE_HOST: ${{ env.REMOTE_HOST }}
-          REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+
+
+#      - name: 🚀 Deploy on remote server
+#        run: |
+#          # Precompute the image tag in the GH action shell
+#          IMAGE_TAG=${{ steps.tag.outputs.val }}
+#
+#          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+#            set -e
+#
+#            # Export environment variables for docker-compose
+#            export REGISTRY="$REGISTRY"
+#            export IMAGE_NAME="$IMAGE_NAME"
+#            export IMAGE_TAG="$IMAGE_TAG"
+#            export DB_NAME="$DB_NAME"
+#            export DB_USER="$DB_USER"
+#            export DB_PASSWORD="$DB_PASSWORD"
+#            export DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD"
+#            export CONFIG_SERVER_HOST="$CONFIG_SERVER_HOST"
+#
+#            # Log the image tag being deployed
+#            echo "Deploying image tag: $IMAGE_TAG"
+#
+#            echo "🔐 Logging in to GHCR..."
+#            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+#
+#            echo "📂 Switching to deploy directory: $DEPLOY_PATH"
+#            cd "$DEPLOY_PATH"
+#
+#            echo "📄 Updating .env variables"
+#            cat > .env << EOT
+#            REGISTRY=$REGISTRY
+#            IMAGE_NAME=$IMAGE_NAME
+#            IMAGE_TAG=$IMAGE_TAG
+#            DB_NAME=$DB_NAME
+#            DB_USER=$DB_USER
+#            DB_PASSWORD=$DB_PASSWORD
+#            DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+#            CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
+#            EOT
+##            touch .env
+##            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
+##            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
+##            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+##            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
+##            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
+##            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+##            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
+##            sed -i "s|^CONFIG_SERVER_HOST=.*|CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST|" .env || echo "CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST" >> .env
+#
+#
+#            echo "⬇️ Pulling latest image"
+#            docker compose -f docker-compose.app.yml pull
+#
+#            echo "🔄 Restarting services"
+#            docker compose -f docker-compose.app.yml up -d
+#
+#            echo "🧹 Cleaning up unused Docker images"
+#            docker image prune -f
+#          EOF
+#
+#        env:
+#          REGISTRY: ${{ env.REGISTRY }}
+#          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+#          GHCR_USER: ${{ env.GHCR_USER }}
+#          GHCR_PAT: ${{ env.GHCR_PAT }}
+#          REMOTE_USER: ${{ env.REMOTE_USER }}
+#          REMOTE_HOST: ${{ env.REMOTE_HOST }}
+#          REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
+#          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}

@@ -1,19 +1,32 @@
 #!/bin/bash
-
 set -e
 
-echo "🔐 Logging in to GHCR..."
-for i in {1..3}; do
-  echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin && break
-  echo "⚠️ Login failed, retrying..."
-  sleep 5
-done
+# Required environment variables
+: "${REMOTE_USER:?Need to set REMOTE_USER}"
+: "${REMOTE_HOST:?Need to set REMOTE_HOST}"
+: "${REMOTE_SSH_PORT:?Need to set REMOTE_SSH_PORT}"
+: "${DEPLOY_PATH:?Need to set DEPLOY_PATH}"
+: "${REGISTRY:?Need to set REGISTRY}"
+: "${IMAGE_NAME:?Need to set IMAGE_NAME}"
+: "${IMAGE_TAG:?Need to set IMAGE_TAG}"
+: "${DB_NAME:?Need to set DB_NAME}"
+: "${DB_USER:?Need to set DB_USER}"
+: "${DB_PASSWORD:?Need to set DB_PASSWORD}"
+: "${DB_ROOT_PASSWORD:?Need to set DB_ROOT_PASSWORD}"
+: "${CONFIG_SERVER_HOST:?Need to set CONFIG_SERVER_HOST}"
+: "${GHCR_USER:?Need to set GHCR_USER}"
+: "${GHCR_PAT:?Need to set GHCR_PAT}"
 
-echo "📂 Switching to deploy directory"
+echo "Deploying image tag: $IMAGE_TAG"
+
+ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no "$REMOTE_USER@$REMOTE_HOST" << EOF
+set -e
+
+echo "📂 Switching to deploy directory: $DEPLOY_PATH"
 cd "$DEPLOY_PATH"
 
-echo "📄 Creating .env file"
-cat > .env <<EOL
+echo "📄 Updating .env variables"
+cat > .env << EOT
 REGISTRY=$REGISTRY
 IMAGE_NAME=$IMAGE_NAME
 IMAGE_TAG=$IMAGE_TAG
@@ -21,29 +34,20 @@ DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
-EOL
+CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
+EOT
 
-echo "⬇️ Pulling latest images"
-docker compose pull
+echo "🔐 Logging in to GHCR..."
+echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+echo "⬇️ Pulling latest image"
+docker compose -f docker-compose.app.yml pull
 
 echo "🔄 Restarting services"
-docker compose up -d --remove-orphans
-
-#echo "⏳ Waiting for config-service to become healthy..."
-#retries=30
-#until [ "$(docker inspect -f '{{.State.Health.Status}}' config-service)" = "healthy" ] || [ $retries -eq 0 ]; do
-#  echo "Waiting for config-service..."
-#  sleep 5
-#  retries=$((retries-1))
-#done
-
-#if [ $retries -eq 0 ]; then
-#  echo "❌ config-service failed to become healthy"
-#  docker compose logs config-service --tail 20
-#  exit 1
-#fi
+docker compose -f docker-compose.app.yml up -d
 
 echo "🧹 Cleaning up unused Docker images"
 docker image prune -f
+EOF
 
-echo "✅ Deployment completed successfully"
+echo "✅ Deployment finished."

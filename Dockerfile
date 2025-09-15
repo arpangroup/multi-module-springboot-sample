@@ -14,15 +14,26 @@ RUN mvn -B clean package -DskipTests
 # ---------- Config Service ----------
 FROM eclipse-temurin:21-jre-alpine AS config-service
 WORKDIR /app
+
+# Copy built jar
 COPY --from=build /workspace/config-service/target/*.jar config-server.jar
+
+# Create non-root user
+RUN addgroup -S cicd_deploy && adduser -S cicd_deploy -G cicd_deploy
+RUN mkdir -p /logs && chmod -R 777 /logs
+USER cicd_deploy
+
 EXPOSE 8888
 ENTRYPOINT ["java", "-jar", "/app/config-server.jar"]
 
 # ---------- Aggregator App ----------
 FROM eclipse-temurin:21-jre-alpine AS aggregator
 WORKDIR /app
+
+# Copy built jar
 COPY --from=build /workspace/aggregator/target/*.jar app.jar
 
+# Create non-root user
 RUN addgroup -S cicd_deploy && adduser -S cicd_deploy -G cicd_deploy
 RUN mkdir -p /logs && chmod -R 777 /logs
 USER cicd_deploy

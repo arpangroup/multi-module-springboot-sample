@@ -20,7 +20,9 @@ COPY --from=build /workspace/config-service/target/*.jar config-server.jar
 
 # Create non-root user
 RUN addgroup -S cicd_deploy && adduser -S cicd_deploy -G cicd_deploy
-RUN mkdir -p /logs && chmod -R 777 /logs
+
+# Create logs directory and give ownership to non-root user
+RUN mkdir -p /app/logs && chmod -R cicd_deploy:cicd_deploy /app/logs
 USER cicd_deploy
 
 EXPOSE 8888
@@ -35,8 +37,9 @@ COPY --from=build /workspace/aggregator/target/*.jar app.jar
 
 # Create non-root user
 RUN addgroup -S cicd_deploy && adduser -S cicd_deploy -G cicd_deploy
-RUN mkdir -p /logs && chmod -R 777 /logs
-USER cicd_deploy
+
+# Create logs directory and give ownership to non-root user
+RUN mkdir -p /app/logs && chmod -R cicd_deploy:cicd_deploy /app/logs
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

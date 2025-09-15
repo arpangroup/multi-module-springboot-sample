@@ -39,8 +39,8 @@ services:
       # Force Spring Boot to run data.sql
       SPRING_SQL_INIT_MODE: always
       # Optional: Logging
-      LOGGING_FILE_NAME: /app/logs/config-service.log
-      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE_INIT: DEBUG
+      SPRING_LOGGING_FILE_NAME: /app/logs/config-service.log
+      SPRING_LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE_INIT: DEBUG
     ports:
       - "8888:8888"
     volumes:

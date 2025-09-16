@@ -62,7 +62,7 @@ public class AuthController {
 
 
     //  Rate Limiting (Mandatory)
-    // GET /api/auth/availability?username=arpan&email=arpan@example.com
+    // GET /api/auth/availability?username=john&email=arpan@example.com
     //@RateLimiter(name = "checkAvailability")
     @GetMapping("/availability")
     public ResponseEntity<AvailabilityResponse> availability(

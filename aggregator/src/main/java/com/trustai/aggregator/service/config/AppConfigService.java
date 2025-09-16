@@ -26,14 +26,14 @@ public class AppConfigService {
             Map.entry("app.config.deposit.amount.min", "50"),
             Map.entry("app.config.deposit.warning", "*Only USDT-BEP-20 deposits accepted. Others will be lost."),
             // Withdraw
-            Map.entry("app.config.withdraw.address", "0xABCD1234EFGH5678IJKL"),
+            Map.entry("app.config.withdraw.warning", "Withdraw warning"),
             Map.entry("app.config.withdraw.amount.min", "50"),
             Map.entry("app.config.withdraw.service.charge", "5"),
             // UI
             Map.entry("app.config.accepted.file.types", "image/png,image/jpeg,image/gif"),
             Map.entry("app.config.header.main.title", "Welcome to TrustAI"),
             Map.entry("app.config.otp.delay.seconds", 30),
-            Map.entry("app.config.support.telegram.link", "https://t.me/your_username"),
+            Map.entry("app.config.support.telegram.link", "https://t.me/trustaiofficial"),
             Map.entry("app.config.support.whatsapp.link", "https://wa.me/919876543210")
     );
 

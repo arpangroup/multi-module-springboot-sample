@@ -22,7 +22,7 @@
 // * <p>Implementations of this interface are responsible for ensuring transaction integrity,
 // * validation, and consistent audit logging.
 // *
-// * @author Arpan Jana
+// * @author John Doe
 // * @since 1.0
 // */
 //

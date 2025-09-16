@@ -20,7 +20,6 @@ public class AppConfigController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getFrontendConfig() {
-        //log.info("Received request to fetch frontend config");
         return ResponseEntity.ok(appConfigService.getFrontendConfig());
     }
 }

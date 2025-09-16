@@ -1,4 +1,4 @@
-package com.trustai.aggregator.service;
+package com.trustai.aggregator.service.config;
 
 import com.trustai.aggregator.dto.ConfigProperty;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +52,10 @@ public class AppConfigService {
         });
 
         return mergedConfig;
+    }
+
+    public static Map<String, Object> getDefaultConfig() {
+        return DEFAULT_CONFIG;
     }
 
     private Map<String, String> fetchDynamicConfig() {

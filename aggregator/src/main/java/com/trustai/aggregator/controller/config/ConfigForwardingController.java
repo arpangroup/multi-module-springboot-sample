@@ -1,17 +1,12 @@
-package com.trustai.aggregator.controller;
+package com.trustai.aggregator.controller.config;
 
 import com.trustai.aggregator.dto.AppConfigUpdateRequest;
 import com.trustai.aggregator.dto.ConfigProperty;
-import com.trustai.aggregator.service.ConfigService;
-import com.trustai.common.dto.ApiResponse;
-import com.trustai.common.exceptions.RestCallException;
+import com.trustai.aggregator.service.config.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.context.refresh.ContextRefresher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Set;

@@ -1,4 +1,4 @@
-package com.trustai.aggregator.service;
+package com.trustai.aggregator.service.config;
 
 import com.trustai.aggregator.dto.AppConfigUpdateRequest;
 import com.trustai.aggregator.dto.ConfigProperty;

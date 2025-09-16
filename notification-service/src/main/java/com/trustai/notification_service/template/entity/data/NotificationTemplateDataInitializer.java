@@ -21,11 +21,8 @@ public class NotificationTemplateDataInitializer {
         var smsTemplates = getSMSTemplates();
         var pushTemplates = getPushTemplates();
 
-        System.out.println("Saving notification templates...");
         emailTemplates.forEach(this::createIfNotExists);
-        System.out.println("Saving smsTemplates...");
         smsTemplates.forEach(this::createIfNotExists);
-        System.out.println("Saving pushTemplates...");
         pushTemplates.forEach(this::createIfNotExists);
     }
 

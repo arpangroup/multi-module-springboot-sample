@@ -66,7 +66,7 @@ public class SecurityConfig {
                 //.authenticationProvider(daoProvider) // keep this if not globally registered
                 .authorizeHttpRequests(auth -> auth
                         //.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 👈 allow preflight
-                        .requestMatchers("/api/auth/**", "/api/register/**", "/api/password/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/register/**", "/api/password/**", "/api/config").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

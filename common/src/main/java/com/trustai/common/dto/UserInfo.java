@@ -15,10 +15,15 @@ public class UserInfo {
     private Long id;
     private String accountId;
     private String username;
+    private String firstname;
+    private String lastname;
     private String email;
+    private String mobile;
     private String rankCode;
     private int point;
     private String image;
+    private String country;
+    private String walletAddress;
     // Balance
     private BigDecimal walletBalance;
     private BigDecimal profitBalance;

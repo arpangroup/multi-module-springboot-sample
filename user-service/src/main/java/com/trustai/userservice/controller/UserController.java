@@ -75,6 +75,14 @@ public class UserController extends BaseController {
         return ResponseEntity.ok(mapper.mapTo(user));
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/info/update")
+    public ResponseEntity<User> updateCurrentUserInfo(@RequestBody Map<String, Object> fieldsToUpdate) {
+        Long userId = getCurrentUserId();
+        log.info("updateCurrentUserInfo for User ID: {}, fieldsToUpdate: {}......", userId, fieldsToUpdate);
+        return ResponseEntity.ok(userService.updateUser(userId, fieldsToUpdate));
+    }
+
     @PatchMapping("/{userId}")
     public ResponseEntity<User> updateUserInfo(@PathVariable Long userId, @RequestBody Map<String, Object> fieldsToUpdate) {
         log.info("updateUserInfo for User ID: {}, fieldsToUpdate: {}......", userId, fieldsToUpdate);

@@ -16,27 +16,25 @@ public class AppConfigService {
 
     // Define all defaults in one place
     private static final Map<String, Object> DEFAULT_CONFIG = Map.ofEntries(
-            Map.entry("BASE_URL", "http://trustai.co.in"),
-            Map.entry("API_VERSION", "/api/v1"),
-            Map.entry("CURRENCY_UNIT", "USDT"),
-            Map.entry("CURRENCY_UNIT_DEFAULT", "INR"),
-            Map.entry("CURRENCY_SYMBOL", "$"),
-            Map.entry("CURRENCY_SYMBOL_DEFAULT", "₹"),
-            Map.entry("DEPOSIT_ADDRESS", "0x5987d451a2d9f7db04d8e539e4d3d6f8aede71bb"),
-            Map.entry("WITHDRAW_ADDRESS", "0xABCD1234EFGH5678IJKL"),
-            Map.entry("MINIMUM_WITHDRAW", "50"),
-            Map.entry("SERVICE_CHARGE", "5"),
-            Map.entry("ACCEPTED_FILE_TYPES", "image/png,image/jpeg,image/gif"),
-            Map.entry("MAIN_HEADER_TITLE", "Welcome to TrustAI")
-    );
-
-    // Dynamic overrides mapping: backend config key -> frontend key
-    private static final Map<String, String> OVERRIDE_MAPPING = Map.of(
-            "app.service.charge", "SERVICE_CHARGE",
-            "app.currency.unit", "CURRENCY_UNIT",
-            "app.currency.symbol", "CURRENCY_SYMBOL",
-            "app.header.main.title", "MAIN_HEADER_TITLE"
-            // add more mappings here...
+            // Common
+            Map.entry("app.config.url.base", "https://trustai.co.in"),
+            Map.entry("app.config.api.version", "/api/v1"),
+            Map.entry("app.config.currency.unit", "USDT"), // ["INR", "USDT"]
+            Map.entry("app.config.currency.symbol", "$"),  // ["₹", "$"]
+            // Deposit
+            Map.entry("app.config.deposit.address", "0x5987d451a2d9f7db04d8e539e4d3d6f8aede71bb"),
+            Map.entry("app.config.deposit.amount.min", "50"),
+            Map.entry("app.config.deposit.warning", "*Only USDT-BEP-20 deposits accepted. Others will be lost."),
+            // Withdraw
+            Map.entry("app.config.withdraw.address", "0xABCD1234EFGH5678IJKL"),
+            Map.entry("app.config.withdraw.amount.min", "50"),
+            Map.entry("app.config.withdraw.service.charge", "5"),
+            // UI
+            Map.entry("app.config.accepted.file.types", "image/png,image/jpeg,image/gif"),
+            Map.entry("app.config.header.main.title", "Welcome to TrustAI"),
+            Map.entry("app.config.otp.delay.seconds", 30),
+            Map.entry("app.config.support.telegram.link", "https://t.me/your_username"),
+            Map.entry("app.config.support.whatsapp.link", "https://wa.me/919876543210")
     );
 
     public Map<String, Object> getFrontendConfig() {
@@ -46,11 +44,13 @@ public class AppConfigService {
         Map<String, Object> mergedConfig = new HashMap<>(DEFAULT_CONFIG);
         //log.debug("Default config loaded with {} entries", mergedConfig.size());
 
-        // Apply all overrides in one go
-        OVERRIDE_MAPPING.forEach((dynamicKey, frontendKey) ->
-                overrideIfPresent(mergedConfig, dynamicConfigMap, dynamicKey, frontendKey));
+        // Override only keys present in DEFAULT_CONFIG
+        dynamicConfigMap.forEach((key, value) -> {
+            if (mergedConfig.containsKey(key)) {
+                mergedConfig.put(key, value);
+            }
+        });
 
-        //log.info("Merged config ready with {} entries", mergedConfig.size());
         return mergedConfig;
     }
 
@@ -59,13 +59,5 @@ public class AppConfigService {
                 .orElse(Collections.emptyList())
                 .stream()
                 .collect(Collectors.toMap(ConfigProperty::getKey, ConfigProperty::getValue, (a, b) -> b));
-    }
-
-    private void overrideIfPresent(Map<String, Object> target,
-                                   Map<String, String> dynamicConfig,
-                                   String dynamicKey,
-                                   String frontendKey) {
-        Optional.ofNullable(dynamicConfig.get(dynamicKey))
-                .ifPresent(value -> target.put(frontendKey, value));
     }
 }

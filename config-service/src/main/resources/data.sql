@@ -47,7 +47,7 @@ INSERT INTO config_properties
 VALUES
 ('mail.host', 'smtp.gmail.com', 'nft_app', 'default', NULL, 'STRING', 'SMTP Server Host', NULL),
 ('mail.port', '587', 'nft_app', 'default', NULL, 'INT', 'SMTP Server Port', NULL),
-('mail.username', 'cloud.arpan@gmail.com', 'nft_app', 'default', NULL, 'STRING', 'SMTP Username', NULL),
+('mail.username', 'trustai007@gmail.com', 'nft_app', 'default', NULL, 'STRING', 'SMTP Username', NULL),
 ('mail.password', 'dpsr dqav caji hrbz', 'nft_app', 'default', NULL, 'STRING', 'SMTP Password', NULL),
 ('mail.smtp.auth', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Enable SMTP Authentication', NULL),
 ('mail.starttls.enable', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Enable STARTTLS Encryption', NULL),

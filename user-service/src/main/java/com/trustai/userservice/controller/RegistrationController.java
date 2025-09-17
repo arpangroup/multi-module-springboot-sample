@@ -12,10 +12,7 @@ import com.trustai.userservice.user.registration.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -84,6 +81,14 @@ public class RegistrationController {
         registrationService.directRegister(user, request.getReferralCode());
         return ResponseEntity.ok("Registration complete");
     }*/
+
+
+    @GetMapping("/direct")
+    public ResponseEntity<?> directRegister(@RequestParam("username") String username, @RequestParam("referralCode") String referralCode) {
+        User user = new User(username);
+        registrationService.directRegister(user, referralCode);
+        return ResponseEntity.ok(Map.of("result", "success"));
+    }
 
     @PostMapping("/add-users")
     public ResponseEntity<?> registerDummyUser() {

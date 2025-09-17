@@ -2,9 +2,14 @@ package com.trustai.transaction_service.service.impl;
 
 import com.trustai.common.api.FileUploadApi;
 import com.trustai.common.api.UserApi;
+import com.trustai.common.dto.NotificationRequest;
+import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.CurrencyType;
 import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.event.FirstDepositEvent;
+import com.trustai.common.event.NotificationEvent;
+import com.trustai.common.event.UserRegisteredEvent;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
 import com.trustai.transaction_service.dto.request.ManualDepositRequest;
@@ -20,11 +25,13 @@ import com.trustai.transaction_service.util.TransactionIdGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,6 +53,7 @@ public class DepositServiceImpl implements DepositService {
     private final TransactionMapper mapper;
     private final FileUploadApi fileUploadApi;
     private final List<TransactionType> DEPOSIT_TRANSACTIONS = List.of(TransactionType.DEPOSIT, TransactionType.DEPOSIT_MANUAL);
+    private final ApplicationEventPublisher publisher;
 
     // Manual Deposit should be in PENDING state until its approved
     @Override
@@ -135,6 +143,12 @@ public class DepositServiceImpl implements DepositService {
 
         BigDecimal netAmount = deposit.getAmount().subtract(deposit.getTxnFee());
 
+
+        boolean isFirstDeposit = !transactionRepository.existsByUserIdAndTxnType(
+                String.valueOf(deposit.getUserId()),
+                TransactionType.DEPOSIT
+        );
+
         Transaction transaction = createAndSaveTransaction(
                 deposit.getUserId(),
                 deposit.getAmount(),
@@ -155,6 +169,7 @@ public class DepositServiceImpl implements DepositService {
         deposit.setApprovedAt(LocalDateTime.now());
         deposit.setLinkedTxnId(transaction.getId().toString()); // link to created txn
 
+        publishDepositApproveEvents(deposit.getUserId(), true, transaction);
         return pendingDepositRepository.save(deposit);
     }
 
@@ -330,6 +345,51 @@ public class DepositServiceImpl implements DepositService {
         if (txnId.length() < 5) {
             log.warn("Validation failed: linkedTxnId [{}] is shorter than 5 characters.", txnId);
             throw new TransactionException("Transaction ID must be at least 5 characters long.");
+        }
+    }
+
+    @Async
+    private void publishDepositApproveEvents(Long userId, boolean isFirstDeposit, Transaction transaction) {
+        log.info("📥 Starting deposit approval event flow | userId={}, isFirstDeposit={}", userId, isFirstDeposit);
+
+        UserInfo userInfo = userApi.getUserById(userId);
+        String email = userInfo.getEmail();
+        BigDecimal amount = transaction.getAmount();
+
+        try {
+            if (isFirstDeposit) {
+                // 1. publish FirstDepositEvent: to apply the pending ReferralBonus and make the user ACTIVE
+                log.info("🚀 Publishing FirstDepositEvent | userId={}, amount={}", userId, amount);
+                publisher.publishEvent(new FirstDepositEvent(userId, amount));
+            }
+
+            // 2. Notification content
+            String title = "Deposit Success";
+            String message = "Thanks for registering TrustAI";
+
+
+            // 3. Publish In-App Notification
+            log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userId, title);
+            NotificationRequest inAppRequest = NotificationRequest.forInApp(
+                    String.valueOf(userId),
+                    title,
+                    message
+            );
+            publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+
+
+            // 4. Publish Email Notification
+            log.info("📧 Publishing Email Notification | email={}, subject='{}'", email, title);
+            NotificationRequest emailRequest = NotificationRequest.forEmail(
+                    email,
+                    title,
+                    message
+            );
+            publisher.publishEvent(new NotificationEvent(this, emailRequest));
+
+            log.info("✅ Deposit approval events completed successfully | userId={}", userId);
+        } catch (Exception e) {
+            log.error("❌ Failed to publish deposit success events for userId={}", userId, e);
         }
     }
 

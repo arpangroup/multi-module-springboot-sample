@@ -1,11 +1,14 @@
 package com.trustai.income_service.income.service;
 
 import com.trustai.common.enums.IncomeType;
+import com.trustai.income_service.constant.Remarks;
 import com.trustai.income_service.income.dto.UserIncomeSummary;
 import com.trustai.income_service.income.entity.IncomeHistory;
 import com.trustai.income_service.income.entity.IncomeSummaryProjection;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
@@ -20,8 +23,32 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class IncomeHistoryService {
     private final IncomeHistoryRepository incomeHistoryRepository;
+
+    public void recordIncomeEntry(Long userId, BigDecimal incomeAmount, IncomeType incomeType, Long sourceUserId, String remarks) {
+        log.info("📥 Creating income history | userId={}, amount={}, type={}, sourceUserId={}, remarks={}",
+                userId, incomeAmount, incomeType, sourceUserId, remarks);
+
+        try {
+            IncomeHistory incomeHistory = IncomeHistory.builder()
+                    .userId(userId)
+                    .amount(incomeAmount)
+                    .incomeType(incomeType)
+                    .sourceUserId(sourceUserId)
+                    .sourceUserRank(null)
+                    .note(remarks)
+                    .build();
+
+            incomeHistoryRepository.save(incomeHistory);
+
+            log.info("✅ Income history saved successfully | userId={}, type={}, amount={}", userId, incomeType, incomeAmount);
+        } catch (Exception e) {
+            log.error("❌ Failed to save income history | userId={}, type={}, amount={}, sourceUserId={}, remarks={}",
+                    userId, incomeType, incomeAmount, sourceUserId, remarks, e);
+        }
+    }
 
     public List<IncomeSummaryProjection> getIncomeSummary(@Nullable Long userId) {
         //return incomeHistoryRepository.getIncomeSummary();

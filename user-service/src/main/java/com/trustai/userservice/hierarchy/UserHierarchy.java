@@ -19,7 +19,7 @@ public class UserHierarchy {
     private Long ancestor;
     private Long descendant;
     private int depth;
-    private boolean active = true;
+    private boolean active = false;
 
     public UserHierarchy(Long ancestor, Long descendant, int depth) {
         this.ancestor = ancestor;

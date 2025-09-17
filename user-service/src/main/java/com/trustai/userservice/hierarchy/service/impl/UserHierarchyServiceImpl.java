@@ -76,6 +76,29 @@ public class UserHierarchyServiceImpl implements UserHierarchyService {
         return hierarchyRepo.findByDescendant(descendant);
     }
 
+    @Override
+    public void activateUserHierarchy(Long userId) {
+        log.info("Activating hierarchy paths for userId: {}", userId);
+        List<UserHierarchy> paths = hierarchyRepo.findByDescendant(userId);
+
+        if (paths.isEmpty()) {
+            log.warn("No hierarchy paths found for userId: {}", userId);
+            return;
+        }
+
+        boolean anyInactive = paths.stream().anyMatch(path -> !path.isActive());
+
+        if (!anyInactive) {
+            log.info("All hierarchy paths are already active for userId: {}", userId);
+            return;
+        }
+
+        paths.forEach(path -> path.setActive(true));
+        hierarchyRepo.saveAll(paths);
+
+        log.info("Activated {} hierarchy paths for userId: {}", paths.size(), userId);
+    }
+
 
     /*public Set<Long> getDirectReferrals(Long userId, int depth) {
         return hierarchyRepo.findByAncestorAndDepth(userId, depth).stream()

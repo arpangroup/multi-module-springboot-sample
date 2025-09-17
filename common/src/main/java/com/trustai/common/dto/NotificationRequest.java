@@ -80,6 +80,22 @@ public class NotificationRequest {
         return req;
     }
 
+    public static NotificationRequest createMultiChannelNotification(
+            String recipientEmail,
+            String recipientUserId,
+            String subjectOrTitle,
+            String message,
+            NotificationChannel... channels
+    ) {
+        NotificationRequest req = new NotificationRequest();
+        req.setRecipient(recipientEmail != null ? recipientEmail : recipientUserId);
+        req.setSubject(subjectOrTitle); // used for EMAIL
+        req.setTitle(subjectOrTitle);   // used for IN_APP / PUSH
+        req.setMessage(message);        // common body
+        req.setChannels(new ArrayList<>(List.of(channels)));
+        return req;
+    }
+
     public List<NotificationChannel> getChannels() {
         if (this.channels == null) {
             this.channels = new ArrayList<>();

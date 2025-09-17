@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -24,11 +26,21 @@ public class SignupBonusServiceImpl implements SignupBonusService {
     private final UserApi userApi;
     private final WalletApi walletApi;
 
+
+    @Value("${bonus.signup.enable}")
+    private boolean signupBonusEnabled;
+
     @Value("${bonus.signup.flat-amount}")
     private BigDecimal signupBonus;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void applySignupBonus(Long userId) {
+        if (!signupBonusEnabled || signupBonus == null || signupBonus.compareTo(BigDecimal.ZERO) <= 0) {
+            log.info("Signup bonus is disabled or not applicable (amount: {}). Skipping for userId: {}", signupBonus, userId);
+            return;
+        }
+
         log.info("applySignupBonus for userId: {}.........", userId);
         UserInfo user = userApi.getUserById(userId);
 

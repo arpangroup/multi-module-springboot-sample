@@ -39,6 +39,8 @@ public interface ReferralBonusService {
      */
     void evaluateBonus(Long refereeId);
 
+    void approvePendingBonus(Long refereeId);
+
 
     /**
      * Evaluates and applies all pending referral bonuses that meet their required conditions.

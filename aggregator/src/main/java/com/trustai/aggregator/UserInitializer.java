@@ -25,9 +25,21 @@ public class UserInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        ensureRoleExists(CommonConstants.ROLE_ADMIN);
+        ensureRoleExists(CommonConstants.ROLE_USER);
+
         createUserIfNotExists("root", "root@trustai.com", adminPassword, "REF1", CommonConstants.ROLE_ADMIN, new BigDecimal("50000"));
         createUserIfNotExists("test1", "test1@test.com", testPassword1, "REF2", CommonConstants.ROLE_USER, new BigDecimal("50000"));
     }
+
+    private void ensureRoleExists(String roleName) {
+        roleRepository.findByName(roleName).orElseGet(() -> {
+            Role newRole = new Role();
+            newRole.setName(roleName);
+            return roleRepository.save(newRole);
+        });
+    }
+
 
     private void createUserIfNotExists(String username, String email, String password, String referralCode, String roleName, BigDecimal balance) {
         boolean exists = userRepository.existsByEmail(email);

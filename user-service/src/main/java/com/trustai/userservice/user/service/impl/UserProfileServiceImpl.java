@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.repository.user.UserRepository;
+import com.trustai.userservice.hierarchy.service.UserHierarchyService;
 import com.trustai.userservice.user.entity.Kyc;
 import com.trustai.userservice.user.exception.IdNotFoundException;
 import com.trustai.userservice.user.mapper.UserMapper;
@@ -39,6 +40,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final int DEFAULT_PAGE_SIZE = 10;
 //    private final TransactionService transactionService;
 //    private final DepositService depositService;
+    UserHierarchyService userHierarchyService;
 
     @Override
     public User createUser(User user, String referralCode) {
@@ -81,6 +83,16 @@ public class UserProfileServiceImpl implements UserProfileService {
     public User updateUser(User user) {
         userRepository.findById(user.getId()).ifPresent(u -> userRepository.save(user));
         return user;
+    }
+
+    @Override
+    public User updateUserStatus(Long userId, User.AccountStatus status) {
+        User user = this.getUserById(userId);
+        user.setAccountStatus(status);
+        if (status == User.AccountStatus.ACTIVE) {
+            userHierarchyService.activateUserHierarchy(userId);
+        }
+        return this.updateUser(user);
     }
 
     @Override

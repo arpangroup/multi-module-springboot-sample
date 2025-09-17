@@ -10,6 +10,9 @@ import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.constants.SecurityConstants;
 import com.trustai.common.domain.user.Role;
 import com.trustai.common.domain.user.User;
+import com.trustai.common.dto.NotificationRequest;
+import com.trustai.common.enums.NotificationChannel;
+import com.trustai.common.event.NotificationEvent;
 import com.trustai.common.event.UserRegisteredEvent;
 import com.trustai.common.exceptions.RegistrationException;
 import com.trustai.common.repository.user.UserRepository;
@@ -20,6 +23,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -163,16 +167,30 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
+    @Transactional
     public User directRegister(User user, String referralCode) {
         log.info("Direct registration for username: {}", user.getUsername());
 
-        userRepo.findByReferralCode(referralCode).ifPresent(user::setReferrer);
+        userRepo.findByReferralCode(referralCode).orElseThrow(() -> new RegistrationException("invalid referralCode"));
+        userRepo.findByUsernameIgnoreCase(user.getUsername()).ifPresent(u -> {
+            throw new RegistrationException("username already exist");
+        });
+
+        // Fetch existing role from DB
+        Role userRole = roleRepository.findByName(CommonConstants.ROLE_USER)
+                .orElseThrow(() -> new RegistrationException("Default role not found: " + CommonConstants.ROLE_USER));
+
+        user.setReferralCode(user.getUsername());
+        user.setPassword(passwordEncoder.encode("123"));
+        user.getRoles().add(userRole);
 
         if (user.getEmail() == null || user.getEmail().isEmpty()) {
             String generatedEmail = user.getUsername() + "@trustai.com";
             user.setEmail(generatedEmail);
             log.info("Email not provided. Generated default: {}", generatedEmail);
         }
+
+
 //        Kyc kyc = new Kyc();
 //        kyc.setEmail(user.getEmail());
 //        kyc.setPhone(user.getMobile());
@@ -275,12 +293,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             userHierarchyService.updateHierarchy(newUser.getReferrer().getId(), newUser.getId());
         }
 
-        log.info("Publishing UserRegisteredEvent for userId: {}", newUser.getId());
-        publisher.publishEvent(new UserRegisteredEvent(
-                newUser.getId(),
-                newUser.getReferrer() != null ? newUser.getReferrer().getId() : null
-        ));
-
+        publishRegistrationSuccessEvents(newUser);
         return newUser;
     }
 
@@ -357,4 +370,74 @@ public class RegistrationServiceImpl implements RegistrationService {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return attrs.getRequest();
     }
+
+    @Async
+    private void publishRegistrationSuccessEvents(User newUser) {
+        try {
+            Long userId = newUser.getId();
+            Long referrerId = newUser.getReferrer() != null ? newUser.getReferrer().getId() : null;
+            String email = newUser.getEmail();
+
+            log.info("➡️  Publishing UserRegisteredEvent | userId={}, referrerId={}", userId, referrerId);
+            publisher.publishEvent(new UserRegisteredEvent(userId, referrerId));
+
+            // Common data
+            String subjectOrTitle = "Registration Success";
+            String message = "Thanks for registering TrustAI";
+
+
+            log.info("➡️  Publishing InApp Notification | userId={}, title='Registration Success'", userId);
+            publisher.publishEvent(new NotificationEvent(this,
+                    NotificationRequest.forInApp(
+                            String.valueOf(userId),
+                            subjectOrTitle,
+                            message
+                    )
+            ));
+
+            log.info("➡️  Publishing Email Notification | email={}, subject='Registration Success'", email);
+            publisher.publishEvent(new NotificationEvent(this,
+                    NotificationRequest.forEmail(
+                            email,
+                            subjectOrTitle,
+                            message
+                    )
+            ));
+
+            log.info("✅ Registration success flow completed for userId={}", userId);
+        } catch (Exception e) {
+            log.error("❌ Failed to publish registration success events for userId={}", newUser.getId(), e);
+        }
+    }
+
+    /*@Async
+    private void publishRegistrationSuccessEvents(User newUser) {
+        try {
+            Long userId = newUser.getId();
+            Long referrerId = newUser.getReferrer() != null ? newUser.getReferrer().getId() : null;
+            String email = newUser.getEmail();
+
+            log.info("➡️  Publishing UserRegisteredEvent | userId={}, referrerId={}", userId, referrerId);
+            publisher.publishEvent(new UserRegisteredEvent(userId, referrerId));
+
+            String title = "Registration Success";
+            String message = "Thanks for registering TrustAI";
+
+            NotificationRequest request = NotificationRequest.createMultiChannelNotification(
+                    email,                           // email recipient
+                    String.valueOf(userId),          // in-app recipient
+                    title,
+                    message,
+                    NotificationChannel.EMAIL,
+                    NotificationChannel.IN_APP
+            );
+
+            log.info("➡️  Publishing Multi-Channel Notification | userId={}, email={}", userId, email);
+            publisher.publishEvent(new NotificationEvent(this, request));
+
+            log.info("✅ Registration success flow completed for userId={}", userId);
+        } catch (Exception e) {
+            log.error("❌ Failed to publish registration success events for userId={}", newUser.getId(), e);
+        }
+    }*/
 }

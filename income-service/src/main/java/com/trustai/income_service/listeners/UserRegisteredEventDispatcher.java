@@ -1,7 +1,9 @@
 package com.trustai.income_service.listeners;
 
 import com.trustai.common.event.UserRegisteredEvent;
+import com.trustai.income_service.referral.service.ReferralBonusService;
 import com.trustai.income_service.referral.service.SignupBonusService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -16,6 +18,7 @@ import java.math.BigDecimal;
 @Slf4j
 public class UserRegisteredEventDispatcher {
     private final SignupBonusService signupBonusService;
+    private final ReferralBonusService referralBonusService;
 
 //    @EventListener
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -45,8 +48,8 @@ public class UserRegisteredEventDispatcher {
          * - Prevent abuse from fake/inactive sign-ups.
          * - Ensure bonuses are only rewarded for meaningful referrals.
          */
-        log.info("UserRegisteredEvent:  Creating pending bonus - Referrer ID: {}, Referee ID: {}, Trigger: {}", referrerId, refereeId, event.getTriggerType());
-        //referralBonusService.createPendingBonus(event.getReferrerId(), event.getRefereeId(), event.getTriggerType());
+        log.info("UserRegisteredEvent:  Creating pending referral bonus - Referrer ID: {}, Referee ID: {}, Trigger: {}", referrerId, refereeId, event.getTriggerType());
+        referralBonusService.createPendingBonus(event.getReferrerId(), event.getRefereeId(), event.getTriggerType());
 
         // Step 3: Evaluate and update the rankCode for both referee and referrer
         /**

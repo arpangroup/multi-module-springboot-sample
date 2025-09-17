@@ -17,7 +17,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String accountId;
     @Column(name = "username", unique = true, nullable = false, length = 100)
@@ -60,7 +60,7 @@ public class User {
     // Status
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    public AccountStatus accountStatus = AccountStatus.ACTIVE;
+    public AccountStatus accountStatus = AccountStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

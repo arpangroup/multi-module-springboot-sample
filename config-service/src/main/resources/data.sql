@@ -65,7 +65,7 @@ VALUES
 ('bonus.signup.flat-amount', '100', 'nft_app', 'default', NULL, 'INT', 'Signup Bonus Flat Amount', NULL),
 ('bonus.referral.enable', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Enable Referral Bonus', NULL),
 ('bonus.referral.calculation-type', 'FLAT', 'nft_app', 'default', 'FLAT, PERCENTAGE', 'STRING', 'Referral Bonus Calculation Type', NULL),
-('bonus.referral.percentage-rate', '0.5', 'nft_app', 'default', 'FLAT, PERCENTAGE', 'DOUBLE', 'Referral Bonus Percentage Rate', NULL),
+('bonus.referral.percentage-rate', '0.5', 'nft_app', 'default', NULL, 'DOUBLE', 'Referral Bonus Percentage Rate', NULL),
 ('bonus.referral.flat-amount', '300', 'nft_app', 'default', NULL, 'INT', 'Referral Bonus Flat Amount', NULL)
 ON DUPLICATE KEY UPDATE
 config_value=VALUES(config_value);

@@ -40,20 +40,27 @@ public class IncomeDistributionService {
     private final RankConfigApi rankConfigApi;
 
     public void distributeIncome(Long sellerId, BigDecimal saleAmount) {
-        log.info("distributeIncome for sellerId: {}, productValue: {}.........", sellerId, saleAmount);
+        log.info("Starting income distribution: sellerId={}, saleAmount={}", sellerId, saleAmount);
+
         UserInfo seller = userApi.getUserById(sellerId);
         String sellerRank = seller.getRankCode();
         log.info("seller userId: {}, Rank: {}", sellerId, sellerRank);
-        RankConfigDto config  = rankConfigApi.getRankConfigByRankCode(sellerRank);
 
+        RankConfigDto config  = rankConfigApi.getRankConfigByRankCode(sellerRank);
 
         //BigDecimal profitRate = config.getCommissionRate().divide(BigDecimal.valueOf(100)vide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal profitRate = config.getCommissionPercentage()
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        log.info("Daily IncomePercentage: {}% ===> Daily IncomeRate: {} for SellerRank: {}", config.getCommissionPercentage(), profitRate, sellerRank);
+        log.info("Commission details: commissionPercentage={}%, profitRate={} for rank={}", config.getCommissionPercentage(), profitRate, sellerRank);
+
+        if (profitRate.compareTo(BigDecimal.ZERO) == 0) {
+            log.warn("Profit rate is zero for sellerId: {}, Rank: {}. No income will be distributed.", sellerId, sellerRank);
+            return;
+        }
+
 
         BigDecimal dailyIncome = saleAmount.multiply(profitRate).setScale(2, RoundingMode.HALF_UP);
-        log.info("calculated profitRate: {} for saleAmount: {} ===> dailyIncome: {}", profitRate, saleAmount, dailyIncome);
+        log.info("Calculated daily income: dailyIncome={} from saleAmount={} and profitRate={}", dailyIncome, saleAmount, profitRate);
 
         // 1. Save seller daily income
         //incomeRepo.save(new IncomeHistory(sellerId, dailyIncome, "DAILY", "SELF", LocalDate.now()));
@@ -69,9 +76,11 @@ public class IncomeDistributionService {
         incomeRepo.save(incomeHistory);
         log.info("Saved direct income of {} for user {}", dailyIncome, seller.getId());
 
-        log.info("Updating the seller wallet for SellerID: {} with DailyIncome: {}", seller.getId(), dailyIncome);
+        // Update seller wallet
+        log.info("Updating wallet balance for sellerId={} with DailyIncome={}", sellerId, dailyIncome);
         String metaInfo = getMetaInfo(incomeHistory);
-        log.info("MetaInfo: {}", metaInfo);
+        log.debug("Wallet update meta info: {}", metaInfo);
+
         WalletUpdateRequest depositRequest = new WalletUpdateRequest(
                 dailyIncome,
                 TransactionType.DAILY_INCOME,
@@ -81,6 +90,7 @@ public class IncomeDistributionService {
                 metaInfo
         );
         walletApi.updateWalletBalance(sellerId, depositRequest);
+        log.info("Wallet updated successfully for sellerId={}", sellerId);
         //userClient.deposit(sellerId, dailyIncome, Remarks.DAILY_INCOME, metaInfo);
 
         // 2. Fetch all uplines with rankCode info in a single query
@@ -114,20 +124,22 @@ public class IncomeDistributionService {
 
 
         // 2. Load full hierarchy in one query
-        log.info("Propagate team income for user: {}...........", sellerId);
+        // Propagate team income
+        log.info("Fetching uplines for sellerId={} to propagate team income", sellerId);
         List<UserHierarchyDto> hierarchy = userApi.findByDescendant(sellerId);
         Map<Long, Integer> uplinesWithDepth = hierarchy.stream()
                 .filter(UserHierarchyDto::isActive)
                 .collect(Collectors.toMap(UserHierarchyDto::getAncestor, UserHierarchyDto::getDepth));
-        log.info("All uplines for user: {} is: {}", sellerId, uplinesWithDepth);
+        log.info("Found {} active uplines for sellerId={}: {}", uplinesWithDepth.size(), sellerId, uplinesWithDepth.keySet());
 
         // Load all upline users in a single query
         List<UserInfo> uplines = userApi.getUsers(uplinesWithDepth.keySet().stream().toList());
 
         // Distribute team income
-        log.info("Distribute team income for user: {}.............", sellerId);
+        log.info("Distribute team income for user: {}, uplinesCount={}.............", sellerId, uplines.size());
         List<UplineIncomeLog> logs = teamIncomeStrategy.distributeTeamIncome(sellerId, sellerRank, dailyIncome, uplines, uplinesWithDepth);
         printLog(logs, sellerId, saleAmount, sellerRank, config.getCommissionPercentage(), dailyIncome);
+        log.info("Completed income distribution for sellerId={}", sellerId);
     }
 
     private String getMetaInfo(Object object) {

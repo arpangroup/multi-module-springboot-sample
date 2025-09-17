@@ -19,6 +19,7 @@ public class UserDetailsInfo {
     private String fullName;
     private String email;
     private String phone;
+    private String walletAddress;
 
     // Balance Related
     private BigDecimal walletBalance;

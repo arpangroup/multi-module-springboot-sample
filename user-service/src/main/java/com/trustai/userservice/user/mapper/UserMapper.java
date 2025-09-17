@@ -64,6 +64,7 @@ public class UserMapper {
                 .lastname(user.getLastname())
                 .email(user.getEmail())
                 .phone(PhoneMaskingUtil.maskPhoneNumber(user.getMobile()))
+                .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
                 .profitBalance(user.getProfitBalance())

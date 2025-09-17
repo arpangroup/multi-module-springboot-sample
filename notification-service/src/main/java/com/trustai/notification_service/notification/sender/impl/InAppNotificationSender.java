@@ -28,11 +28,14 @@ public class InAppNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationRequest request) {
+        log.info("Sending in-app notification: {}........", request);
 
         List<Long> targetUserIds = request.isSendToAll()
                 ? userApi.findAllActiveUserIds() // method to implement
                 : List.of(Long.parseLong(request.getRecipient()));
 
+
+        log.info("Target UserIds: {}........", targetUserIds);
         List<InAppNotification> notifications = targetUserIds.stream().map(uid -> mapper.toEntity(request, uid)).toList();
         inAppNotificationRepository.saveAll(notifications);
     }

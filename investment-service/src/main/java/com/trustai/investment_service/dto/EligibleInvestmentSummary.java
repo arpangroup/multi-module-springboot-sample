@@ -12,6 +12,9 @@ public class EligibleInvestmentSummary {
     private String incomePercentageRange; // From InvestmentSchema.returnRate range
     private BigDecimal minInvestmentAmount; // From RankConfig
     private BigDecimal maxInvestmentAmount; // From RankConfig
+    private BigDecimal minDeposit;
+    private BigDecimal maxDeposit;
     private boolean enabled;
+    private int txnLimit;
     private List<SchemaSummary> schemas;
 }

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.client.RestClient;
 
 import java.util.Arrays;
@@ -25,6 +26,7 @@ public class RankConfigApiRestClientImpl implements RankConfigApi {
         this.restClient = restClient;
     }
 
+    @GetMapping("/rankings")
     @Override
     public List<RankConfigDto> getAllRanks() {
         return handleRestCall(() -> {

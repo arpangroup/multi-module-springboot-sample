@@ -22,6 +22,9 @@ public interface UserReservationRepository extends JpaRepository<UserReservation
 
     Optional<UserReservation> findByIdAndUserIdAndIsSoldFalse(Long reservationId, Long userId);
 
+    @Query("SELECT ur FROM UserReservation ur WHERE ur.userId = :userId AND ur.reservationDate = :today")
+    List<UserReservation> findAllByUserIdAndToday(@Param("userId") Long userId, @Param("today") LocalDate today);
+
     @Query("""
         SELECT r FROM UserReservation r
         WHERE r.userId = :userId

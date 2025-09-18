@@ -40,7 +40,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final int DEFAULT_PAGE_SIZE = 10;
 //    private final TransactionService transactionService;
 //    private final DepositService depositService;
-    UserHierarchyService userHierarchyService;
+    private final UserHierarchyService userHierarchyService;
 
     @Override
     public User createUser(User user, String referralCode) {

@@ -93,6 +93,7 @@ public class DepositController extends BaseController {
     @PostMapping("/approve/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> approve(@PathVariable Long id) {
+        log.info("API called to approve deposit ID {}", id);
         depositService.approvePendingDeposit(id, getCurrentUsername());
         return ResponseEntity.ok(ApiResponse.success("Deposit approved successfully."));
     }
@@ -100,6 +101,7 @@ public class DepositController extends BaseController {
     @PostMapping("/reject/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> reject(@PathVariable Long id, @RequestBody @Valid RejectDepositRequest request) {
+        log.info("API called to reject deposit ID {} with reason: {}", id, request.rejectionReason());
         depositService.rejectPendingDeposit(id, getCurrentUsername(), request.rejectionReason());
         return ResponseEntity.ok(ApiResponse.error("Deposit rejected successfully."));
     }

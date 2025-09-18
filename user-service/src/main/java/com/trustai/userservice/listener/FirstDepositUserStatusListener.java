@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
 
@@ -16,7 +18,8 @@ import java.math.BigDecimal;
 public class FirstDepositUserStatusListener {
     private final UserProfileService userProfileService;
 
-    @EventListener
+    //@EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleFirstDepositEvent(FirstDepositEvent event) {
         Long userId = event.getUserId();
         BigDecimal amount = event.getAmount();

@@ -9,7 +9,6 @@ import com.trustai.userservice.user.entity.Kyc;
 import com.trustai.userservice.user.exception.IdNotFoundException;
 import com.trustai.userservice.user.mapper.UserMapper;
 import com.trustai.userservice.user.service.UserProfileService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -18,7 +17,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -86,6 +87,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User updateUserStatus(Long userId, User.AccountStatus status) {
         User user = this.getUserById(userId);
         user.setAccountStatus(status);

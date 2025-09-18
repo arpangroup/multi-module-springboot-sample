@@ -9,7 +9,6 @@ import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.common.event.FirstDepositEvent;
 import com.trustai.common.event.NotificationEvent;
-import com.trustai.common.event.UserRegisteredEvent;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
 import com.trustai.transaction_service.dto.request.ManualDepositRequest;
@@ -38,7 +37,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 
@@ -134,52 +132,64 @@ public class DepositServiceImpl implements DepositService {
     @Override
     @Transactional
     public PendingDeposit approvePendingDeposit(Long depositId, String adminUser) {
+        log.info("Admin '{}' is attempting to approve deposit with ID {}", adminUser, depositId);
+
         PendingDeposit deposit = pendingDepositRepository.findById(depositId)
-                .orElseThrow(() -> new TransactionException("PendingDeposit not found"));
+                .orElseThrow(() -> {
+                    log.error("Pending deposit not found for ID {}", depositId);
+                    return new TransactionException("PendingDeposit not found");
+                });
 
         if (deposit.getStatus() != PendingDeposit.DepositStatus.PENDING) {
+            log.warn("Deposit ID {} is not in PENDING status. Current status: {}", depositId, deposit.getStatus());
             throw new TransactionException("Only pending deposits can be approved.");
         }
 
         BigDecimal netAmount = deposit.getAmount().subtract(deposit.getTxnFee());
-
 
         boolean isFirstDeposit = !transactionRepository.existsByUserIdAndTxnType(
                 String.valueOf(deposit.getUserId()),
                 TransactionType.DEPOSIT
         );
 
-        Transaction transaction = createAndSaveTransaction(
+        log.info("Updating the wallet for UserID: {} with depositAmount: {}", deposit.getUserId(), deposit.getAmount());
+        Transaction transaction = walletService.updateWalletBalance(
                 deposit.getUserId(),
                 deposit.getAmount(),
-                netAmount,
-                deposit.getGateway(),
                 TransactionType.DEPOSIT,
-                Transaction.TransactionStatus.SUCCESS,
-                deposit.getTxnRefId(),
-                deposit.getTxnFee(),
-                deposit.getLinkedTxnId(),
+                "deposit-service",
+                true,
                 "Manual deposit approved",
-                deposit.getMetaInfo(),
-                null
+                deposit.getMetaInfo()
         );
+
 
         deposit.setStatus(PendingDeposit.DepositStatus.APPROVED);
         deposit.setApprovedBy(adminUser);
         deposit.setApprovedAt(LocalDateTime.now());
         deposit.setLinkedTxnId(transaction.getId().toString()); // link to created txn
 
-        publishDepositApproveEvents(deposit.getUserId(), true, transaction);
+        log.info("Deposit ID {} approved by '{}'. Transaction ID: {}, Amount: {}, Net: {}",
+                depositId, adminUser, transaction.getId(), deposit.getAmount(), netAmount);
+
+
+        publishDepositApproveEvents(deposit.getUserId(), isFirstDeposit, transaction);
         return pendingDepositRepository.save(deposit);
     }
 
     @Override
     @Transactional
     public PendingDeposit rejectPendingDeposit(Long depositId, String adminUser, String reason) {
+        log.info("Admin '{}' is attempting to reject deposit with ID {}. Reason: {}", adminUser, depositId, reason);
+
         PendingDeposit deposit = pendingDepositRepository.findById(depositId)
-                .orElseThrow(() -> new TransactionException("PendingDeposit not found")); // IllegalArgumentException
+                .orElseThrow(() -> {
+                    log.error("Pending deposit not found for ID {}", depositId);
+                    return new TransactionException("PendingDeposit not found");
+                });
 
         if (deposit.getStatus() != PendingDeposit.DepositStatus.PENDING) {
+            log.warn("Deposit ID {} is not in PENDING status. Current status: {}", depositId, deposit.getStatus());
             throw new TransactionException("Only pending deposits can be rejected."); // IllegalStateException
         }
 
@@ -188,6 +198,7 @@ public class DepositServiceImpl implements DepositService {
         deposit.setRejectedAt(LocalDateTime.now());
         deposit.setRejectionReason(reason);
 
+        log.info("Deposit ID {} rejected by '{}'. Reason: {}", depositId, adminUser, reason);
         return pendingDepositRepository.save(deposit);
     }
 
@@ -265,43 +276,6 @@ public class DepositServiceImpl implements DepositService {
         return BigDecimal.ZERO;
     }
 
-    private Transaction createAndSaveTransaction(
-            Long userId,
-            BigDecimal grossAmount,
-            BigDecimal netAmount,
-            PaymentGateway gateway,
-            TransactionType txnType,
-            Transaction.TransactionStatus status,
-            String txnRefId,
-            BigDecimal txnFee,
-            String linkedTxnId,
-            String remarks,
-            String metaInfo,
-            Long senderId
-    ) {
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
-        BigDecimal newBalance = currentBalance.add(netAmount);
-
-        Transaction txn = new Transaction(userId, grossAmount, txnType, newBalance, true);
-
-        txn.setTxnFee(txnFee);
-        txn.setLinkedTxnId(linkedTxnId);
-        txn.setGateway(gateway);
-        txn.setStatus(status);
-        txn.setRemarks(remarks);
-        txn.setMetaInfo(metaInfo);
-        txn.setSenderId(senderId);
-
-        if (txnRefId == null) {
-            txnRefId = TransactionIdGenerator.generateTransactionId();
-            txn.setTxnRefId(txnRefId);
-        }
-
-        transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, netAmount);
-
-        return txn;
-    }
 
     private PendingDeposit buildPendingDeposit(
             long userId,

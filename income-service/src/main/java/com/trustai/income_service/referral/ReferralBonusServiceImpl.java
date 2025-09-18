@@ -97,6 +97,7 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
      */
     @Override
     //    @Audit(action = "EVALUATE_BONUS")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void approvePendingBonus(Long refereeId) {
         log.info("📥 Starting referral bonus approval | refereeId={}", refereeId);
 

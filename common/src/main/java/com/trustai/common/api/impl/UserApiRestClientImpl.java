@@ -7,6 +7,7 @@ import com.trustai.common.dto.UserMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -119,6 +120,7 @@ public class UserApiRestClientImpl implements UserApi {
         });
     }
 
+    @PutMapping("/updateWalletBalance/{userId}/{updatedNewBalance}")
     @Override
     public void updateWalletBalance(Long userId, BigDecimal updatedNewBalance) {
         log.info("Calling updateWalletBalance with userId={}, updatedNewBalance={}", userId, updatedNewBalance);

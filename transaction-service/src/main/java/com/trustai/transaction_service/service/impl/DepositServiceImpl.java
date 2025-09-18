@@ -7,8 +7,10 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.CurrencyType;
 import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.event.DepositActivityEvent;
 import com.trustai.common.event.FirstDepositEvent;
 import com.trustai.common.event.NotificationEvent;
+import com.trustai.common.event.UserActivatedActivityEvent;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
 import com.trustai.transaction_service.dto.request.ManualDepositRequest;
@@ -345,34 +347,44 @@ public class DepositServiceImpl implements DepositService {
                 publisher.publishEvent(new FirstDepositEvent(userId, amount));
             }
 
-            // 2. Notification content
-            String title = "Deposit Success";
-            String message = "Thanks for registering TrustAI";
+            // 2. Generic Deposit event --> may be useful to update current users rank
+            log.info("🚀 Publishing FirstDepositEvent | userId={}, amount={}", userId, amount);
+            publisher.publishEvent(new DepositActivityEvent(this, userId, transaction.getAmount(), isFirstDeposit));
 
+            // 3. Send Notifications
+            sendDepositSuccessNotifications(userInfo, transaction);
 
-            // 3. Publish In-App Notification
-            log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userId, title);
-            NotificationRequest inAppRequest = NotificationRequest.forInApp(
-                    String.valueOf(userId),
-                    title,
-                    message
-            );
-            publisher.publishEvent(new NotificationEvent(this, inAppRequest));
-
-
-            // 4. Publish Email Notification
-            log.info("📧 Publishing Email Notification | email={}, subject='{}'", email, title);
-            NotificationRequest emailRequest = NotificationRequest.forEmail(
-                    email,
-                    title,
-                    message
-            );
-            publisher.publishEvent(new NotificationEvent(this, emailRequest));
-
-            log.info("✅ Deposit approval events completed successfully | userId={}", userId);
         } catch (Exception e) {
             log.error("❌ Failed to publish deposit success events for userId={}", userId, e);
         }
+    }
+
+    private void sendDepositSuccessNotifications(UserInfo userInfo, Transaction transaction) {
+        // 3. Notification content
+        String title = "Deposit Success";
+        String message = "Thanks for registering TrustAI";
+
+
+        // 4. Publish In-App Notification
+        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
+        NotificationRequest inAppRequest = NotificationRequest.forInApp(
+                String.valueOf(userInfo.getId()),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+
+
+        // 5. Publish Email Notification
+        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
+        NotificationRequest emailRequest = NotificationRequest.forEmail(
+                userInfo.getEmail(),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, emailRequest));
+
+        log.info("✅ Deposit approval events completed successfully | userId={}", userInfo.getId());
     }
 
 }

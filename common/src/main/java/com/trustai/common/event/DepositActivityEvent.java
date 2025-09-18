@@ -7,11 +7,11 @@ import java.math.BigDecimal;
 @Getter
 public class DepositActivityEvent extends UserActivityEvent {
     private final BigDecimal amount;
-    private final String depositType;
+    private boolean isFirstDeposit;
 
-    public DepositActivityEvent(Object source, Long userId, BigDecimal amount, String depositType) {
+    public DepositActivityEvent(Object source, Long userId, BigDecimal amount, boolean isFirstDeposit) {
         super(source, userId, "DEPOSIT");
         this.amount = amount;
-        this.depositType = depositType;
+        this.isFirstDeposit = isFirstDeposit;
     }
 }

@@ -39,8 +39,8 @@ public class RankEvaluationController {
      * Optional: Evaluate ranks in batch (e.g., cron job or admin trigger).
      */
     @PostMapping("/re-evaluate/batch")
-    public ResponseEntity<ApiResponse<?>> evaluateMultipleUsers(@RequestBody List<Long> userIds) {
-        log.info("Received batch request to re-evaluate ranks for userIds={}", userIds);
+    public ResponseEntity<ApiResponse<?>> evaluateMultipleUsers() {
+        log.info("Received batch request to re-evaluate ranks for all users");
         rankEvaluationJob.evaluateRanks();
         return ResponseEntity.ok(ApiResponse.success("Ranks re-evaluated successfully"));
     }

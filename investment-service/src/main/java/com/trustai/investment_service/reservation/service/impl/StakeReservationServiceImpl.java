@@ -202,9 +202,19 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         log.info("Reservation marked as sold - orderId: {}, userId: {}, reservedAmount: {}, gain: {}", orderId, userId, reservedAmount, realizedGain);
 
         // Step 6: Publish StakeSoldEvent for downstream processing (e.g., income accrual)
+        publishStakeSold(reservation);
+    }
+
+    @Async
+    private void publishStakeSold(UserReservation reservation) {
+        Long userId = reservation.getUserId();
+        BigDecimal reservedAmount = reservation.getReservedAmount();
+
+        log.info("Published StakeSoldEvent for userId: {}, reservedAmount: {}", reservation.getUserId(), reservedAmount);
         eventPublisher.publishEvent(new StakeSoldEvent(userId, reservedAmount));
-        log.info("Published StakeSoldEvent for userId: {}, reservedAmount: {}", userId, reservedAmount);
-        sendSaleNotification(userId, reservation, soldAmount);
+
+        log.info("Published notifications for userId: {}, reservedAmount: {}", reservation.getUserId(), reservedAmount);
+        sendSaleNotification(userId, reservation, reservation.getSoldAmount());
     }
 
 

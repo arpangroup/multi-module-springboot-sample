@@ -16,7 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class StakeSoldEventListener {
     private final IncomeDistributionService incomeDistributionService;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     public void handleStakeSoldEvent(StakeSoldEvent event) {
         log.info("Received StakeSoldEvent: sellerId={}, saleAmount={}", event.getSellerId(), event.getSaleAmount());
         incomeDistributionService.distributeIncome(event.getSellerId(), event.getSaleAmount());

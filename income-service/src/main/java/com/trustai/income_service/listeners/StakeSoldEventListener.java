@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class StakeSoldEventListener {
     private final IncomeDistributionService incomeDistributionService;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStakeSoldEvent(StakeSoldEvent event) {
         log.info("Received StakeSoldEvent: sellerId={}, saleAmount={}", event.getSellerId(), event.getSaleAmount());
         incomeDistributionService.distributeIncome(event.getSellerId(), event.getSaleAmount());

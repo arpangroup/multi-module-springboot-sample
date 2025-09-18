@@ -20,6 +20,8 @@ import com.trustai.income_service.income.strategy.TeamIncomeStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -39,6 +41,7 @@ public class IncomeDistributionService {
     private final WalletApi walletApi;
     private final RankConfigApi rankConfigApi;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void distributeIncome(Long sellerId, BigDecimal saleAmount) {
         log.info("Starting income distribution: sellerId={}, saleAmount={}", sellerId, saleAmount);
 
@@ -197,6 +200,9 @@ public class IncomeDistributionService {
         }
 
         summary.append("==================================================\n");
-        System.out.println(summary);  // or log.info(summary.toString());
+        //System.out.println(summary);  // or log.info(summary.toString());
+
+        // ✅ Use logger instead of System.out
+        log.info(summary.toString());
     }
 }

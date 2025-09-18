@@ -26,7 +26,7 @@ public class TransactionApiRestClientImpl implements TransactionApi {
 
         return handleRestCall(() ->
             restClient.get()
-                .uri("/{userId}", userId)
+                .uri("/deposits/balance/{userId}", userId)
                 .retrieve()
                 .body(BigDecimal.class)
         );

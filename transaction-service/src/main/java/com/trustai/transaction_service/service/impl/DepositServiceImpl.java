@@ -254,6 +254,14 @@ public class DepositServiceImpl implements DepositService {
         throw new TransactionException("Transaction not found with reference: " + txnRefId); // IllegalArgumentException
     }
 
+    @Override
+    public BigDecimal getTotalDepositBalance(Long userId) {
+        log.info("Starting calculation of total deposit amount for userId: {}", userId);
+        BigDecimal total = transactionRepository.sumAmountByUserIdAndTxnType(String.valueOf(userId), TransactionType.DEPOSIT);
+        log.info("Calculated total deposit amount: {} for userId: {}", total, userId);
+        return total;
+    }
+
 
     private void validateDepositRequest(DepositRequest request) {
         if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {

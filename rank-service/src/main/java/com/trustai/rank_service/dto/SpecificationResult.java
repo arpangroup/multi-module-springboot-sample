@@ -12,6 +12,7 @@ public class SpecificationResult {
 
     @Override
     public String toString() {
-        return specName + " => " + (satisfied ? "PASSED" : "FAILED") + ": " + reason;
+        String status = satisfied ? "✅ PASSED" : "❌ FAILED";
+        return String.format("%-30s | %-10s | %s", specName, status, reason);
     }
 }

@@ -106,4 +106,12 @@ public class DepositController extends BaseController {
         return ResponseEntity.ok(ApiResponse.error("Deposit rejected successfully."));
     }
 
+    @GetMapping("/balance/{userId}")
+    public ResponseEntity<BigDecimal> getDepositBalance(@PathVariable Long userId) {
+        log.info("Request received to get deposit balance for userId: {}", userId);
+        BigDecimal amount = depositService.getTotalDepositBalance(userId);
+        log.info("Successfully retrieved deposit balance: {} for userId: {}", amount, userId);
+        return ResponseEntity.ok(amount);
+    }
+
 }

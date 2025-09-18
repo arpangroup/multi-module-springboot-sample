@@ -15,6 +15,6 @@ public class UserMetrics {
     private BigDecimal totalEarnings;
     private UserHierarchyStats userHierarchyStats;
 
-    private BigDecimal totalReferralDeposit;
-    private BigDecimal totalReferralInvestment;
+    private BigDecimal totalReferralDeposit = BigDecimal.ZERO;
+    private BigDecimal totalReferralInvestment = BigDecimal.ZERO;
 }

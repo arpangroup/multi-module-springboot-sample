@@ -12,6 +12,7 @@ import com.trustai.userservice.user.dto.ContributionMemberDto;
 import com.trustai.userservice.user.dto.MemberSummaryResponse;
 import com.trustai.userservice.user.exception.IdNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MemberSummaryService {
     private final UserHierarchyRepository hierarchyRepo;
     private final UserRepository userRepository;
@@ -29,8 +31,13 @@ public class MemberSummaryService {
     private final IncomeApi incomeApi;
 
     public UserMetrics computeMetrics(Long userId) {
+        log.info("Computing user metrics for userId={}", userId);
+
         List<UserHierarchy> downlines = hierarchyRepo.findByAncestor(userId);
+        log.debug("Found {} downlines for userId={}", downlines.size(), userId);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new IdNotFoundException("userId " + userId + " not found"));
+        log.debug("Loaded user details for userId={}", userId);
 
         // Aggregate team counts by depth
         Map<Integer, Long> depthCounts = downlines.stream()
@@ -39,6 +46,7 @@ public class MemberSummaryService {
                         UserHierarchy::getDepth,
                         Collectors.counting()
                 ));
+        log.debug("Depth-wise team counts for userId={}: {}", userId, depthCounts);
 
         long teamSize = depthCounts.values().stream().mapToLong(Long::longValue).sum();
 
@@ -48,8 +56,10 @@ public class MemberSummaryService {
                 .build();
 
         BigDecimal totalDeposit = transactionClient.getDepositBalance(userId);
+        log.info("Total deposit for userId={}: {}", userId, totalDeposit);
+
         //BigDecimal totalDeposit = user.getDepositBalance();
-        return UserMetrics.builder()
+        UserMetrics metrics =  UserMetrics.builder()
                 .directReferrals(depthCounts.getOrDefault(1, 0L).intValue())
                 .userHierarchyStats(stats)
                 .totalDeposit(totalDeposit == null ? BigDecimal.ZERO : totalDeposit)
@@ -57,6 +67,9 @@ public class MemberSummaryService {
                 .walletBalance(user.getWalletBalance() != null ? user.getWalletBalance() : BigDecimal.ZERO)
                 .totalEarnings(BigDecimal.ZERO)
                 .build();
+
+        log.info("User metrics computed for userId={}: {}", userId, metrics);
+        return metrics;
     }
 
     /*public UserMetricsV1 computeMetricsV1(Long rootUserId, LocalDateTime start, LocalDateTime end) {

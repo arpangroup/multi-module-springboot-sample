@@ -127,7 +127,7 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
                     int txnPerDay = current.getTxnPerDay();
                     int dailyTxnLimit = txnPerDay == 0 ? 0 :  txnPerDay - todayReservations.size();
 
-                            // ✅ incomePercentageRange logic
+                    // ✅ incomePercentageRange logic
                     String incomeRange;
                     if (current.getCommissionPercentage() != null && next != null && next.getCommissionPercentage() != null) {
                         incomeRange = current.getCommissionPercentage().stripTrailingZeros().toPlainString()

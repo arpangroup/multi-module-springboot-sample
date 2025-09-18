@@ -14,6 +14,11 @@ import java.util.Optional;
 @Repository
 public interface UserReservationRepository extends JpaRepository<UserReservation, Long> {
     boolean existsByUserIdAndReservationDate(Long userId, LocalDate reservationDate);
+
+    @Query("SELECT ur FROM UserReservation ur WHERE ur.userId = :userId AND ur.reservationDate = :today")
+    List<UserReservation> findAllByUserIdAndToday(@Param("userId") Long userId, @Param("today") LocalDate today);
+
+
     List<UserReservation> findByUserId(Long userId);
 
     List<UserReservation> findByUserIdAndIsSoldFalseAndExpiryAtAfter(Long userId, LocalDateTime now);
@@ -22,8 +27,6 @@ public interface UserReservationRepository extends JpaRepository<UserReservation
 
     Optional<UserReservation> findByIdAndUserIdAndIsSoldFalse(Long reservationId, Long userId);
 
-    @Query("SELECT ur FROM UserReservation ur WHERE ur.userId = :userId AND ur.reservationDate = :today")
-    List<UserReservation> findAllByUserIdAndToday(@Param("userId") Long userId, @Param("today") LocalDate today);
 
     @Query("""
         SELECT r FROM UserReservation r

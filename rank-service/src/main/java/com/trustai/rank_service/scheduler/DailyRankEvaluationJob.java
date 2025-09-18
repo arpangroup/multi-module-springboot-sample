@@ -5,10 +5,13 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.rank_service.service.RankCalculationOrchestrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
+
 /*
 List<UserInfo> users = userApi.getAllUsers();
 with paginated iteration:
@@ -31,19 +34,30 @@ public class DailyRankEvaluationJob {
     // Run daily at 2:00 AM IST
     @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Kolkata") // Use correct zone if needed
     public void evaluateRanks() {
-        log.info("🕑 Starting scheduled daily rank evaluation...");
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
+        log.info("🕑 Starting scheduled daily rank evaluation... [correlationId={}]", correlationId);
 
         try {
             List<UserInfo> users = userApi.getUsers(); // Make sure this method exists and is paginated if large
-            int count = 0;
+            log.info("📋 Retrieved {} users for rank evaluation.", users.size());
+
+            int successCount = 0;
+            int failureCount = 0;
 
             for (UserInfo user : users) {
-                orchestrationService.reevaluateRank(user.getId(), "DAILY_SCHEDULED_JOB");
-                count++;
+                try {
+                    log.debug("🔄 Re-evaluating rank for userId: {}", user.getId());
+                    orchestrationService.reevaluateRank(user.getId(), "DAILY_SCHEDULED_JOB", correlationId);
+                    successCount++;
+                } catch (Exception e) {
+                    failureCount++;
+                    log.warn("⚠️ Failed to evaluate rank for userId {}: {}", user.getId(), e.getMessage(), e);
+                }
             }
-            log.info("✅ Daily rank evaluation completed");
+            log.info("✅ Daily rank evaluation completed. Success: {}, Failures: {}", successCount, failureCount);
         } catch (Exception ex) {
-            log.error("❌ Rank evaluation failed: {}", ex.getMessage(), ex);
+            log.error("❌ Rank evaluation job failed entirely: {}", ex.getMessage(), ex);
         }
     }
 }

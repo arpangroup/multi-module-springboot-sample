@@ -84,4 +84,6 @@ public interface DepositService {
      * @return
      */
     Transaction confirmGatewayDeposit(String txnRefId, String gatewayResponseJson);
+
+    BigDecimal getTotalDepositBalance(Long userId);
 }

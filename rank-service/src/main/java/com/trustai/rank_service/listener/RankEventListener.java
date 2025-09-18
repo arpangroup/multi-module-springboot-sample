@@ -5,8 +5,12 @@ import com.trustai.common.event.ReferralJoinedActivityEvent;
 import com.trustai.common.event.UserActivatedActivityEvent;
 import com.trustai.rank_service.service.RankCalculationOrchestrationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /*
 📊 Rank Evaluation Trigger Points
@@ -17,21 +21,36 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class RankEventListener {
     private final RankCalculationOrchestrationService rankOrchestrator;
 
     @EventListener
     public void onDeposit(DepositActivityEvent event) {
-        rankOrchestrator.reevaluateRank(event.getUserId(), "DepositEvent");
+        reevaluateWithCorrelation(event.getUserId(), "DepositEvent");
     }
 
     @EventListener
     public void handleUserActivated(UserActivatedActivityEvent event) {
-        rankOrchestrator.reevaluateRank(event.getUserId(), "UserActivatedEvent");
+        reevaluateWithCorrelation(event.getUserId(), "UserActivatedEvent");
     }
 
     @EventListener
     public void handleReferralJoined(ReferralJoinedActivityEvent event) {
-        rankOrchestrator.reevaluateRank(event.getReferrerId(), "ReferralJoinedEvent");
+        reevaluateWithCorrelation(event.getReferrerId(), "ReferralJoinedEvent");
+    }
+
+    private void reevaluateWithCorrelation(Long userId, String triggerSource) {
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
+        log.info("📥 Received event for userId={} [source={}]", userId, triggerSource);
+
+        try {
+            rankOrchestrator.reevaluateRank(userId, triggerSource, correlationId);
+        } catch (Exception e) {
+            log.error("❌ Error during rank reevaluation for userId={} [source={}]: {}", userId, triggerSource, e.getMessage(), e);
+        } finally {
+            MDC.clear();
+        }
     }
 }

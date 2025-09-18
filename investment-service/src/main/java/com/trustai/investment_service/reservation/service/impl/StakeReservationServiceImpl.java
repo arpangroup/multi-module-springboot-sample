@@ -1,6 +1,7 @@
 package com.trustai.investment_service.reservation.service.impl;
 
 import com.trustai.common.api.IncomeApi;
+import com.trustai.common.api.RankConfigApi;
 import com.trustai.common.api.UserApi;
 import com.trustai.common.api.WalletApi;
 import com.trustai.common.dto.*;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     private final SchemaRepository schemaRepository;
     private final UserReservationMapper mapper;
     private final UserApi userApi;
+    private final RankConfigApi rankConfigApi;
     private final WalletApi walletApi;
     private final IncomeApi incomeApi;
     private final ApplicationEventPublisher eventPublisher;
@@ -89,16 +92,28 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     @Transactional
     public UserReservation autoReserve(Long userId) {
         log.info("Attempting to auto-reserve stake - userId: {}", userId);
-        UserInfo user = userApi.getUserById(userId);
 
-        // Step 1. CCheck if the user already has a reservation for today
-        /*boolean alreadyReserved = reservationRepository.existsByUserIdAndReservationDate(userId, LocalDate.now());
-        if (alreadyReserved) {
-            log.warn("Reservation failed: User has already reserved today - userId: {}", userId);
-            throw new ValidationException("User has already reserved a stake today", ErrorCode.STAKE_ALREADY_RESERVED );
-        }*/
+        UserInfo user = userApi.getUserById(userId);
+        String userRankCode = user.getRankCode();
+        log.debug("Retrieved user info: id={}, rankCode={}", user.getId(), userRankCode);
+
+
+        RankConfigDto rankConfig = rankConfigApi.getRankConfigByRankCode(userRankCode);
+        List<UserReservation> todayReservations = reservationRepository.findAllByUserIdAndToday(userId, LocalDate.now());
+        int dailyTxnLimit = rankConfig.getTxnPerDay() - todayReservations.size();
+
+        // Step 1. Validate eligibility
+        if ("RANK_0".equals(userRankCode) && rankConfig.getTxnPerDay() == 0) {
+            throw new ValidationException("Reservation not allowed for current rank, please upgrade your rank", ErrorCode.RESERVATION_NOT_ALLOWED );
+        }
+
+        if (dailyTxnLimit == 0) {
+            throw new ValidationException("You’ve reached your daily reservation limit. You can only make one reservation per day.", ErrorCode.STAKE_ALREADY_RESERVED );
+        }
+
 
         // Step 2. Get highest-priced eligible active stake schema
+        log.info("finding best matched stake for reservation..........");
         InvestmentSchema schema = schemaRepository
                 .findTopByInvestmentTypeAndIsActiveTrueOrderByMinimumInvestmentAmountDesc(InvestmentType.STAKE)
                 .orElseThrow(() -> {

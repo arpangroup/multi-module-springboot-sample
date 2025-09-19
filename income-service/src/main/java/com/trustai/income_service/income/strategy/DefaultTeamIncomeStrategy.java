@@ -12,7 +12,7 @@ import com.trustai.income_service.constant.Remarks;
 import com.trustai.income_service.income.dto.UplineIncomeLog;
 import com.trustai.income_service.income.entity.IncomeHistory;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
-import com.trustai.income_service.income.service.TeamCommissionService;
+import com.trustai.income_service.income.service.TeamIncomeConfigCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,7 @@ import java.util.Map;
 @Slf4j
 public class DefaultTeamIncomeStrategy implements TeamIncomeStrategy {
     private final IncomeHistoryRepository incomeHistoryRepo;
-    private final TeamCommissionService teamCommissionService;
+    private final TeamIncomeConfigCache teamIncomeConfigCache;
     private final UserApi userApi;
     private final WalletApi walletApi;
     private final ObjectMapper objectMapper;
@@ -49,7 +49,7 @@ public class DefaultTeamIncomeStrategy implements TeamIncomeStrategy {
                 continue;
             }
 
-            BigDecimal percentage = teamCommissionService.getPercentage(uplineUserRank, depth);
+            BigDecimal percentage = teamIncomeConfigCache.getPercentage(uplineUserRank, depth);
             log.info("TeamIncome Rate of {} for uplineUser: {} for rankCode: {} and depth: {}", percentage, upline.getId(), uplineUserRank, depth);
             if (percentage.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal teamIncome = baseIncome.multiply(percentage);
@@ -73,8 +73,8 @@ public class DefaultTeamIncomeStrategy implements TeamIncomeStrategy {
                         teamIncome,
                         TransactionType.TEAM_INCOME,
                         true,
-                        "daily-income",
-                        Remarks.DAILY_INCOME,
+                        "team-income",
+                        Remarks.TEAM_INCOME,
                         metaInfo
                 );
 

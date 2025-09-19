@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.ReflectionUtils;
@@ -123,7 +124,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     public Page<UserInfo> getUsers(User.AccountStatus status, Integer page, Integer size) {
         int pageNumber = (page != null) ? page : 0;
         int pageSize = (size != null) ? size : 10;
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"));
 
         Page<User> userPage;
         if (status != null) {

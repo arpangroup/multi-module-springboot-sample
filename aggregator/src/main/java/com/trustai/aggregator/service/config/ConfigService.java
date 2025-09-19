@@ -3,6 +3,8 @@ package com.trustai.aggregator.service.config;
 import com.trustai.aggregator.dto.AppConfigUpdateRequest;
 import com.trustai.aggregator.dto.ConfigProperty;
 import com.trustai.common.exceptions.RestCallException;
+import com.trustai.common.lifecycle.ReloadManager;
+import com.trustai.income_service.income.service.IncomeDistributionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,8 @@ import java.util.Set;
 public class ConfigService {
     private final RestClient restClient;
     private final ContextRefresher contextRefresher;
+    private final IncomeDistributionService incomeDistributionService;
+    private final ReloadManager reloadManager;
 
     @Value("${config.server.url}")
     private String configServerUrl;
@@ -54,6 +58,9 @@ public class ConfigService {
 
             // refresh cache from config server
             loadFromServer();
+
+            // refresh
+            reloadManager.reloadAll();
 
             return updatedKeys;
         } catch (Exception ex) {

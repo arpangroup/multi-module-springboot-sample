@@ -17,6 +17,7 @@ import com.trustai.income_service.income.entity.IncomeHistory;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
 import com.trustai.income_service.income.repository.TeamIncomeConfigRepository;
 import com.trustai.income_service.income.strategy.TeamIncomeStrategy;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,12 +36,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class IncomeDistributionService {
     private final IncomeHistoryRepository incomeRepo;
-    private final TeamIncomeConfigRepository teamIncomeRepo;
     private final TeamIncomeStrategy teamIncomeStrategy;
     private final ObjectMapper objectMapper;
     private final UserApi userApi;
     private final WalletApi walletApi;
-    private final RankConfigApi rankConfigApi;
+    private final RankConfigApiCache rankConfigApi;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void distributeIncome(Long sellerId, BigDecimal saleAmount) {
@@ -49,7 +50,8 @@ public class IncomeDistributionService {
         String sellerRank = seller.getRankCode();
         log.info("seller userId: {}, Rank: {}", sellerId, sellerRank);
 
-        RankConfigDto config  = rankConfigApi.getRankConfigByRankCode(sellerRank);
+        //RankConfigDto config  = rankConfigApi.getRankConfigByRankCode(sellerRank);
+        RankConfigDto config  = rankConfigApi.getByRankCode(sellerRank);
 
         //BigDecimal profitRate = config.getCommissionRate().divide(BigDecimal.valueOf(100)vide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal profitRate = config.getCommissionPercentage()
@@ -205,4 +207,6 @@ public class IncomeDistributionService {
         // ✅ Use logger instead of System.out
         log.info(summary.toString());
     }
+
+
 }

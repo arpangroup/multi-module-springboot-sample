@@ -1,19 +1,49 @@
 package com.trustai.income_service.income.service;
 
+import com.trustai.common.lifecycle.Reloadable;
 import com.trustai.income_service.income.entity.TeamIncomeConfig;
+import com.trustai.income_service.income.entity.TeamIncomeKey;
 import com.trustai.income_service.income.repository.TeamIncomeConfigRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TeamCommissionService {
+public class TeamIncomeConfigCache implements Reloadable {
     private final TeamIncomeConfigRepository repository;
+    private Map<TeamIncomeKey, BigDecimal> payoutCache;
+
+    @Override
+    public void reload() {
+        preload();
+    }
+
+    @PostConstruct
+    public void preload() {
+        payoutCache = repository.findAll().stream()
+                .collect(Collectors.toMap(
+                        TeamIncomeConfig::getId,
+                        cfg -> cfg.getPayoutPercentage()
+                                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                ));
+        log.info("✅ Loaded {} TeamIncomeConfig entries into cache", payoutCache.size());
+    }
+
+    public BigDecimal getPercentage(String uplineRank, int downlineDepth) {
+        TeamIncomeKey key = new TeamIncomeKey(uplineRank, downlineDepth);
+        BigDecimal rate = payoutCache.getOrDefault(key, BigDecimal.ZERO);
+        log.debug("Cache lookup for rank={}, depth={} => {}", uplineRank, downlineDepth, rate);
+        return rate;
+    }
+
 
     /*public BigDecimal getTeamCommissionPercentage(String rank, int depth) {
         log.info("getTeamCommissionPercentage for Rank: {}, depth: {}", rank,depth);
@@ -35,14 +65,14 @@ public class TeamCommissionService {
         return teamIncomeRate;
     }*/
 
-    public BigDecimal getPercentage(String uplineRank, int downlineDepth) {
+    /*public BigDecimal getPercentage(String uplineRank, int downlineDepth) {
         log.debug("Fetching team income percentage for UplineRank: {}, DownlineDepth: {}", uplineRank, downlineDepth);
 //        return repository.findById_UplineRankAndId_DownlineDepth(uplineRank, downlineDepth)
 //                .map(cfg -> cfg.getPayoutPercentage().divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
 //                .orElse(BigDecimal.ZERO);
 
         TeamIncomeConfig config = repository
-                .findById_UplineRankAndId_DownlineDepth(uplineRank, downlineDepth)
+                .findByIdUplineRankAndIdDownlineDepth(uplineRank, downlineDepth)
                 .orElseThrow(() -> {
                     log.warn("Missing TeamIncomeConfig for UplineRank: {}, DownlineDepth: {}", uplineRank, downlineDepth);
                     return new IllegalStateException(
@@ -60,6 +90,5 @@ public class TeamCommissionService {
         );
 
         return payoutRate;
-    }
-
+    }*/
 }

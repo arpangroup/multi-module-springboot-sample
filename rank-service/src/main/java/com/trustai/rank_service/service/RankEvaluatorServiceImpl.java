@@ -9,10 +9,8 @@ import com.trustai.rank_service.dto.RankEvaluationResultDTO;
 import com.trustai.rank_service.dto.SpecificationResult;
 import com.trustai.rank_service.entity.RankConfig;
 import com.trustai.rank_service.evaluation.RankSpecification;
-import com.trustai.rank_service.repository.RankConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -21,10 +19,10 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class RankEvaluatorServiceImpl implements RankEvaluatorService {
-    private final RankConfigRepository rankRepo;
+    private final RankConfigCache rankConfigCache;
+    private final RankConfigProperty rankConfigProperty;
     private final List<RankSpecification> specifications;
     private final UserApi userApi;
-    private final RankConfigProperty rankConfigProperty;
 
     /*public Optional<RankConfig> evaluateOld(UserInfo user) {
         UserMetrics metrics = userClient.computeMetrics(user.getId());
@@ -108,7 +106,7 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
         }
         log.debug("Computed user metrics for userId={}: {}", user.getId(), metrics);
 
-        List<RankConfig> ranks = rankRepo.findAllByActiveTrueOrderByRankOrderDesc();
+        List<RankConfig> ranks = rankConfigCache.getAllRanksOrdered();
         if (ranks.isEmpty()) {
             log.warn("⚠️ No active ranks configured. Cannot evaluate rank for userId: {}", user.getId());
             return Optional.empty();
@@ -221,7 +219,7 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
         log.debug("Computed user metrics for userId={}: {}", user.getId(), metrics);
 
 
-        List<RankConfig> ranks = rankRepo.findAllByActiveTrueOrderByRankOrderDesc();
+        List<RankConfig> ranks = rankConfigCache.getAllRanksOrdered();
         RankConfig bestMatched = null;
         List<SpecificationResult> lastSpecResults = List.of();
         boolean downgradePrevented = false;
@@ -324,4 +322,5 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
 
         return results.stream().allMatch(SpecificationResult::isSatisfied);
     }*/
+
 }

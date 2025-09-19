@@ -12,8 +12,8 @@ import com.trustai.common.event.StakeSoldEvent;
 import com.trustai.common.exceptions.ErrorCode;
 import com.trustai.common.exceptions.ValidationException;
 import com.trustai.common.utils.DateUtils;
+import com.trustai.investment_service.config.StakeProperties;
 import com.trustai.investment_service.entity.InvestmentSchema;
-import com.trustai.investment_service.enums.InvestmentType;
 import com.trustai.investment_service.repository.SchemaRepository;
 import com.trustai.investment_service.reservation.dto.ReservationSummary;
 import com.trustai.investment_service.reservation.dto.UserReservationDto;
@@ -24,7 +24,6 @@ import com.trustai.investment_service.reservation.service.StakeReservationServic
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.Async;
@@ -33,7 +32,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,9 +48,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     private final WalletApi walletApi;
     private final IncomeApi incomeApi;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Value("${investment.stake.valuation-delta}")
-    private BigDecimal stakeValuationDelta;
+    private final StakeProperties stakeProperties;
 
 
     @Override
@@ -138,7 +134,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         }
 
         // Step 4. Construct a new reservation entity
-        BigDecimal valuationDeltaSafe = stakeValuationDelta != null ? stakeValuationDelta : BigDecimal.ZERO;
+        BigDecimal valuationDeltaSafe = stakeProperties.getValuationDelta()!= null ? stakeProperties.getValuationDelta() : BigDecimal.ZERO;
         LocalDateTime now = LocalDateTime.now();
 
         UserReservation reservation = UserReservation.builder()

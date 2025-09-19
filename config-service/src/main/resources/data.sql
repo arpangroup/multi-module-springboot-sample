@@ -107,6 +107,16 @@ config_value=VALUES(config_value);
 INSERT INTO config_properties
 (config_key, config_value, application, profile, enum_values, value_type, label, info)
 VALUES
-('investment.stake.valuationDelta', '0.5', 'nft_app', 'default', NULL, 'number', 'Stake Valuation Delta', NULL)
+('investment.stake.valuation-delta', '5', 'nft_app', 'default', NULL, 'number', 'Stake Valuation Delta', NULL)
+ON DUPLICATE KEY UPDATE
+config_value=VALUES(config_value);
+
+
+-- Rank Settings
+INSERT INTO config_properties
+(config_key, config_value, application, profile, enum_values, value_type, label, info)
+VALUES
+('investment.rank.prevent-downgrade', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Prevent Rank Downgrade', 'If enabled, users cannot be downgraded to a lower rank even if they no longer meet its criteria.'),
+('investment.rank.prefer-highest-qualified', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Prefer Highest Qualified Rank', 'When enabled, the system will automatically assign the highest rank a user qualifies for, even if multiple ranks are eligible.')
 ON DUPLICATE KEY UPDATE
 config_value=VALUES(config_value);

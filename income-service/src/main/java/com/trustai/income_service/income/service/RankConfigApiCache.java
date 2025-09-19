@@ -3,14 +3,10 @@ package com.trustai.income_service.income.service;
 import com.trustai.common.api.RankConfigApi;
 import com.trustai.common.dto.RankConfigDto;
 import com.trustai.common.lifecycle.Reloadable;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

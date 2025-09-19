@@ -28,11 +28,16 @@ public class TeamIncomeConfigCache implements Reloadable {
 
     @PostConstruct
     public void preload() {
-        payoutCache = repository.findAll().stream()
+        /*payoutCache = repository.findAll().stream()
                 .collect(Collectors.toMap(
                         TeamIncomeConfig::getId,
                         cfg -> cfg.getPayoutPercentage()
                                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                ));*/
+        payoutCache = repository.findAll().stream()
+                .collect(Collectors.toMap(
+                        TeamIncomeConfig::getId,
+                        TeamIncomeConfig::getPayoutPercentage // No division here
                 ));
         log.info("✅ Loaded {} TeamIncomeConfig entries into cache", payoutCache.size());
     }

@@ -51,7 +51,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     private final IncomeApi incomeApi;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Value("${investment.stake.valuationDelta}")
+    @Value("${investment.stake.valuation-delta}")
     private BigDecimal stakeValuationDelta;
 
 
@@ -113,18 +113,24 @@ public class StakeReservationServiceImpl implements StakeReservationService {
 
 
         // Step 2. Get highest-priced eligible active stake schema
-        log.info("finding best matched stake for reservation..........");
-        InvestmentSchema schema = schemaRepository
+        //log.info("finding best matched stake for reservation..........");
+        /*InvestmentSchema schema = schemaRepository
                 .findTopByInvestmentTypeAndIsActiveTrueOrderByMinimumInvestmentAmountDesc(InvestmentType.STAKE)
                 .orElseThrow(() -> {
                     log.error("Reservation failed: No suitable stake schema found");
                     throw new ValidationException("No suitable stake schema found for reservation", ErrorCode.STAKE_SCHEMA_NOT_FOUND );
+                });*/
+        log.info("Assign any random stake..........");
+        InvestmentSchema schema = schemaRepository.findRandomActiveSchema()
+                .orElseThrow(() -> {
+                    log.error("Reservation failed: No suitable stake schema found");
+                    return new ValidationException("No suitable stake schema found for reservation", ErrorCode.STAKE_SCHEMA_NOT_FOUND);
                 });
 
         // Step 3. Verify if the user has sufficient wallet balance for the reservation
         BigDecimal walletBalance = user.getWalletBalance();
-        BigDecimal reservedAmount = schema.getStakePrice();
-        BigDecimal minimumRequired = schema.getMinimumInvestmentAmount();
+        BigDecimal minimumRequired = rankConfig.getMinDepositAmount(); // schema.getMinimumInvestmentAmount();
+        BigDecimal reservedAmount = user.getWalletBalance().min(minimumRequired); // schema.getStakePrice();
 
         if (walletBalance.compareTo(minimumRequired) < 0) {
             log.warn("Reservation failed: Insufficient wallet balance. userId={}, balance={}, required={}", userId, walletBalance, minimumRequired);
@@ -138,7 +144,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         UserReservation reservation = UserReservation.builder()
                 .userId(userId)
                 .schema(schema)
-                .reservedAmount(schema.getStakePrice())
+                .reservedAmount(reservedAmount)
                 .valuationDelta(valuationDeltaSafe)
                 .reservedAt(now)
                 .expiryAt(now.plusDays(1)) // Reservation valid for 1 day
@@ -150,7 +156,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         String remarks = "Investment reserved for reservationId: " + reservation.getId() +
                 " and amount: " + reservation.getReservedAmount() +
                 " at " + DateUtils.formatDisplayDate(LocalDateTime.now());
-        TransactionDto walletTxn = updateWalletBalance(userId, schema.getStakePrice(), false, remarks);
+        TransactionDto walletTxn = updateWalletBalance(userId, reservedAmount, false, remarks);
         log.info("Wallet debited successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, reservedAmount);
 
         // Step 6: Save the reservation

@@ -5,6 +5,7 @@ import com.trustai.investment_service.enums.InvestmentType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,4 +24,7 @@ public interface SchemaRepository extends JpaRepository<InvestmentSchema, Long> 
     //List<InvestmentSchema> findByLinkedRankAndIsActiveTrue(String linkedRank);
 
     Optional<InvestmentSchema> findTopByInvestmentTypeAndIsActiveTrueOrderByMinimumInvestmentAmountDesc(InvestmentType investmentType);
+
+    @Query(value = "SELECT * FROM investment_schemas WHERE is_active = true ORDER BY RAND() LIMIT 1", nativeQuery = true)
+    Optional<InvestmentSchema> findRandomActiveSchema();
 }

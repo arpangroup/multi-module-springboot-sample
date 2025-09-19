@@ -3,6 +3,7 @@ package com.trustai.rank_service.service;
 import com.trustai.common.api.UserApi;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.dto.UserMetrics;
+import com.trustai.rank_service.config.RankConfigProperty;
 import com.trustai.rank_service.dto.EvaluationReport;
 import com.trustai.rank_service.dto.RankEvaluationResultDTO;
 import com.trustai.rank_service.dto.SpecificationResult;
@@ -23,13 +24,7 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
     private final RankConfigRepository rankRepo;
     private final List<RankSpecification> specifications;
     private final UserApi userApi;
-
-
-    //@Value("${feature.rank.prevent-downgrade:true}") // configurable flag
-    private boolean preventDowngrade = true;
-
-    // config flag (inject from properties, or set via constructor)
-    private final boolean preferHighestQualifiedRank = true;
+    private final RankConfigProperty rankConfigProperty;
 
     /*public Optional<RankConfig> evaluateOld(UserInfo user) {
         UserMetrics metrics = userClient.computeMetrics(user.getId());
@@ -133,7 +128,7 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
 
             if (results.stream().allMatch(SpecificationResult::isSatisfied)) {
                 passedRanks.add(rank);
-                if (preferHighestQualifiedRank) {
+                if (rankConfigProperty.isPreferHighestQualified()) {
                     // ✅ stop early if we want the topmost match
                     log.debug("✅ Highest qualified rank found: {} ({})", rank.getDisplayName(), rank.getCode());
                     break;
@@ -143,12 +138,12 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
         }
 
         RankConfig bestMatched;
-        if (preferHighestQualifiedRank) {
+        if (rankConfigProperty.isPreferHighestQualified()) {
             // if flag is true, we either broke at first pass or nothing passed
-            bestMatched = passedRanks.isEmpty() ? null : passedRanks.get(0);
+            bestMatched = passedRanks.isEmpty() ? null : passedRanks.getFirst();
         } else {
             // bottom-up → last one that passed (lowest)
-            bestMatched = passedRanks.isEmpty() ? null : passedRanks.get(passedRanks.size() - 1);
+            bestMatched = passedRanks.isEmpty() ? null : passedRanks.getLast();
         }
 
         // 🔥 Print aggregated log
@@ -161,7 +156,7 @@ public class RankEvaluatorServiceImpl implements RankEvaluatorService {
                 .findFirst();
 
         // ✅ Apply downgrade prevention only if feature is enabled
-        if (preventDowngrade && currentRankOpt.isPresent()) {
+        if (rankConfigProperty.isPreventDowngrade() && currentRankOpt.isPresent()) {
             RankConfig currentRank = currentRankOpt.get();
             if (bestMatched == null || currentRank.getRankOrder() > bestMatched.getRankOrder()) {
                 log.info("🔒 Preventing downgrade: keeping current rank {} ({}).", currentRank.getDisplayName(), currentRank.getCode());

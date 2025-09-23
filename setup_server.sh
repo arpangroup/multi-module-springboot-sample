@@ -118,8 +118,11 @@ mkdir -p "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
 chown -R ${DEPLOY_USER}:${DEPLOY_USER} "$DEPLOY_PATH"
 
 # Set permissions
-chmod 755 "$DEPLOY_PATH"
-chmod 755 "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
+# 775 so the group can write, 777 if you want fully open for GitHub Actions (less secure)
+# chmod 775 "$DEPLOY_HOME" → ensures /home/cicd_deploy is accessible for entering (required for scp).
+chmod 777 "$DEPLOY_PATH"
+chmod 777 "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
+
 
 echo "✅ Deploy path created at $DEPLOY_PATH with correct permissions"
 
@@ -173,8 +176,22 @@ server {
     }
 }
 EOL
+# Enable site
 ln -sf ${NGINX_CONF_DIR}/${SITE}.conf /etc/nginx/sites-enabled/
 done
+
+# Add actuator endpoint only for API domain only
+cat >> ${NGINX_CONF_DIR}/${API_DOMAIN}.conf <<EOL
+
+# Allow actuator endpoint
+location /actuator/ {
+    proxy_pass ${BACKEND_URL}/actuator/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+EOL
 
 ln -sf ${NGINX_CONF_DIR}/${DOMAIN}.conf /etc/nginx/sites-enabled/
 ln -sf ${NGINX_CONF_DIR}/${SUBDOMAIN}.conf /etc/nginx/sites-enabled/

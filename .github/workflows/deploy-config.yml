@@ -2,7 +2,7 @@ name: Deploy Config Server With MySql
 
 on:
   push:
-    branches: ["main"]
+    branches: ["fix-24-sept-cicd_deploy"]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -103,6 +103,10 @@ jobs:
             echo "❌ ssh-keyscan failed for $REMOTE_HOST:$REMOTE_SSH_PORT"
             exit 1
           }
+      - name: 📂 Ensure deploy folder exists on remote server
+        run: |
+          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST \
+            "mkdir -p $DEPLOY_PATH/logs $DEPLOY_PATH/uploads && chown -R $REMOTE_USER:$REMOTE_USER $DEPLOY_PATH"
 
       - name: 📦 Copy docker-compose.config.yml to server
         run: |

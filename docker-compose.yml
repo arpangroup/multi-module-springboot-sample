@@ -67,8 +67,10 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /home/logs:/logs
-      - /home/uploads:/app/uploads
+#      - /home/logs:/logs
+#      - /home/uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
     networks:
       - backend
     restart: unless-stopped

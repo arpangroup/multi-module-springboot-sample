@@ -64,6 +64,7 @@ services:
     environment:
       SPRING_CLOUD_CONFIG_URI: http://72.60.101.185:8888
       SPRING_CONFIG_IMPORT: configserver:http://72.60.101.185:8888
+      LOGGING_FILE_NAME: /app/logs/trustai-app.log
     ports:
       - "8080:8080"
     volumes:

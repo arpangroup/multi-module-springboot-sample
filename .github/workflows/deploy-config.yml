@@ -19,7 +19,7 @@ env:
   REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
   GHCR_USER: ${{ secrets.GHCR_USERNAME }}
   GHCR_PAT: ${{ secrets.GHCR_PAT }}
-  DEPLOY_PATH: "/home/trustaiapp"
+  DEPLOY_PATH: "/home/cicd_deploy/trustaiapp"
 
 jobs:
   build-and-push:

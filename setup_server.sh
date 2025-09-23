@@ -13,6 +13,8 @@ DEPLOY_HOME="/home/${DEPLOY_USER}"
 NGINX_CONF_DIR="/etc/nginx/sites-available"
 EMAIL="admin@${DOMAIN}"
 
+DEPLOY_PATH="${DEPLOY_HOME}/trustaiapp"
+
 BACKEND_HOST="localhost"
 BACKEND_PORT="8080"
 BACKEND_URL="http://${BACKEND_HOST}:${BACKEND_PORT}"
@@ -100,6 +102,29 @@ chmod -R 755 ${DOC_ROOT} ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
 if [ -f "${DEPLOY_HOME}/docker-compose.yml" ]; then
     chown ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/docker-compose.yml
 fi
+
+
+# -----------------------------
+# Create deploy path for GitHub Actions
+# -----------------------------
+
+# Create the deploy directory if it doesn't exist
+mkdir -p "$DEPLOY_PATH"
+
+# Create required subdirectories
+mkdir -p "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
+
+# Set ownership to deploy user
+chown -R ${DEPLOY_USER}:${DEPLOY_USER} "$DEPLOY_PATH"
+
+# Set permissions
+chmod 755 "$DEPLOY_PATH"
+chmod 755 "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
+
+echo "✅ Deploy path created at $DEPLOY_PATH with correct permissions"
+
+
+
 
 # -----------------------------
 # Install Docker & Compose v2

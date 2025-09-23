@@ -68,7 +68,7 @@ services:
       - "8080:8080"
     volumes:
       - /home/cicd_deploy/logs:/app/logs
-      - /home/cicd_deploy/uploads:/app/uploads
+      - /home/cicd_deploy/uploads:/uploads
 #      - ./logs:/app/logs
 #      - ./uploads:/app/uploads
     networks:

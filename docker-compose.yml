@@ -62,12 +62,12 @@ services:
     depends_on:
       - config-service
     environment:
-      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
-      SPRING_CONFIG_IMPORT: configserver:http://config-service:8888/
+      SPRING_CLOUD_CONFIG_URI: http://localhost/:8888
+      SPRING_CONFIG_IMPORT: configserver:http://localhost:8888/
     ports:
       - "8080:8080"
     volumes:
-      - /home/cicd_deploy/logs:/logs
+      - /home/cicd_deploy/logs:/app/logs
       - /home/cicd_deploy/uploads:/app/uploads
 #      - ./logs:/app/logs
 #      - ./uploads:/app/uploads

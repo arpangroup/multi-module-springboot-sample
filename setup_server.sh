@@ -97,7 +97,10 @@ mkdir -p ${DOC_ROOT}/${DOMAIN} ${DOC_ROOT}/${SUBDOMAIN} ${DOC_ROOT}/${API_DOMAIN
 mkdir -p ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
 
 chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${DOC_ROOT} ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
-chmod -R 755 ${DOC_ROOT} ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
+chmod -R 755 ${DOC_ROOT} ${DEPLOY_HOME}/logs
+
+sudo chown -R cicd_deploy:cicd_deploy /home/cicd_deploy/uploads
+sudo chmod -R 775 /home/cicd_deploy/uploads
 
 if [ -f "${DEPLOY_HOME}/docker-compose.yml" ]; then
     chown ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/docker-compose.yml

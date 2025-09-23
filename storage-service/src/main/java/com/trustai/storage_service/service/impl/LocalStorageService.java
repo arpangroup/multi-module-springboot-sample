@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 @Service("localStorageService")
 @RequiredArgsConstructor
 public class LocalStorageService implements StorageService {
-    private final Path root = Paths.get("uploads");
+    private final Path root = Paths.get("/app/uploads");
     private final FileInfoMapper mapper;
 
     @Autowired

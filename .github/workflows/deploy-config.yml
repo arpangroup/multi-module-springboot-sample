@@ -151,12 +151,14 @@ jobs:
             sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
             sed -i "s|^HOST_LOG_DIR=.*|HOST_LOG_DIR=$HOST_LOG_DIR|" .env || echo "HOST_LOG_DIR=$HOST_LOG_DIR" >> .env
 
-
             echo "⬇️ Pulling latest image"
             docker compose -f docker-compose.config.yml pull
 
-            echo "🔄 Restarting services"
-            docker compose -f docker-compose.config.yml up -d config-service
+            echo "🔄 Restarting services"  
+            docker compose -f docker-compose.config.yml down
+            docker container prune -f
+            docker compose -f docker-compose.config.yml up -d
+#            docker compose -f docker-compose.config.yml up -d config-service
 
             echo "🧹 Cleaning up unused Docker images"
             docker image prune -f

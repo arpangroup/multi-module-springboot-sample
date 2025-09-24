@@ -158,7 +158,6 @@ jobs:
             docker compose -f docker-compose.config.yml down
             docker container prune -f
             docker compose -f docker-compose.config.yml up -d
-#            docker compose -f docker-compose.config.yml up -d config-service
 
             echo "🧹 Cleaning up unused Docker images"
             docker image prune -f

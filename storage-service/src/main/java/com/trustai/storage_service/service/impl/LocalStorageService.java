@@ -100,7 +100,10 @@ public class LocalStorageService implements StorageService {
             Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
             log.info("File uploaded successfully to: {}", destination);
-            return mapper.mapToFileInfo(destination, request);
+            FileInfo fileInfo = mapper.mapToFileInfo(destination, request);
+            log.info("Image uploaded, Download URL: {}", fileInfo.getDownloadUrl());
+
+            return fileInfo;
         } catch (IOException e) {
             log.error("Could not upload file: {}, bucket: {}", file.getOriginalFilename(), bucketName, e);
             throw new RuntimeException("Could not store the file" + (bucketName != null ? " in bucket " + bucketName : ""), e);

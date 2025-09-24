@@ -156,9 +156,6 @@ jobs:
             sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
             sed -i "s|^HOST_LOG_DIR=.*|HOST_LOG_DIR=$HOST_LOG_DIR|" .env || echo "HOST_LOG_DIR=$HOST_LOG_DIR" >> .env
           
-            # Patch docker-compose file to set container user
-            sed -i "/container_name: config-service/a\    user: \"\${CICD_UID}:\${CICD_GID}\"" docker-compose.config.yml
-
 
             echo "⬇️ Pulling latest image"
             docker compose -f docker-compose.config.yml pull

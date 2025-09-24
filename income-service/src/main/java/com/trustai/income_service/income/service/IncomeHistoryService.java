@@ -61,9 +61,28 @@ public class IncomeHistoryService {
                         Function.identity()
                 ));
 
-        // Step 2: Build full list
+        // Step 2: Ensure all IncomeTypes are present
         List<IncomeSummaryProjection> completeList = new ArrayList<>();
         for (IncomeType type : IncomeType.values()) {
+            if (type == IncomeType.RESERVE) {
+                // Copy values from DAILY if present
+                IncomeSummaryProjection daily = map.get(IncomeType.DAILY);
+                if (daily != null) {
+                    completeList.add(new IncomeSummaryProjection() {
+                        public IncomeType getIncomeType() { return IncomeType.RESERVE; }
+                        public BigDecimal getTodayAmount() { return daily.getTodayAmount(); }
+                        public BigDecimal getYesterdayAmount() { return daily.getYesterdayAmount(); }
+                        public BigDecimal getLast7DaysAmount() { return daily.getLast7DaysAmount(); }
+                        public BigDecimal getTotalAmount() { return daily.getTotalAmount(); }
+                        public Long getTotalOrders() { return daily.getTotalOrders(); }
+                        public Long getProcessingOrders() { return daily.getProcessingOrders(); }
+                    });
+                    continue;
+                }
+            }
+
+
+            // Regular type or default zero if missing
             if (map.containsKey(type)) {
                 completeList.add(map.get(type));
             } else {

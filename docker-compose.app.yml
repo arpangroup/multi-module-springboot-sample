@@ -9,7 +9,7 @@ services:
     environment:
       CONFIG_SERVER_HOST: ${CONFIG_SERVER_HOST:-69.62.76.124}
       SPRING_CLOUD_CONFIG_URI: http://$CONFIG_SERVER_HOST:8888
-      SPRING_CONFIG_IMPORT: configserver:http://$CONFIG_SERVER_HOST:8888/
+      SPRING_CONFIG_IMPORT: configserver:http://$CONFIG_SERVER_HOST:8888
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}

@@ -3,6 +3,7 @@ package com.trustai.storage_service.mapper;
 import com.trustai.storage_service.dto.FileInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -20,6 +21,10 @@ import java.util.UUID;
 public class FileInfoMapper {
     public static final String IMAGE_PATH = "/images"; // CommonConstants
     public final String THUMBNAIL_PATH = IMAGE_PATH + "/thumbnail";
+
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     private String getBaseUrl(HttpServletRequest request) {
         //return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
@@ -81,8 +86,8 @@ public class FileInfoMapper {
 
             // Download/thumbnail URLs (replace with your app's logic)
             String filename = path.getFileName().toString();
-            info.setDownloadUrl(getBaseUrl(request) + IMAGE_PATH + "/" + filename);
-            info.setThumbnailUrl(getBaseUrl(request) + THUMBNAIL_PATH + "/" + filename);
+            info.setDownloadUrl(baseUrl + IMAGE_PATH + "/" + filename);
+            info.setThumbnailUrl(baseUrl + THUMBNAIL_PATH + "/" + filename);
 
         } catch (IOException e) {
             throw new RuntimeException("Error mapping file info for: " + path, e);

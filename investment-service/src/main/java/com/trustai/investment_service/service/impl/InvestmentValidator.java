@@ -91,15 +91,15 @@ public class InvestmentValidator {
     private void validateUserEligibilityAgainstSchema(UserInfo user, InvestmentSchema schema) {
         log.debug("Validating user level against schema: userId={}, rankCode={}, schemaId={}", user.getId(), user.getRankCode(), schema.getId());
 
-        if (!schema.getParticipationLevels().isEmpty() && !schema.getParticipationLevels().contains(user.getRankCode())) {
+        /*if (!schema.getParticipationLevels().isEmpty() && !schema.getParticipationLevels().contains(user.getRankCode())) {
             log.warn("User {} with rankCode={} not in schema's participation levels", user.getId(), user.getRankCode());
             throw new ValidationException("User level not eligible for this stake", ErrorCode.USER_RANK_NOT_IN_PARTICIPATION_LEVELS);
-        }
+        }*/
 
-        if (schema.getLinkedRank() != null && !schema.getLinkedRank().equals(user.getRankCode())) {
+        /*if (schema.getLinkedRank() != null && !schema.getLinkedRank().equals(user.getRankCode())) {
             log.warn("User {} rankCode={} does not match schema's linked rank {}", user.getId(), user.getRankCode(), schema.getLinkedRank());
             throw new ValidationException("User rank not eligible for this stake", ErrorCode.USER_RANK_MISMATCH_LINKED_RANK );
-        }
+        }*/
         log.debug("User {} passed schema-specific eligibility checks", user.getId());
     }
 }

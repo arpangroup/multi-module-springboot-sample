@@ -13,13 +13,13 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      LOGGING_FILE_NAME: /app/logs/app.log
+      LOGGING_FILE_NAME: /app/logs/trustai-app.log
 #    networks:
 #      - backend
     restart: unless-stopped
     volumes:
-      - /home/trustaiapp/logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
-      - /home/uploads:/app/uploads
+      - /home/cicd_deploy/logs:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
+      - /home/cicd_deploy/uploads:/app/uploads
 
 
 #networks:

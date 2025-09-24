@@ -2,7 +2,7 @@ name: Deploy Aggregator (Docker + GHCR )
 
 on:
   push:
-    branches: ["fix-24-sept-cicd_deploy"]
+    branches: ["main"]
   workflow_dispatch:
     inputs:
       image_tag:

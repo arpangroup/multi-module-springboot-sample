@@ -28,7 +28,7 @@ public class FirstDepositReferralBonusListener {
 
         try {
             log.info("🔄 Evaluating referral bonus | userId={}", userId);
-            referralBonusService.approvePendingBonus(userId);
+            referralBonusService.approvePendingBonus(userId, amount);
             log.info("✅ Referral bonus evaluation completed | userId={}", userId);
         } catch (Exception e) {
             log.error("❌ Failed to evaluate referral bonus | userId={}, amount={}", userId, amount, e);

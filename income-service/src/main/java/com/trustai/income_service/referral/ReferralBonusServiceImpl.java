@@ -4,18 +4,17 @@ import com.trustai.common.api.UserApi;
 import com.trustai.common.api.WalletApi;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.dto.WalletUpdateRequest;
+import com.trustai.common.enums.CalculationType;
 import com.trustai.common.enums.IncomeType;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.common.enums.TriggerType;
+import com.trustai.income_service.config.ReferralBonusConfigProperty;
 import com.trustai.income_service.constant.Remarks;
-import com.trustai.income_service.income.entity.IncomeHistory;
-import com.trustai.income_service.income.repository.IncomeHistoryRepository;
 import com.trustai.income_service.income.service.IncomeHistoryService;
 import com.trustai.income_service.referral.entity.BonusStatus;
 import com.trustai.income_service.referral.entity.ReferralBonus;
 import com.trustai.income_service.referral.repository.ReferralBonusRepository;
 import com.trustai.income_service.referral.service.ReferralBonusService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,13 +43,11 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
     IncomeHistoryService incomeHistoryService;
 
     @Autowired
+    ReferralBonusConfigProperty referralBonusConfigProperty;
+
+    @Autowired
     WalletApi walletApi;
 
-    @Value("${bonus.referral.enable}")
-    private boolean referralBonusEnabled;
-
-    @Value("${bonus.referral.flat-amount}")
-    private BigDecimal referralBonus;
 
     @Autowired
     public ReferralBonusServiceImpl(List<ReferralBonusStrategy> strategyList, UserApi userApi, ReferralBonusRepository bonusRepository) {
@@ -98,48 +95,55 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
     @Override
     //    @Audit(action = "EVALUATE_BONUS")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void approvePendingBonus(Long refereeId) {
+    public void approvePendingBonus(Long refereeId, BigDecimal depositAmount) {
         log.info("📥 Starting referral bonus approval | refereeId={}", refereeId);
 
         // Attempt to find a pending bonus associated with this referee
         Optional<ReferralBonus> optional = bonusRepository.findByRefereeIdAndStatus(refereeId, BonusStatus.PENDING);
 
-        if (optional.isPresent()) {
-            ReferralBonus bonus = optional.get();
-            Long referrerId = bonus.getReferrerId();
-            BigDecimal bonusAmount = bonus.getBonusAmount();
-            log.info("✅ Pending bonus found | refereeId={}, referrerId={}, amount={}", refereeId, referrerId, bonusAmount);
-
-            // 1. Update bonus status
-            bonus.setStatus(BonusStatus.APPROVED);
-            bonus.setRemarks(Remarks.REFERRAL_BONUS);
-            bonusRepository.save(bonus);
-            log.info("🔄 Bonus status updated to APPROVED | bonusId={}", bonus.getId());
-
-            // 2. Record referral income
-            incomeHistoryService.recordIncomeEntry(
-                    referrerId,
-                    bonusAmount,
-                    IncomeType.REFERRAL,
-                    refereeId,
-                    Remarks.REFERRAL_BONUS
-            );
-
-            // 3. Update Wallet Balance
-            log.info("Updating the wallet for UserID: {} with referralBonus: {}", referrerId, bonusAmount);
-            WalletUpdateRequest depositRequest = new WalletUpdateRequest(
-                    bonusAmount,
-                    TransactionType.REFERRAL,
-                    true,
-                    "referral-bonus",
-                    Remarks.REFERRAL_BONUS,
-                    null
-            );
-            walletApi.updateWalletBalance(referrerId, depositRequest);
-            log.info("👛 Wallet updated successfully | userId={}, amount={}", referrerId, bonusAmount);
-        } else {
+        if (optional.isEmpty()) {
             log.warn("⚠️ No pending referral bonus found | refereeId={}", refereeId);
+            return;
         }
+
+        ReferralBonus bonus = optional.get();
+        Long referrerId = bonus.getReferrerId();
+        TriggerType triggerType = bonus.getTriggerType();
+
+        // 1. Calculate Bonus Amount
+        BigDecimal bonusAmount = calculateReferralBonus(depositAmount, referrerId, refereeId, triggerType);
+        if (bonusAmount == null || bonusAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.info("⛔ Bonus amount is invalid. Skipping wallet update for referrerId: {}, refereeId: {}", referrerId, refereeId);
+            return;
+        }
+
+        // 2. Update bonus status
+        bonus.setStatus(BonusStatus.APPROVED);
+        bonus.setRemarks(Remarks.REFERRAL_BONUS);
+        bonusRepository.save(bonus);
+        log.info("🔄 Bonus status updated to APPROVED | bonusId={}", bonus.getId());
+
+        // 3. Record referral income
+        incomeHistoryService.recordIncomeEntry(
+                referrerId,
+                bonusAmount,
+                IncomeType.REFERRAL,
+                refereeId,
+                Remarks.REFERRAL_BONUS
+        );
+
+        // 4. Update Wallet Balance
+        log.info("Updating the wallet for UserID: {} with referralBonus: {}", referrerId, bonusAmount);
+        WalletUpdateRequest depositRequest = new WalletUpdateRequest(
+                bonusAmount,
+                TransactionType.REFERRAL,
+                true,
+                "referral-bonus",
+                Remarks.REFERRAL_BONUS,
+                null
+        );
+        walletApi.updateWalletBalance(referrerId, depositRequest);
+        log.info("👛 Wallet updated successfully | userId={}, amount={}", referrerId, bonusAmount);
     }
 
     @Override
@@ -194,10 +198,31 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
 //    @Audit(action = "CREATE_PENDING_BONUS")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createPendingBonus(Long referrerId, Long refereeId, TriggerType triggerType) {
-        if (!referralBonusEnabled || referralBonus == null || referralBonus.compareTo(BigDecimal.ZERO) <= 0) {
-            log.info("Referral bonus is disabled or invalid (amount: {}). Skipping bonus creation for referrerId: {}, newlyRegisteredUserId(refereeId): {}, triggerType: {}", referralBonus, referrerId, refereeId, triggerType);
+        if (!referralBonusConfigProperty.isEnable()) {
+            log.info("Referral bonus is disabled. Skipping bonus creation for referrerId: {}, refereeId: {}, triggerType: {}", referrerId, refereeId, triggerType);
             return;
         }
+        BigDecimal referralBonus = BigDecimal.ZERO;
+
+        /*BigDecimal referralBonus;
+        if (referralBonusConfigProperty.getCalculationType() == CalculationType.FLAT) {
+            referralBonus = referralBonusConfigProperty.getFlatAmount();
+            if (referralBonus == null || referralBonus.compareTo(BigDecimal.ZERO) <= 0) {
+                log.info("Referral bonus amount is invalid or zero (amount: {}). Skipping bonus creation for referrerId: {}, refereeId: {}, triggerType: {}",
+                        referralBonus, referrerId, refereeId, triggerType);
+                return;
+            }
+        } else if (referralBonusConfigProperty.getCalculationType() == CalculationType.PERCENTAGE) {
+            referralBonus = referralBonusConfigProperty.getPercentageRate();
+            if (referralBonus == null || referralBonus.compareTo(BigDecimal.ZERO) <= 0) {
+                log.info("Referral bonus percentage is invalid or zero (percentageRate: {}). Skipping bonus creation for referrerId: {}, refereeId: {}, triggerType: {}", referralBonus, referrerId, refereeId, triggerType);
+                return;
+            }
+        } else { // Handle other CalculationTypes or set referralBonus accordingly
+            referralBonus = BigDecimal.ZERO; // or throw exception/log warning
+            log.warn("CalculationType {} is not supported yet. Skipping bonus creation for referrerId: {}, refereeId: {}, triggerType: {}", referralBonusConfigProperty.getCalculationType(), referrerId, refereeId, triggerType);
+            return;
+        }*/
 
         log.info("Initiating pending referral bonus creation. Referrer ID: {}, Referee ID (new user): {}, Trigger Type: {}", referrerId, refereeId, triggerType);
         ReferralBonus bonus = new ReferralBonus();
@@ -210,5 +235,36 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
         log.info("Saving ReferralBonus to DB. Referrer ID: {}, Referee ID: {}, Amount: {}, Status: {}, Trigger Type: {}", referrerId, refereeId, bonus.getBonusAmount(), bonus.getStatus(), triggerType);
         bonus = bonusRepository.save(bonus);
         log.info("BONUS: {}", bonus);
+    }
+
+    private BigDecimal calculateReferralBonus(BigDecimal depositAmount, Long referrerId, Long refereeId, TriggerType triggerType) {
+        CalculationType type = referralBonusConfigProperty.getCalculationType();
+
+        if (type == CalculationType.FLAT) {
+            BigDecimal flatAmount = referralBonusConfigProperty.getFlatAmount();
+            if (flatAmount == null || flatAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                log.info("Referral bonus (FLAT) is invalid or zero (amount: {}). Skipping bonus for referrerId: {}, refereeId: {}, triggerType: {}",
+                        flatAmount, referrerId, refereeId, triggerType);
+                return null;
+            }
+            return flatAmount;
+
+        } else if (type == CalculationType.PERCENTAGE) {
+            BigDecimal percentageRate = referralBonusConfigProperty.getPercentageRate();
+            if (percentageRate == null || percentageRate.compareTo(BigDecimal.ZERO) <= 0) {
+                log.info("Referral bonus (PERCENTAGE) is invalid or zero (rate: {}). Skipping bonus for referrerId: {}, refereeId: {}, triggerType: {}",
+                        percentageRate, referrerId, refereeId, triggerType);
+                return null;
+            }
+            BigDecimal calculated = depositAmount.multiply(percentageRate).setScale(2, RoundingMode.DOWN);
+            log.info("Calculated referral bonus (PERCENTAGE): {} | depositAmount: {}, rate: {}, referrerId: {}, refereeId: {}",
+                    calculated, depositAmount, percentageRate, referrerId, refereeId);
+            return calculated;
+
+        } else {
+            log.warn("Unsupported CalculationType: {}. Skipping bonus for referrerId: {}, refereeId: {}, triggerType: {}",
+                    type, referrerId, refereeId, triggerType);
+            return null;
+        }
     }
 }

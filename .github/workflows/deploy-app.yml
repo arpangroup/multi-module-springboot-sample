@@ -2,7 +2,7 @@ name: Deploy Aggregator (Docker + GHCR )
 
 on:
   push:
-    branches: ["fix-24-sept-cicd_deploy"]
+    branches: ["main"]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -10,6 +10,7 @@ on:
         required: true
         default: "latest"
 
+# Global environment variables (no interpolation here)
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -19,8 +20,12 @@ env:
   REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
   GHCR_USER: ${{ secrets.GHCR_USERNAME }}
   GHCR_PAT: ${{ secrets.GHCR_PAT }}
+  DEPLOY_USER: "cicd_deploy"
+  CONFIG_SERVER_HOST: "72.60.101.185"
+  DEPLOY_HOME: "/home/cicd_deploy"
+  HOST_LOG_DIR: "/home/cicd_deploy/logs"
+  HOST_UPLOADS_DIR: "/home/cicd_deploy/uploads"
   DEPLOY_PATH: "/home/cicd_deploy/trustaiapp"
-  CONFIG_SERVER_HOST: ${{ secrets.REMOTE_HOST }}
 
 jobs:
   build-and-push:
@@ -83,6 +88,13 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
+#      - name: 🛠 Derive deploy paths
+#        run: |
+#          echo "DEPLOY_HOME=/home/${DEPLOY_USER}" >> $GITHUB_ENV
+#          echo "DEPLOY_PATH=/home/${DEPLOY_USER}/trustaiapp" >> $GITHUB_ENV
+#          echo "HOST_LOG_DIR=/home/${DEPLOY_USER}/logs" >> $GITHUB_ENV
+#          echo "HOST_UPLOADS_DIR=/home/${DEPLOY_USER}/uploads" >> $GITHUB_ENV
+
       - name: 🏷️ Select image tag
         id: tag
         run: |
@@ -106,7 +118,7 @@ jobs:
         run: |
           scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.app.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
 
-      - name: 🚀 Run deploy.sh
+      - name: 🚀 Run deploy-app.sh
         run: bash scripts/deploy.sh
         env:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
@@ -120,9 +132,11 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-          CONFIG_SERVER_HOST: ${{ env.CONFIG_SERVER_HOST }}
           GHCR_USER: ${{ env.GHCR_USER }}
           GHCR_PAT: ${{ env.GHCR_PAT }}
+          CONFIG_SERVER_HOST: ${{ env.CONFIG_SERVER_HOST }}
+          HOST_LOG_DIR: ${{ env.HOST_LOG_DIR }}
+          HOST_UPLOADS_DIR: ${{ env.HOST_UPLOADS_DIR }}
 
 
 #      - name: 🚀 Deploy on remote server

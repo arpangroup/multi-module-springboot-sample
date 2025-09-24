@@ -2,7 +2,7 @@ name: Deploy Config Server With MySql
 
 on:
   push:
-    branches: ["main"]
+    branches: ["fix-24-sept-cicd_deploy"]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -19,7 +19,7 @@ env:
   REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
   GHCR_USER: ${{ secrets.GHCR_USERNAME }}
   GHCR_PAT: ${{ secrets.GHCR_PAT }}
-  DEPLOY_PATH: "/home/cicd_deploy/trustaiapp"
+  DEPLOY_PATH: "/home/cicd_deploy/config-service"
 
 jobs:
   build-and-push:
@@ -147,6 +147,7 @@ jobs:
             sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
             sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
             sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
+            sed -i "s|^HOST_LOG_DIR=.*|HOST_LOG_DIR=HOST_LOG_DIR|" .env || echo "HOST_LOG_DIR=HOST_LOG_DIR" >> .env
 
 
             echo "⬇️ Pulling latest image"
@@ -172,3 +173,4 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          HOST_LOG_DIR: "/home/cicd_deploy/logs"

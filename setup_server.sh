@@ -93,43 +93,33 @@ systemctl reload ssh
 # -----------------------------
 # Prepare directories & permissions
 # -----------------------------
-mkdir -p ${DOC_ROOT}/${DOMAIN} ${DOC_ROOT}/${SUBDOMAIN} ${DOC_ROOT}/${API_DOMAIN}
-mkdir -p ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
+# Create domain directories under DOC_ROOT
+mkdir -p "${DOC_ROOT}/${DOMAIN}" "${DOC_ROOT}/${SUBDOMAIN}" "${DOC_ROOT}/${API_DOMAIN}"
 
-chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${DOC_ROOT} ${DEPLOY_HOME}/logs ${DEPLOY_HOME}/uploads
-chmod -R 755 ${DOC_ROOT} ${DEPLOY_HOME}/logs
+# Set ownership to deploy user and group to www-data so Nginx can read files
+chown -R "${DEPLOY_USER}:www-data" "${DOC_ROOT}"
+chmod -R 750 "${DOC_ROOT}"
 
-sudo chown -R cicd_deploy:cicd_deploy /home/cicd_deploy/uploads
-sudo chmod -R 775 /home/cicd_deploy/uploads
+# Create deploy path and other necessary directories
+mkdir -p "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs" "${DEPLOY_HOME}/uploads"
+
+# Set ownership for deployment related directories
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+chown -R "${DEPLOY_USER}:www-data" "${DEPLOY_HOME}/uploads"
+
+# Set permissions:
+# 750 - owner full, group read+exec, others no access
+chmod -R 750 "${DEPLOY_HOME}" "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+
+# 770 - owner and group full access (uploads folder, allowing web server to write)
+chmod 770 "${DEPLOY_HOME}/uploads"
+
+echo "✅ Deploy path created at ${DEPLOY_PATH} with correct permissions"
+
 
 if [ -f "${DEPLOY_HOME}/docker-compose.yml" ]; then
     chown ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/docker-compose.yml
 fi
-
-
-# -----------------------------
-# Create deploy path for GitHub Actions
-# -----------------------------
-
-# Create the deploy directory if it doesn't exist
-mkdir -p "$DEPLOY_PATH"
-
-# Create required subdirectories
-mkdir -p "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
-
-# Set ownership to deploy user
-chown -R ${DEPLOY_USER}:${DEPLOY_USER} "$DEPLOY_PATH"
-
-# Set permissions
-# 775 so the group can write, 777 if you want fully open for GitHub Actions (less secure)
-# chmod 775 "$DEPLOY_HOME" → ensures /home/cicd_deploy is accessible for entering (required for scp).
-chmod 777 "$DEPLOY_PATH"
-chmod 777 "$DEPLOY_PATH/logs" "$DEPLOY_PATH/uploads"
-
-
-echo "✅ Deploy path created at $DEPLOY_PATH with correct permissions"
-
-
 
 
 # -----------------------------
@@ -182,19 +172,6 @@ EOL
 # Enable site
 ln -sf ${NGINX_CONF_DIR}/${SITE}.conf /etc/nginx/sites-enabled/
 done
-
-# Add actuator endpoint only for API domain only
-cat >> ${NGINX_CONF_DIR}/${API_DOMAIN}.conf <<EOL
-
-# Allow actuator endpoint
-location /actuator/ {
-    proxy_pass ${BACKEND_URL}/actuator/;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-}
-EOL
 
 ln -sf ${NGINX_CONF_DIR}/${DOMAIN}.conf /etc/nginx/sites-enabled/
 ln -sf ${NGINX_CONF_DIR}/${SUBDOMAIN}.conf /etc/nginx/sites-enabled/

@@ -13,7 +13,8 @@ DEPLOY_HOME="/home/${DEPLOY_USER}"
 NGINX_CONF_DIR="/etc/nginx/sites-available"
 EMAIL="admin@${DOMAIN}"
 
-DEPLOY_PATH="${DEPLOY_HOME}/trustaiapp"
+CONFIG_DEPLOY_PATH="${DEPLOY_HOME}/config-service"
+APP_DEPLOY_PATH="${DEPLOY_HOME}/trustaiapp"
 
 BACKEND_HOST="localhost"
 BACKEND_PORT="8080"
@@ -89,7 +90,6 @@ chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/.ssh
 systemctl reload ssh
 
 
-
 # -----------------------------
 # Prepare directories & permissions
 # -----------------------------
@@ -101,20 +101,20 @@ chown -R "${DEPLOY_USER}:www-data" "${DOC_ROOT}"
 chmod -R 750 "${DOC_ROOT}"
 
 # Create deploy path and other necessary directories
-mkdir -p "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs" "${DEPLOY_HOME}/uploads"
+mkdir -p "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs" "${DEPLOY_HOME}/uploads"
 
 # Set ownership for deployment related directories
-chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
 chown -R "${DEPLOY_USER}:www-data" "${DEPLOY_HOME}/uploads"
 
 # Set permissions:
 # 750 - owner full, group read+exec, others no access
-chmod -R 750 "${DEPLOY_HOME}" "${DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+chmod -R 750 "${DEPLOY_HOME}" "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
 
 # 770 - owner and group full access (uploads folder, allowing web server to write)
 chmod 770 "${DEPLOY_HOME}/uploads"
 
-echo "✅ Deploy path created at ${DEPLOY_PATH} with correct permissions"
+echo "✅ Deploy path created at ${APP_DEPLOY_PATH} with correct permissions"
 
 
 if [ -f "${DEPLOY_HOME}/docker-compose.yml" ]; then

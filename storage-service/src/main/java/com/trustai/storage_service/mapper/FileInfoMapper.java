@@ -23,7 +23,7 @@ public class FileInfoMapper {
     public final String THUMBNAIL_PATH = IMAGE_PATH + "/thumbnail";
 
 
-    @Value("${app.base-url}")
+    @Value("${app.base-url:http://trustai.co.in/}")
     private String baseUrl;
 
     private String getBaseUrl(HttpServletRequest request) {

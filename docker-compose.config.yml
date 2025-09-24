@@ -24,6 +24,8 @@ services:
   config-service:
     image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
     container_name: config-service
+    #user: "1001:1001"   # 👈 replace with actual UID:GID from `id cicd_deploy`
+    user: "${CICD_UID:-1001}:${CICD_GID:-1001}"
     depends_on:
       db:
         condition: service_healthy

@@ -55,7 +55,7 @@ public class IncomeDistributionService {
 
         //BigDecimal profitRate = config.getCommissionRate().divide(BigDecimal.valueOf(100)vide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal profitRate = config.getCommissionPercentage()
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
         log.info("Commission details: commissionPercentage={}%, profitRate={} for rank={}", config.getCommissionPercentage(), profitRate, sellerRank);
 
         if (profitRate.compareTo(BigDecimal.ZERO) == 0) {

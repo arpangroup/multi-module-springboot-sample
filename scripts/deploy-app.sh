@@ -27,6 +27,11 @@ set -e
 echo "📂 Switching to deploy directory: $DEPLOY_PATH"
 cd "$DEPLOY_PATH"
 
+# Get UID/GID of deploy user
+CICD_UID=\$(id -u $DEPLOY_USER)
+CICD_GID=\$(id -g $DEPLOY_USER)
+echo "Using UID:GID = \$CICD_UID:\$CICD_GID"
+
 echo "📄 Updating .env variables"
 cat > .env << EOT
 REGISTRY=$REGISTRY
@@ -39,6 +44,8 @@ DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
 CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
 HOST_LOG_DIR=$HOST_LOG_DIR
 HOST_UPLOADS_DIR=$HOST_UPLOADS_DIR
+CICD_UID=\$CICD_UID
+CICD_GID=\$CICD_GID
 EOT
 
 echo "🔐 Logging in to GHCR..."

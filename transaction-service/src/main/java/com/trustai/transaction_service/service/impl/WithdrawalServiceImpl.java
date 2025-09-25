@@ -39,9 +39,6 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final UserApi userApi;
     private final WithdrawConfigProperty withdrawConfig;
 
-
-
-
     @Override
     @Transactional
     public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {

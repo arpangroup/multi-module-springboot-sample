@@ -1,5 +1,7 @@
 package com.trustai.transaction_service.service.impl;
 
+import com.trustai.common.api.UserApi;
+import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.transaction_service.dto.response.WithdrawHistoryItem;
@@ -13,8 +15,11 @@ import com.trustai.transaction_service.service.WithdrawalService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -29,18 +34,46 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final PendingWithdrawRepository pendingWithdrawRepository;
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
+    private final UserApi userApi;
+
+    @Value("${app.config.withdraw.amount.min}")
+    private BigDecimal minimumWithdrawAmount;
+
+    @Value("${app.config.withdraw.service.charge}")
+    private BigDecimal serviceCharge;
 
     @Override
     @Transactional
-    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal amount, String remarks) {
-        BigDecimal balance = walletService.getWalletBalance(userId);
-        if (amount.compareTo(balance) > 0) {
-            throw new TransactionException("Insufficient balance for withdrawal");
+    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
+        UserInfo userInfo = userApi.getUserById(userId);
+
+        // Check if there is already a pending withdraw request for this user
+        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
+        if (hasPendingWithdraw) {
+            throw new TransactionException("There is already a pending withdraw request for this user.");
+        }
+
+        String walletAddress = userInfo.getWalletAddress();
+        BigDecimal walletBalance = userInfo.getWalletBalance();
+
+        // ✅ Check if withdrawAmount is below the minimum
+        if (withdrawAmount.compareTo(minimumWithdrawAmount) < 0) {
+            throw new TransactionException("Withdrawal amount must be at least " + minimumWithdrawAmount);
+        }
+
+        // ✅ Calculate total deduction (withdraw + service charge)
+        BigDecimal totalDeduction = withdrawAmount.add(serviceCharge);
+
+        // ✅ Check if user has enough balance including service charge
+        if (totalDeduction.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
         }
 
         PendingWithdraw withdraw = new PendingWithdraw();
         withdraw.setUserId(userId);
-        withdraw.setAmount(amount);
+        withdraw.setAmount(withdrawAmount);
+        withdraw.setServiceCharge(serviceCharge);
+        withdraw.setWalletAddress(walletAddress);
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
         withdraw.setRemarks(remarks);
 
@@ -58,24 +91,25 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         BigDecimal currentBalance = walletService.getWalletBalance(withdraw.getUserId());
-        if (withdraw.getAmount().compareTo(currentBalance) > 0) {
+        BigDecimal totalDeductAmount = withdraw.getAmount().add(withdraw.getServiceCharge());
+        BigDecimal serviceCharge = withdraw.getServiceCharge();
+
+        if (totalDeductAmount.compareTo(currentBalance) > 0) {
             throw new TransactionException("Insufficient wallet balance");
         }
 
-        // Deduct from wallet
-        walletService.updateBalanceFromTransaction(withdraw.getUserId(), withdraw.getAmount().negate());
-
-        // Save transaction record
-        Transaction txn = new Transaction(
+        log.info("Approving withdrawal. UserID: {}, Current Balance: {}, Total Deduct Amount: {} (Amount: {}, Service Charge: {})",
+                withdraw.getUserId(), currentBalance, totalDeductAmount, withdraw.getAmount(), serviceCharge);
+        Transaction txn = walletService.updateWalletBalance(
                 withdraw.getUserId(),
-                withdraw.getAmount(),
+                totalDeductAmount,
+                serviceCharge,
                 TransactionType.WITHDRAWAL,
-                currentBalance.subtract(withdraw.getAmount()),
-                true
+                "withdraw-service",
+                false,
+                "Withdrawal approved",
+                null
         );
-        txn.setStatus(Transaction.TransactionStatus.SUCCESS);
-        //txn.setTxnRefId(withdraw.getTxnRefId());
-        transactionRepository.save(txn);
 
         // Update withdrawal
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.APPROVED);
@@ -103,44 +137,58 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         return pendingWithdrawRepository.save(withdraw);
     }
 
-    @Override
+    /*@Override
     public Page<WithdrawHistoryItem> getPendingWithdrawHistory(@Nullable Long userId, Pageable pageable) {
         Page<PendingWithdraw> transactions;
 
         if (userId == null) { // admin
-            transactions = pendingWithdrawRepository.findAll(pageable);
+            transactions = pendingWithdrawRepository.findByStatus( PendingWithdraw.WithdrawStatus.PENDING, pageable);
         } else {
-            transactions = pendingWithdrawRepository.findByUserId(userId, pageable);
+            transactions = pendingWithdrawRepository.findByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING, pageable);
         }
 
         return transactions.map(withdraw -> new WithdrawHistoryItem(
                 withdraw.getId(),
                 null,
                 withdraw.getAmount(),
-                BigDecimal.ZERO,
+                withdraw.getServiceCharge(),
                 withdraw.getStatus().name(),
-                DateUtils.formatDisplayDate(withdraw.getCreatedAt())
+                DateUtils.formatDisplayDate(withdraw.getCreatedAt()),
+                withdraw.getWalletAddress(),
+                withdraw.getCreatedBy()
         ));
-    }
+    }*/
 
     @Override
-    public Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, Pageable pageable) {
-        Page<Transaction> transactions;
+    public Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, PendingWithdraw.WithdrawStatus status, Pageable pageable) {
+        Sort sortByIdDesc = Sort.by(Sort.Direction.DESC, "id");
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortByIdDesc);
 
-        if (userId == null) { // admin
-            transactions = transactionRepository.findByTxnTypeAndStatus(TransactionType.WITHDRAWAL, Transaction.TransactionStatus.SUCCESS, pageable);
-        } else {
-            String userIdStr = String.valueOf(userId);
-            transactions = transactionRepository.findByUserIdAndTxnType(userIdStr, TransactionType.WITHDRAWAL, pageable);
+        Page<PendingWithdraw> withdraws;
+
+        if (userId == null) { // Admin
+            if (status == null) {
+                withdraws = pendingWithdrawRepository.findAll(sortedPageable);
+            } else {
+                withdraws = pendingWithdrawRepository.findByStatus(status, sortedPageable);
+            }
+        } else { // User
+            if (status == null) {
+                withdraws = pendingWithdrawRepository.findByUserId(userId, sortedPageable);
+            } else {
+                withdraws = pendingWithdrawRepository.findByUserIdAndStatus(userId, status, sortedPageable);
+            }
         }
 
-        return transactions.map(withdraw -> new WithdrawHistoryItem(
+        return withdraws.map(withdraw -> new WithdrawHistoryItem(
                 withdraw.getId(),
                 null,
                 withdraw.getAmount(),
-                BigDecimal.ZERO,
+                withdraw.getServiceCharge(),
                 withdraw.getStatus().name(),
-                DateUtils.formatDisplayDate(withdraw.getCreatedAt())
+                DateUtils.formatDisplayDate(withdraw.getCreatedAt()),
+                withdraw.getWalletAddress(),
+                withdraw.getCreatedBy()
         ));
     }
 }

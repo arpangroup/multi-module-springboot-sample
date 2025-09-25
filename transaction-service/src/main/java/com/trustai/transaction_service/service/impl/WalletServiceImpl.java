@@ -59,9 +59,15 @@ public class WalletServiceImpl implements WalletService {
         }
     }
 
+    @Deprecated
     @Override
     @Transactional
     public Transaction updateWalletBalance(Long userId, BigDecimal amount, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo) {
+        return this.updateWalletBalance(userId, amount, BigDecimal.ZERO, transactionType, sourceModule, isCredit, remarks, metaInfo);
+    }
+
+    @Override
+    public Transaction updateWalletBalance(Long userId, BigDecimal amount, BigDecimal txnFee, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo) {
         log.info("Starting wallet transaction [{}] for userId: {}, amount: {}, type: {}, remarks: {}, source: {}",
                 isCredit ? "CREDIT" : "DEBIT", userId, amount, transactionType, remarks, sourceModule);
 
@@ -78,6 +84,7 @@ public class WalletServiceImpl implements WalletService {
         // Create Transaction
         Transaction txn = new Transaction(userId, amount, transactionType, newBalance, isCredit);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
+        txn.setTxnFee(txnFee);
         txn.setRemarks(remarks);
         txn.setSourceModule(sourceModule);
         txn.setGateway(PaymentGateway.SYSTEM);
@@ -93,6 +100,5 @@ public class WalletServiceImpl implements WalletService {
         log.info("Wallet [{}] completed for userId: {}. txnId: {}, amount: {}, newBalance: {}",
                 isCredit ? "CREDIT" : "DEBIT", userId, txn.getId(), amount, newBalance);
         return txn;
-
     }
 }

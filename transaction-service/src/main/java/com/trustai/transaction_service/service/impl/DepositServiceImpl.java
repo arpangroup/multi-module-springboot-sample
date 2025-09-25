@@ -64,6 +64,13 @@ public class DepositServiceImpl implements DepositService {
 
         validateManualDepositInput(amount, txnId);
 
+        // Check if exactly one pending deposit exists for user
+        long pendingCount = pendingDepositRepository.countByUserIdAndStatus(userId, PendingDeposit.DepositStatus.PENDING);
+        if (pendingCount == 1) {
+            log.info("User {} already has exactly one pending deposit.", userId);
+            throw new TransactionException("There is already a single pending deposit request for this user.");
+        }
+
         if (pendingDepositRepository.existsByLinkedTxnIdAndStatus(txnId, PendingDeposit.DepositStatus.PENDING)) {
             log.info("Duplicate transaction ID detected: [{}] already exists with PENDING status.", txnId);
             throw new TransactionException("Transaction ID  is already linked to a pending deposit.");

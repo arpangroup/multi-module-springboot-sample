@@ -11,4 +11,10 @@ import java.util.Optional;
 @Repository
 public interface PendingWithdrawRepository extends JpaRepository<PendingWithdraw, Long> {
     Page<PendingWithdraw> findByUserId(Long userId, Pageable pageable);
+
+    boolean existsByUserIdAndStatus(long userId, PendingWithdraw.WithdrawStatus withdrawStatus);
+
+    Page<PendingWithdraw> findByUserIdAndStatus(Long userId, PendingWithdraw.WithdrawStatus status, Pageable pageable);
+
+    Page<PendingWithdraw> findByStatus(PendingWithdraw.WithdrawStatus status, Pageable pageable);
 }

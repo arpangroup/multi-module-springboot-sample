@@ -1,5 +1,6 @@
 package com.trustai.transaction_service.entity;
 
+import com.trustai.common.utils.RequestContextHolderUtils;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,9 @@ public class PendingWithdraw {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    private BigDecimal serviceCharge;
+    private String walletAddress;
+
     @Enumerated(EnumType.STRING)
     private WithdrawStatus status = WithdrawStatus.PENDING;
 
@@ -35,23 +39,40 @@ public class PendingWithdraw {
     private String rejectedBy;
     private LocalDateTime rejectedAt;
 
-    @Column(nullable = false, updatable = false) private LocalDateTime createdAt;
-    @Column(nullable = false) private LocalDateTime updatedAt;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    @Column(nullable = false, updatable = true)
+    private LocalDateTime updatedAt;
+    @Column
+    private String createdBy;
+    @Column
+    private String updatedBy;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        this.createdBy = getCurrentUsername();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = getCurrentUsername();
     }
 
     public enum WithdrawStatus {
         PENDING,
         APPROVED,
         REJECTED
+    }
+
+    private String getCurrentUserId() {
+        return RequestContextHolderUtils.getCurrentUserId() + "";
+    }
+
+    private String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
     }
 }

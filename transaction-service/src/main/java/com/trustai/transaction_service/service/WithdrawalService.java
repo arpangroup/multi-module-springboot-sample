@@ -14,8 +14,8 @@ import java.math.BigDecimal;
 
 public interface WithdrawalService {
 
-    Page<WithdrawHistoryItem> getPendingWithdrawHistory(Long userId, Pageable pageable);
-    Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, Pageable pageable);
+//    Page<WithdrawHistoryItem> getPendingWithdrawHistory(Long userId, Pageable pageable);
+    Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, PendingWithdraw.WithdrawStatus status, Pageable pageable);
 
     /**
      * Processes a withdrawal request made by the user.
@@ -42,7 +42,7 @@ public interface WithdrawalService {
      * @throws InsufficientBalanceException if the user does not have enough funds.
      * @throws InvalidPaymentGatewayException if the destination account or channel is not supported.
      */
-    PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal amount, String remarks);
+    PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks);
 
     PendingWithdraw approveWithdraw(long withdrawId, String approver);
     PendingWithdraw rejectWithdraw(long withdrawId, String approver, String rejectReason);

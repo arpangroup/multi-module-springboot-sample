@@ -12,5 +12,8 @@ public interface WalletService {
 
     void ensureSufficientBalance(Long userId, BigDecimal amount);
 
+    @Deprecated
     Transaction updateWalletBalance(Long userId, BigDecimal amount, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo);
+
+    Transaction updateWalletBalance(Long userId, BigDecimal amount, BigDecimal txnFee, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo);
 }

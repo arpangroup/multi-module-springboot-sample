@@ -16,4 +16,6 @@ public class WithdrawHistoryItem {
     private BigDecimal txnFee;
     private String status;
     private String txnDate;
+    private String walletAddress;
+    private String createdBy;
 }

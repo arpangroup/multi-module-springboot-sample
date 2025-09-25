@@ -11,6 +11,7 @@ public interface PendingDepositRepository extends JpaRepository<PendingDeposit, 
     Page<PendingDeposit> findByStatus(PendingDeposit.DepositStatus status, Pageable pageable);
     boolean existsByLinkedTxnId(String linkedTxnId);
     boolean existsByLinkedTxnIdAndStatus(String linkedTxnId, PendingDeposit.DepositStatus status);
+    long countByUserIdAndStatus(Long userId, PendingDeposit.DepositStatus status);
 
     // Ignore soft-deleted entries
     boolean existsByLinkedTxnIdAndStatusAndIsDeletedFalse(String linkedTxnId, PendingDeposit.DepositStatus status);

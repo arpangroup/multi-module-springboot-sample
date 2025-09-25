@@ -256,7 +256,8 @@ public class ReferralBonusServiceImpl implements ReferralBonusService {
                         percentageRate, referrerId, refereeId, triggerType);
                 return null;
             }
-            BigDecimal calculated = depositAmount.multiply(percentageRate).setScale(2, RoundingMode.DOWN);
+            BigDecimal rateAsDecimal = percentageRate.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+            BigDecimal calculated = depositAmount.multiply(rateAsDecimal).setScale(2, RoundingMode.DOWN);
             log.info("Calculated referral bonus (PERCENTAGE): {} | depositAmount: {}, rate: {}, referrerId: {}, refereeId: {}",
                     calculated, depositAmount, percentageRate, referrerId, refereeId);
             return calculated;

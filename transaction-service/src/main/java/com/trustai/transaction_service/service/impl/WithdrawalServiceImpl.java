@@ -4,6 +4,7 @@ import com.trustai.common.api.UserApi;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.common.utils.DateUtils;
+import com.trustai.transaction_service.config.WithdrawConfigProperty;
 import com.trustai.transaction_service.dto.response.WithdrawHistoryItem;
 import com.trustai.transaction_service.entity.PendingWithdraw;
 import com.trustai.transaction_service.entity.Transaction;
@@ -25,6 +26,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Service
@@ -35,12 +37,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
     private final UserApi userApi;
+    private final WithdrawConfigProperty withdrawConfig;
 
-    @Value("${app.config.withdraw.amount.min}")
-    private BigDecimal minimumWithdrawAmount;
 
-    @Value("${app.config.withdraw.service.charge}")
-    private BigDecimal serviceCharge;
+
 
     @Override
     @Transactional
@@ -57,14 +57,20 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         BigDecimal walletBalance = userInfo.getWalletBalance();
 
         // ✅ Check if withdrawAmount is below the minimum
-        if (withdrawAmount.compareTo(minimumWithdrawAmount) < 0) {
-            throw new TransactionException("Withdrawal amount must be at least " + minimumWithdrawAmount);
+        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
+            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
         }
 
-        // ✅ Calculate total deduction (withdraw + service charge)
-        BigDecimal totalDeduction = withdrawAmount.add(serviceCharge);
+        // ✅ Calculate service charge based on threshold
+        BigDecimal appliedServiceCharge;
+        if (withdrawAmount.compareTo(withdrawConfig.getServiceChargeThreshold()) < 0) {
+            appliedServiceCharge = withdrawConfig.getServiceChargeFixed();
+        } else {
+            appliedServiceCharge = withdrawAmount.multiply(withdrawConfig.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
+        }
 
         // ✅ Check if user has enough balance including service charge
+        BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
         if (totalDeduction.compareTo(walletBalance) > 0) {
             throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
         }
@@ -72,7 +78,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         PendingWithdraw withdraw = new PendingWithdraw();
         withdraw.setUserId(userId);
         withdraw.setAmount(withdrawAmount);
-        withdraw.setServiceCharge(serviceCharge);
+        withdraw.setServiceCharge(appliedServiceCharge);
         withdraw.setWalletAddress(walletAddress);
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
         withdraw.setRemarks(remarks);

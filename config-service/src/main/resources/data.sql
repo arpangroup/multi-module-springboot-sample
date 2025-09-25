@@ -120,3 +120,16 @@ VALUES
 ('investment.rank.prefer-highest-qualified', 'true', 'nft_app', 'default', NULL, 'BOOLEAN', 'Prefer Highest Qualified Rank', 'When enabled, the system will automatically assign the highest rank a user qualifies for, even if multiple ranks are eligible.')
 ON DUPLICATE KEY UPDATE
 config_value=VALUES(config_value);
+
+
+-- Withdraw Settings
+INSERT INTO config_properties
+(config_key, config_value, application, profile, enum_values, value_type, label, info)
+VALUES
+('withdraw.config.warning', 'withdraw warning', 'nft_app', 'default', NULL, 'Label', '', 'info'),
+('withdraw.config.amount.min', '10', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
+('withdraw.config.service.charge.percentage', '0.05', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
+('withdraw.config.service.charge.fixed', '2.0', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
+('withdraw.config.service.charge.threshold', '10', 'nft_app', 'default', NULL, 'number', 'Label', 'info')
+ON DUPLICATE KEY UPDATE
+config_value=VALUES(config_value);

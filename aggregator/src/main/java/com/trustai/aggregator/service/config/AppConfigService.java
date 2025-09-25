@@ -25,10 +25,6 @@ public class AppConfigService {
             Map.entry("app.config.deposit.address", "0x5987d451a2d9f7db04d8e539e4d3d6f8aede71bb"),
             Map.entry("app.config.deposit.amount.min", "50"),
             Map.entry("app.config.deposit.warning", "*Only USDT-BEP-20 deposits accepted. Others will be lost."),
-            // Withdraw
-            Map.entry("app.config.withdraw.warning", "Withdraw warning"),
-            Map.entry("app.config.withdraw.amount.min", "50"),
-            Map.entry("app.config.withdraw.service.charge", "5"),
             // UI
             Map.entry("app.config.accepted.file.types", "image/png,image/jpeg,image/gif"),
             Map.entry("app.config.header.main.title", "Welcome to TrustAI"),

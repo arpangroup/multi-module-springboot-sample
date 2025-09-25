@@ -66,7 +66,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         User user = getUserById(userId);
 
         // Only allow updates for firstname and lastname
-        Set<String> allowedFields = Set.of("firstname", "lastname", "mobile", "walletAddress");
+        Set<String> allowedFields = Set.of("firstname", "lastname", "mobile", "walletAddress", "state", "city", "address", "zipCode");
 
         fieldsToUpdate.forEach((key, value) -> {
             if (allowedFields.contains(key)) {

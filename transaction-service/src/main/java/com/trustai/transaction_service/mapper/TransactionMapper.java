@@ -21,6 +21,7 @@ public class TransactionMapper {
                 .status(transaction.getStatus().name())
                 .remarks(transaction.getRemarks())
                 .txnDate(DateUtils.formatDisplayDate(transaction.getCreatedAt()))
+                .createdBy(transaction.getCreatedBy())
                 .build();
     }
 
@@ -37,6 +38,7 @@ public class TransactionMapper {
                 .remarks(deposit.getRemarks())
                 .txnDate(DateUtils.formatDisplayDate(deposit.getCreatedAt()))
                 .imageUrl(deposit.getImageUrl())
+                .createdBy(deposit.getCreatedBy())
                 .build();
     }
 }

@@ -52,6 +52,11 @@ public class User {
     @Column(name = "rank_code", nullable = true)
     private String rankCode = "RANK_0";
 
+    private String state;
+    private String city;
+    private String address;
+    private String zipCode;
+
     // KycInfo..................
 //    @OneToOne(optional = false, cascade = CascadeType.ALL) // Makes the association required (not null)
 //    @JoinColumn(name = "kyc_info", nullable = false) // Maps to the actual foreign key column

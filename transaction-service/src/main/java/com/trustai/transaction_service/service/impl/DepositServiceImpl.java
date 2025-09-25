@@ -71,9 +71,9 @@ public class DepositServiceImpl implements DepositService {
             throw new TransactionException("There is already a single pending deposit request for this user.");
         }
 
-        if (pendingDepositRepository.existsByLinkedTxnIdAndStatus(txnId, PendingDeposit.DepositStatus.PENDING)) {
-            log.info("Duplicate transaction ID detected: [{}] already exists with PENDING status.", txnId);
-            throw new TransactionException("Transaction ID  is already linked to a pending deposit.");
+        if (pendingDepositRepository.existsByLinkedTxnId(txnId)) {
+            log.info("Duplicate transaction ID detected: [{}] already exists.", txnId);
+            throw new TransactionException("Transaction ID  is already exist");
         }
 
         String imageUrl = fileUploadApi.uploadFile(screenshot);
@@ -318,8 +318,7 @@ public class DepositServiceImpl implements DepositService {
                 .setMetaInfo(metaInfo)
                 .setCurrencyCode(currencyCode)
                 .setLinkedTxnId(linkedTxnId)
-                .setStatus(status)
-                .setCreatedBy(createdBy);
+                .setStatus(status);
     }
 
     private void validateManualDepositInput(BigDecimal amount, String txnId) {

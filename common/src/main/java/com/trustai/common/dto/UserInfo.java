@@ -33,6 +33,11 @@ public class UserInfo {
     private boolean isActive;
     private String accountStatus;
     private String kycStatus;
+    //Address:
+    private String state;
+    private String city;
+    private String address;
+    private String zipCode;
     //Date:
     private LocalDateTime createdAt;
 

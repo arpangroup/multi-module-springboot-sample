@@ -19,4 +19,5 @@ public class DepositHistoryItem {
     private String remarks;
     private String txnDate;
     private String imageUrl;
+    private String createdBy;
 }

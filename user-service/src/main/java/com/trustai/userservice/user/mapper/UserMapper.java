@@ -49,6 +49,11 @@ public class UserMapper {
                 .isActive(user.getAccountStatus() == User.AccountStatus.ACTIVE)
                 .accountStatus(user.getAccountStatus().name())
                 //.kycStatus(user.getKycInfo().getStatus().name())
+                // Address
+                .state(user.getState())
+                .city(user.getCity())
+                .address(user.getAddress())
+                .zipCode(user.getZipCode())
                 // AuditLog
                 .createdAt(user.getCreatedAt())
                 .build();
@@ -63,7 +68,8 @@ public class UserMapper {
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .email(user.getEmail())
-                .phone(PhoneMaskingUtil.maskPhoneNumber(user.getMobile()))
+                //.phone(PhoneMaskingUtil.maskPhoneNumber(user.getMobile()))
+                .phone(user.getMobile())
                 .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
@@ -74,6 +80,11 @@ public class UserMapper {
                 .rankCode(user.getRankCode())
                 // KYC:
                 //.kyc(convert(user.getKycInfo()))
+                // Address
+                .state(user.getState())
+                .city(user.getCity())
+                .address(user.getAddress())
+                .zipCode(user.getZipCode())
                 // Status:
                 .accountStatus(convert(user))
                 // AuditLog

@@ -1,8 +1,10 @@
 package com.trustai.transaction_service.service.impl;
 
 import com.trustai.common.api.UserApi;
+import com.trustai.common.dto.NotificationRequest;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.event.NotificationEvent;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.transaction_service.config.WithdrawConfigProperty;
 import com.trustai.transaction_service.dto.response.WithdrawHistoryItem;
@@ -17,12 +19,14 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,8 +42,9 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final WalletService walletService;
     private final UserApi userApi;
     private final WithdrawConfigProperty withdrawConfig;
+    private final ApplicationEventPublisher publisher;
 
-    @Override
+   /* @Override
     @Transactional
     public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
         UserInfo userInfo = userApi.getUserById(userId);
@@ -80,7 +85,76 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
         withdraw.setRemarks(remarks);
 
+        publishWithdrawRequestReceivedNotification(userInfo, withdraw);
         return pendingWithdrawRepository.save(withdraw);
+    }*/
+
+    @Override
+    @Transactional
+    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
+        UserInfo userInfo = userApi.getUserById(userId);
+        BigDecimal walletBalance = userInfo.getWalletBalance();
+        String walletAddress = userInfo.getWalletAddress();
+        String rankCode = userInfo.getRankCode();
+
+        // 1️⃣ Pre-calculate max withdraw and service charge
+        BigDecimal maxWithdrawAllowed  = calculateMaxWithdrawAllowed(walletBalance, rankCode);
+        BigDecimal appliedServiceCharge = calculateServiceCharge(withdrawAmount, withdrawConfig);
+        BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
+
+        // 2️⃣ Check for existing pending withdraw
+        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
+        if (hasPendingWithdraw) {
+            throw new TransactionException("There is already a pending withdraw request for this user.");
+        }
+
+        // 3️⃣ Check minimum withdraw amount
+        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
+            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
+        }
+
+        // 4️⃣ Calculate max allowed withdraw based on rank
+        if (withdrawAmount.compareTo(maxWithdrawAllowed) > 0) {
+            throw new TransactionException( "You can withdraw a maximum of " + maxWithdrawAllowed + " based on your current rank.");
+        }
+
+        // 5️⃣ Check if user has enough balance including service charge
+        if (totalDeduction.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
+        }
+
+        // 6️⃣ Create PendingWithdraw
+        PendingWithdraw withdraw = new PendingWithdraw();
+        withdraw.setUserId(userId);
+        withdraw.setAmount(withdrawAmount);
+        withdraw.setServiceCharge(appliedServiceCharge);
+        withdraw.setWalletAddress(walletAddress);
+        withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
+        withdraw.setRemarks(remarks);
+
+        // 7️⃣ Optional: publish notification
+        publishWithdrawRequestReceivedNotification(userInfo, withdraw);
+
+        return pendingWithdrawRepository.save(withdraw);
+    }
+
+    private BigDecimal calculateServiceCharge(BigDecimal withdrawAmount, WithdrawConfigProperty config) {
+        BigDecimal appliedServiceCharge;
+        if (withdrawAmount.compareTo(config.getServiceChargeThreshold()) < 0) {
+            appliedServiceCharge = config.getServiceChargeFixed();
+        } else {
+            appliedServiceCharge = withdrawAmount.multiply(config.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
+        }
+        return appliedServiceCharge;
+    }
+
+    private BigDecimal calculateMaxWithdrawAllowed(BigDecimal walletBalance, String rankCode) {
+        // Get withdraw percentage from config map
+        BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap()
+                .getOrDefault(rankCode, BigDecimal.ONE); // default 100% if rank not found
+
+        // Max withdraw = walletBalance * percentage
+        return walletBalance.multiply(withdrawPercentage);
     }
 
     @Override
@@ -88,6 +162,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     public PendingWithdraw approveWithdraw(long withdrawId, String approver) {
         PendingWithdraw withdraw = pendingWithdrawRepository.findById(withdrawId)
                 .orElseThrow(() -> new TransactionException("Withdraw request not found"));
+        UserInfo userInfo = userApi.getUserById(withdraw.getUserId());
 
         if (withdraw.getStatus() != PendingWithdraw.WithdrawStatus.PENDING) {
             throw new TransactionException("Only pending withdrawals can be approved");
@@ -119,6 +194,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdraw.setApprovedBy(approver);
         withdraw.setApprovedAt(LocalDateTime.now());
 
+        publishWithdrawApprovedNotification(userInfo, withdraw);
         return pendingWithdrawRepository.save(withdraw);
     }
 
@@ -193,5 +269,69 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 withdraw.getWalletAddress(),
                 withdraw.getCreatedBy()
         ));
+    }
+
+
+
+    @Async
+    private void publishWithdrawRequestReceivedNotification(UserInfo userInfo, PendingWithdraw withdraw) {
+        String firstName = userInfo.getFirstname() != null ? userInfo.getFirstname() : "User";
+        String amount = withdraw.getAmount().toPlainString();
+
+        String title = "Withdrawal Request Received";
+        String message = String.format(
+                "Hello %s, we have received your withdrawal request for %s. Our team will review and process it shortly. Thank you for choosing TrustAI!",
+                firstName,
+                amount
+        );
+
+        // 1. Publish In-App Notification
+        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
+        NotificationRequest inAppRequest = NotificationRequest.forInApp(
+                String.valueOf(userInfo.getId()),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+
+
+        // 2. Publish Email Notification
+        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
+        NotificationRequest emailRequest = NotificationRequest.forEmail(
+                userInfo.getEmail(),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, emailRequest));
+    }
+
+
+    @Async
+    private void publishWithdrawApprovedNotification(UserInfo userInfo, PendingWithdraw withdraw) {
+        String title = "Your Withdrawal Request Has Been Approved";
+        String message = String.format(
+                "Hello %s, your withdrawal request of %s has been successfully approved and is being processed. Thank you for using TrustAI!",
+                userInfo.getFirstname() != null ? userInfo.getFirstname() : "User",
+                withdraw.getAmount().toPlainString()
+        );
+
+        // 1. Publish In-App Notification
+        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
+        NotificationRequest inAppRequest = NotificationRequest.forInApp(
+                String.valueOf(userInfo.getId()),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+
+
+        // 2. Publish Email Notification
+        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
+        NotificationRequest emailRequest = NotificationRequest.forEmail(
+                userInfo.getEmail(),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, emailRequest));
     }
 }

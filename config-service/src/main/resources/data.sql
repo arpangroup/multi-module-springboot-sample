@@ -126,10 +126,11 @@ config_value=VALUES(config_value);
 INSERT INTO config_properties
 (config_key, config_value, application, profile, enum_values, value_type, label, info)
 VALUES
-('withdraw.config.warning', 'withdraw warning', 'nft_app', 'default', NULL, 'Label', '', 'info'),
+('withdraw.config.warning', 'withdraw warning', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info'),
 ('withdraw.config.amount-min', '10', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
 ('withdraw.config.service-charge-percentage', '0.05', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
 ('withdraw.config.service-charge-fixed', '2.0', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
-('withdraw.config.service-charge-threshold', '10', 'nft_app', 'default', NULL, 'number', 'Label', 'info')
+('withdraw.config.service-charge-threshold', '10', 'nft_app', 'default', NULL, 'number', 'Label', 'info'),
+('withdraw.config.withdraw-limit-by-rank', 'RANK_0=0.5,RANK_1=0.5,RANK_2=0.5,RANK_3=1.0,RANK_4=1.0,RANK_5=1.0,RANK_6=1.0,RANK_7=1.0', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info')
 ON DUPLICATE KEY UPDATE
 config_value=VALUES(config_value);

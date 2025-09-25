@@ -61,11 +61,13 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         log.info("Retrieving reservation info for userId: {}", userId);
         var userInfo = userApi.getUserById(userId);
         List<IncomeSummaryDto> incomeSummary = incomeApi.getIncomeSummary(userId);
+        List<UserReservation> allReservations = reservationRepository.findByUserId(userId);
 
         var dailyIncome = incomeSummary.stream().filter(i -> i.getIncomeType() == IncomeType.DAILY).findFirst().get();
         var teamIncome = incomeSummary.stream().filter(i -> i.getIncomeType() == IncomeType.TEAM).findFirst().get();
         int totalOrders = dailyIncome.getTotalOrders();
-        int processingOrders = dailyIncome.getProcessingOrders();
+        //int processingOrders = dailyIncome.getProcessingOrders();
+        int processingOrders = (int) allReservations.stream().filter(r -> !r.isSold()).count();
 
         return ReservationSummary.builder()
                 .todayEarning(dailyIncome.getTodayAmount())

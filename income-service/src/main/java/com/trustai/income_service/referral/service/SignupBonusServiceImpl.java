@@ -12,6 +12,7 @@ import com.trustai.income_service.income.repository.IncomeHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,12 +21,12 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@RefreshScope
 @Slf4j
 public class SignupBonusServiceImpl implements SignupBonusService {
     private final IncomeHistoryRepository incomeRepo;
     private final UserApi userApi;
     private final WalletApi walletApi;
-
 
     @Value("${bonus.signup.enable}")
     private boolean signupBonusEnabled;

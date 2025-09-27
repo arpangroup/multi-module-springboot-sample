@@ -15,8 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction>
-{
+public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
     Page<Transaction> findByTxnType(TransactionType txnType, Pageable pageable);
     Page<Transaction> findByTxnTypeIn(List<TransactionType> txnTypes, Pageable pageable);
     Page<Transaction> findByTxnTypeAndStatus(TransactionType txnType, Transaction.TransactionStatus status, Pageable pageable);

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,9 +15,9 @@ public interface TransactionQueryService {
     // ------------------------------------------------------------------------
     // 1. Basic Transaction Queries
     // ------------------------------------------------------------------------
-    Page<Transaction> getTransactions(Transaction.TransactionStatus status, Integer page, Integer size);
+    Page<Transaction> getTransactions(Transaction.TransactionStatus status, LocalDate start, LocalDate end, Integer page, Integer size);
     Page<Transaction> getProfits(Integer page, Integer size);
-    Page<Transaction> getTransactionsByUserId(String userId, Integer page, Integer size);
+    Page<Transaction> getTransactionsByUserId(String userId, Transaction.TransactionStatus status, LocalDate start, LocalDate end, Integer page, Integer size);
     Boolean hasDepositTransaction(String userId);
 
     // ------------------------------------------------------------------------

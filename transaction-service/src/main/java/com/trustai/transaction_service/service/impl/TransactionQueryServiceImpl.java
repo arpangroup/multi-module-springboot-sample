@@ -17,7 +17,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,22 +36,39 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
 
     @Override
 //    @Timed("transaction.getTransactions.time")
-    public Page<Transaction> getTransactions(Transaction.TransactionStatus status, Integer page, Integer size) {
+    public Page<Transaction> getTransactions(Transaction.TransactionStatus status, LocalDate start, LocalDate end, Integer page, Integer size) {
         int pageNumber = (page != null) ? page : 0;
         int pageSize = (size != null) ? size : 10;
-        log.info("Fetching transactions with status: {}, page: {}, size: {}", status, pageNumber, pageSize);
-
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Transaction> transactionPage;
+        //log.info("Fetching transactions with status: {}, page: {}, size: {}", status, pageNumber, pageSize);
 
-        if (status != null) {
-            transactionPage = transactionRepository.findByStatus(status, pageable);
+        Page<Transaction> result;
+        if (start == null && end == null) {
+            // No date filter at all
+            if (status != null) {
+                result = transactionRepository.findAll((root, query, cb) -> cb.and(
+                        cb.equal(root.get("status"), status)
+                ), pageable);
+            } else {
+                result = transactionRepository.findAll(pageable);
+            }
         } else {
-            transactionPage = transactionRepository.findAll(pageable);
+            LocalDateTime startDateTime = (start != null) ? start.atStartOfDay() : LocalDateTime.MIN;
+            LocalDateTime endDateTime = (end != null) ? end.atTime(LocalTime.MAX) : LocalDateTime.MAX;
+
+            if (status != null) {
+                result = transactionRepository.findAll((root, query, cb) -> cb.and(
+                        cb.equal(root.get("status"), status),
+                        cb.between(root.get("createdAt"), startDateTime, endDateTime)
+                ), pageable);
+            } else {
+                result = transactionRepository.findAll((root, query, cb) ->
+                        cb.between(root.get("createdAt"), startDateTime, endDateTime), pageable);
+            }
         }
 
-        log.info("Fetched {} transactions", transactionPage.getNumberOfElements());
-        return transactionPage;
+        //log.info("Fetched {} transactions", result.getNumberOfElements());
+        return result;
     }
 
     @Override
@@ -68,15 +87,40 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
 
     @Override
     //@Timed(value = "transaction.getTransactionsByUserId.time", description = "Time taken to fetch user transactions")
-    public Page<Transaction> getTransactionsByUserId(String userId, Integer page, Integer size) {
+    public Page<Transaction> getTransactionsByUserId(String userId, Transaction.TransactionStatus status, LocalDate start, LocalDate end, Integer page, Integer size) {
         int pageNumber = (page != null) ? page : 0;
         int pageSize = (size != null) ? size : 10;
-        log.info("Fetching transactions for userId: {}, page: {}, size: {}", userId, pageNumber, pageSize);
-
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Transaction> result = transactionRepository.findByUserId(userId, pageable);
+        //log.info("Fetching transactions for userId: {}, page: {}, size: {}", userId, pageNumber, pageSize);
 
-        log.info("Fetched {} transactions for userId: {}", result.getNumberOfElements(), userId);
+        Page<Transaction> result;
+        if (start == null && end == null) {
+            // No date filter at all
+            if (status != null) {
+                result = transactionRepository.findAll((root, query, cb) -> cb.and(
+                        cb.equal(root.get("userId"), userId),
+                        cb.equal(root.get("status"), status)
+                ), pageable);
+            } else {
+                result = transactionRepository.findByUserId(userId, pageable);
+            }
+        } else {
+            // Date filtering applies - use provided dates or defaults
+            LocalDateTime startDateTime = (start != null) ? start.atStartOfDay() : LocalDateTime.MIN;
+            LocalDateTime endDateTime = (end != null) ? end.atTime(LocalTime.MAX) : LocalDateTime.MAX;
+
+            if (status != null) {
+                result = transactionRepository.findAll((root, query, cb) -> cb.and(
+                        cb.equal(root.get("userId"), userId),
+                        cb.equal(root.get("status"), status),
+                        cb.between(root.get("createdAt"), startDateTime, endDateTime)
+                ), pageable);
+            } else {
+                result = transactionRepository.findByUserIdAndCreatedAtBetween(userId, startDateTime, endDateTime, pageable);
+            }
+        }
+
+        //log.info("Fetched {} transactions for userId: {}", result.getNumberOfElements(), userId);
         return result;
     }
 

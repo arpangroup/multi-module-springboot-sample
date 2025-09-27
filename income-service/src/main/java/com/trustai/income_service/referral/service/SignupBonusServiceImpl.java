@@ -6,6 +6,7 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.common.dto.WalletUpdateRequest;
 import com.trustai.common.enums.IncomeType;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.income_service.config.SignupBonusConfigProperty;
 import com.trustai.income_service.constant.Remarks;
 import com.trustai.income_service.income.entity.IncomeHistory;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
@@ -27,17 +28,13 @@ public class SignupBonusServiceImpl implements SignupBonusService {
     private final IncomeHistoryRepository incomeRepo;
     private final UserApi userApi;
     private final WalletApi walletApi;
-
-    @Value("${bonus.signup.enable}")
-    private boolean signupBonusEnabled;
-
-    @Value("${bonus.signup.flat-amount}")
-    private BigDecimal signupBonus;
+    private final SignupBonusConfigProperty signupBonusConfig;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void applySignupBonus(Long userId) {
-        if (!signupBonusEnabled || signupBonus == null || signupBonus.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal signupBonus = signupBonusConfig.getFlatAmount();
+        if (!signupBonusConfig.isEnable() || signupBonus == null || signupBonus.compareTo(BigDecimal.ZERO) <= 0) {
             log.info("Signup bonus is disabled or not applicable (amount: {}). Skipping for userId: {}", signupBonus, userId);
             return;
         }

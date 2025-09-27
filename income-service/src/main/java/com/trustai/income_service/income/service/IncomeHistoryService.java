@@ -1,13 +1,10 @@
 package com.trustai.income_service.income.service;
 
 import com.trustai.common.enums.IncomeType;
-import com.trustai.income_service.constant.Remarks;
-import com.trustai.income_service.income.dto.UserIncomeSummary;
 import com.trustai.income_service.income.entity.IncomeHistory;
 import com.trustai.income_service.income.entity.IncomeSummaryProjection;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +12,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -64,6 +60,10 @@ public class IncomeHistoryService {
         // Step 2: Ensure all IncomeTypes are present
         List<IncomeSummaryProjection> completeList = new ArrayList<>();
         for (IncomeType type : IncomeType.values()) {
+            if (type == IncomeType.TOTAL) {
+                continue; // don't add TOTAL here, we'll add it manually later
+            }
+
             if (type == IncomeType.RESERVE) {
                 // Copy values from DAILY if present
                 IncomeSummaryProjection daily = map.get(IncomeType.DAILY);

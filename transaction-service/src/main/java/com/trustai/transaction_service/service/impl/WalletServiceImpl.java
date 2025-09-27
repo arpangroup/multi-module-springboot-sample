@@ -9,6 +9,7 @@ import com.trustai.transaction_service.exception.InsufficientBalanceException;
 import com.trustai.transaction_service.repository.TransactionRepository;
 import com.trustai.transaction_service.service.WalletService;
 import com.trustai.transaction_service.util.TransactionIdGenerator;
+import com.trustai.transaction_service.util.TransactionRemarks;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,9 +82,15 @@ public class WalletServiceImpl implements WalletService {
             ensureSufficientBalance(userId, amount);
         }
 
+        Transaction.TransactionStatus status =  Transaction.TransactionStatus.SUCCESS;
+        if (TransactionRemarks.WITHDRAW_REQUESTED.equals(remarks)) {
+            status = Transaction.TransactionStatus.PENDING;
+            remarks = "Withdraw Pending";
+        }
+
         // Create Transaction
         Transaction txn = new Transaction(userId, amount, transactionType, newBalance, isCredit);
-        txn.setStatus(Transaction.TransactionStatus.SUCCESS);
+        txn.setStatus(status);
         txn.setTxnFee(txnFee);
         txn.setRemarks(remarks);
         txn.setSourceModule(sourceModule);

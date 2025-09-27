@@ -8,4 +8,5 @@ public enum IncomeType {
     RESERVE, //<---profit= sellAmount - reserved Amount
     ACTIVITY, //<---based on daily activity
     STAKE, //<---after stake mature
+    TOTAL,
 }

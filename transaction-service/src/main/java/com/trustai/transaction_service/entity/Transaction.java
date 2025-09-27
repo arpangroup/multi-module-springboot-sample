@@ -126,7 +126,8 @@ public class Transaction {
         PENDING,
         SUCCESS,
         FAILED,
-        CANCELLED;
+        CANCELLED,
+        REFUNDED;
     }
 
     private String getCurrentUserId() {

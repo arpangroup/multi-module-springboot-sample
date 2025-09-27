@@ -5,4 +5,7 @@ public class TransactionRemarks {
     public static final String REFERRAL_BONUS = "Referral Bonus";
     public static final String WITHDRAWAL = "Withdraw";
     public static final String TRANSFER = "Transfer";
+    public static final String WITHDRAW_REQUESTED = "Withdraw Requested";
+    public static final String WITHDRAW_APPROVED = "Withdraw Success";
+    public static final String WITHDRAW_REJECTED = "Withdraw Rejected";
 }

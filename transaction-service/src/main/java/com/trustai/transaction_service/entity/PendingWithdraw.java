@@ -19,6 +19,9 @@ public class PendingWithdraw {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
+    private String txnRefId;
+
     @Column(nullable = false)
     private Long userId;
 

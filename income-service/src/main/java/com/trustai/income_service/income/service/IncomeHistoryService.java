@@ -68,38 +68,65 @@ public class IncomeHistoryService {
                 // Copy values from DAILY if present
                 IncomeSummaryProjection daily = map.get(IncomeType.DAILY);
                 if (daily != null) {
-                    completeList.add(new IncomeSummaryProjection() {
-                        public IncomeType getIncomeType() { return IncomeType.RESERVE; }
-                        public BigDecimal getTodayAmount() { return daily.getTodayAmount(); }
-                        public BigDecimal getYesterdayAmount() { return daily.getYesterdayAmount(); }
-                        public BigDecimal getLast7DaysAmount() { return daily.getLast7DaysAmount(); }
-                        public BigDecimal getTotalAmount() { return daily.getTotalAmount(); }
-                        public Long getTotalOrders() { return daily.getTotalOrders(); }
-                        public Long getProcessingOrders() { return daily.getProcessingOrders(); }
-                    });
+                    completeList.add(cloneProjection(IncomeType.RESERVE, daily));
                     continue;
                 }
             }
 
-
             // Regular type or default zero if missing
-            if (map.containsKey(type)) {
-                completeList.add(map.get(type));
-            } else {
-                // Add a default zero-value projection
-                completeList.add(new IncomeSummaryProjection() {
-                    public IncomeType getIncomeType() { return type; }
-                    public BigDecimal getTodayAmount() { return BigDecimal.ZERO; }
-                    public BigDecimal getYesterdayAmount() { return BigDecimal.ZERO; }
-                    public BigDecimal getLast7DaysAmount() { return BigDecimal.ZERO; }
-                    public BigDecimal getTotalAmount() { return BigDecimal.ZERO; }
-                    public Long getTotalOrders() { return 0L; }
-                    public Long getProcessingOrders() { return 0L; }
-                });
-            }
+            completeList.add(map.getOrDefault(type, cloneProjection(type, null)));
         }
 
+        // ✅ Step 3: Add TOTAL projection
+        BigDecimal totalToday = completeList.stream()
+                .map(IncomeSummaryProjection::getTodayAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalYesterday = completeList.stream()
+                .map(IncomeSummaryProjection::getYesterdayAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalLast7Days = completeList.stream()
+                .map(IncomeSummaryProjection::getLast7DaysAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalAll = completeList.stream()
+                .map(IncomeSummaryProjection::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalOrders = completeList.stream()
+                .mapToLong(IncomeSummaryProjection::getTotalOrders)
+                .sum();
+
+        long totalProcessingOrders = completeList.stream()
+                .mapToLong(IncomeSummaryProjection::getProcessingOrders)
+                .sum();
+
+
+        completeList.add(new IncomeSummaryProjection() {
+            public IncomeType getIncomeType() { return IncomeType.TOTAL; }
+            public BigDecimal getTodayAmount() { return totalToday; }
+            public BigDecimal getYesterdayAmount() { return totalYesterday; }
+            public BigDecimal getLast7DaysAmount() { return totalLast7Days; }
+            public BigDecimal getTotalAmount() { return totalAll; }
+            public Long getTotalOrders() { return totalOrders; }
+            public Long getProcessingOrders() { return totalProcessingOrders; }
+        });
+
         return completeList;
+    }
+
+    private IncomeSummaryProjection cloneProjection(IncomeType type, @Nullable IncomeSummaryProjection source) {
+        // Add a default zero-value projection
+        return new IncomeSummaryProjection() {
+            public IncomeType getIncomeType() { return type; }
+            public BigDecimal getTodayAmount() { return source != null ? source.getTodayAmount() : BigDecimal.ZERO; }
+            public BigDecimal getYesterdayAmount() { return source != null ? source.getYesterdayAmount() : BigDecimal.ZERO; }
+            public BigDecimal getLast7DaysAmount() { return source != null ? source.getLast7DaysAmount() : BigDecimal.ZERO; }
+            public BigDecimal getTotalAmount() { return source != null ? source.getTotalAmount() : BigDecimal.ZERO; }
+            public Long getTotalOrders() { return source != null ? source.getTotalOrders() : 0L; }
+            public Long getProcessingOrders() { return source != null ? source.getProcessingOrders() : 0L; }
+        };
     }
 
     /*

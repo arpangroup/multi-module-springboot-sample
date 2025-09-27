@@ -16,6 +16,7 @@ import com.trustai.transaction_service.repository.TransactionRepository;
 import com.trustai.transaction_service.service.WalletService;
 import com.trustai.transaction_service.service.WithdrawNotificationService;
 import com.trustai.transaction_service.service.WithdrawalService;
+import com.trustai.transaction_service.util.TransactionRemarks;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -118,19 +119,20 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         // 6️⃣ Deduct immediately from wallet
-        walletService.updateWalletBalance(
+        Transaction transaction = walletService.updateWalletBalance(
                 userId,
                 withdrawAmount,        // deduct only withdraw amount from wallet
                 appliedServiceCharge,  // track service charge for system accounting
                 TransactionType.WITHDRAWAL,
                 "withdraw-service",
                 false,
-                "Withdrawal requested",
+                TransactionRemarks.WITHDRAW_REQUESTED,
                 null
         );
 
         // 7️⃣ Create PendingWithdraw record
         PendingWithdraw withdraw = new PendingWithdraw();
+        withdraw.setTxnRefId(transaction.getTxnRefId());
         withdraw.setUserId(userId);
         withdraw.setAmount(withdrawAmount);
         withdraw.setServiceCharge(appliedServiceCharge);
@@ -174,11 +176,20 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             throw new TransactionException("Only pending withdrawals can be approved");
         }
 
+        // update the existing Transaction status
+        String txnRefId = withdraw.getTxnRefId();
+        Transaction transaction = transactionRepository.findByTxnRefId(txnRefId)
+                .orElseThrow(() -> new TransactionException("txnRefId not found"));
+        transaction.setRemarks(TransactionRemarks.WITHDRAW_APPROVED);
+        transaction.setStatus(Transaction.TransactionStatus.SUCCESS);
+        transactionRepository.save(transaction);
+
         // Update withdrawal
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.APPROVED);
         withdraw.setApprovedBy(approver);
         withdraw.setApprovedAt(LocalDateTime.now());
         withdraw = pendingWithdrawRepository.save(withdraw);
+
 
         // publish withdraw approved notification...
         UserInfo userInfo = userApi.getUserById(withdraw.getUserId());
@@ -197,6 +208,14 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             throw new TransactionException("Only pending withdrawals can be rejected");
         }
 
+        // update the existing Transaction status
+        String txnRefId = withdraw.getTxnRefId();
+        Transaction transaction = transactionRepository.findByTxnRefId(txnRefId)
+                .orElseThrow(() -> new TransactionException("txnRefId not found"));
+        transaction.setRemarks(TransactionRemarks.WITHDRAW_REJECTED);
+        transaction.setStatus(Transaction.TransactionStatus.REFUNDED);
+        transactionRepository.save(transaction);
+
         // Refund wallet
         walletService.updateWalletBalance(
                 withdraw.getUserId(),
@@ -205,7 +224,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 TransactionType.REFUND,
                 "withdraw-service",
                 true,
-                "Withdrawal rejected " + rejectReason,
+                TransactionRemarks.WITHDRAW_REJECTED + ":" + rejectReason,
                 null
         );
 

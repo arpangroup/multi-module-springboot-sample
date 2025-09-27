@@ -42,7 +42,8 @@ public class UserInitializer implements CommandLineRunner {
 
 
     private void createUserIfNotExists(String username, String email, String password, String referralCode, String roleName, BigDecimal balance) {
-        boolean exists = userRepository.existsByEmail(email);
+        //boolean exists = userRepository.existsByEmail(email);
+        boolean exists = userRepository.findByUsernameCaseSensitive(username).isPresent();
         if (exists) return;
 
         Role role = roleRepository.findByName(roleName)

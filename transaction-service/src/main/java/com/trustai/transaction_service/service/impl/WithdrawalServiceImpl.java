@@ -69,7 +69,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
         return withdraws.map(withdraw -> new WithdrawHistoryItem(
                 withdraw.getId(),
-                null,
+                withdraw.getTxnRefId(),
                 withdraw.getAmount(),
                 withdraw.getServiceCharge(),
                 withdraw.getStatus().name(),

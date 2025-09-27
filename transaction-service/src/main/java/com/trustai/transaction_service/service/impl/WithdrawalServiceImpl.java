@@ -14,6 +14,7 @@ import com.trustai.transaction_service.exception.TransactionException;
 import com.trustai.transaction_service.repository.PendingWithdrawRepository;
 import com.trustai.transaction_service.repository.TransactionRepository;
 import com.trustai.transaction_service.service.WalletService;
+import com.trustai.transaction_service.service.WithdrawNotificationService;
 import com.trustai.transaction_service.service.WithdrawalService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -42,201 +43,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final WalletService walletService;
     private final UserApi userApi;
     private final WithdrawConfigProperty withdrawConfig;
-    private final ApplicationEventPublisher publisher;
-
-   /* @Override
-    @Transactional
-    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
-        UserInfo userInfo = userApi.getUserById(userId);
-
-        // Check if there is already a pending withdraw request for this user
-        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
-        if (hasPendingWithdraw) {
-            throw new TransactionException("There is already a pending withdraw request for this user.");
-        }
-
-        String walletAddress = userInfo.getWalletAddress();
-        BigDecimal walletBalance = userInfo.getWalletBalance();
-
-        // ✅ Check if withdrawAmount is below the minimum
-        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
-            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
-        }
-
-        // ✅ Calculate service charge based on threshold
-        BigDecimal appliedServiceCharge;
-        if (withdrawAmount.compareTo(withdrawConfig.getServiceChargeThreshold()) < 0) {
-            appliedServiceCharge = withdrawConfig.getServiceChargeFixed();
-        } else {
-            appliedServiceCharge = withdrawAmount.multiply(withdrawConfig.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
-        }
-
-        // ✅ Check if user has enough balance including service charge
-        BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
-        if (totalDeduction.compareTo(walletBalance) > 0) {
-            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
-        }
-
-        PendingWithdraw withdraw = new PendingWithdraw();
-        withdraw.setUserId(userId);
-        withdraw.setAmount(withdrawAmount);
-        withdraw.setServiceCharge(appliedServiceCharge);
-        withdraw.setWalletAddress(walletAddress);
-        withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
-        withdraw.setRemarks(remarks);
-
-        publishWithdrawRequestReceivedNotification(userInfo, withdraw);
-        return pendingWithdrawRepository.save(withdraw);
-    }*/
-
-    @Override
-    @Transactional
-    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
-        UserInfo userInfo = userApi.getUserById(userId);
-        BigDecimal walletBalance = userInfo.getWalletBalance();
-        String walletAddress = userInfo.getWalletAddress();
-        String rankCode = userInfo.getRankCode();
-
-        // 1️⃣ Pre-calculate max withdraw and service charge
-        BigDecimal maxWithdrawAllowed  = calculateMaxWithdrawAllowed(walletBalance, rankCode);
-        BigDecimal appliedServiceCharge = calculateServiceCharge(withdrawAmount, withdrawConfig);
-        BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
-
-        // 2️⃣ Check for existing pending withdraw
-        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
-        if (hasPendingWithdraw) {
-            throw new TransactionException("There is already a pending withdraw request for this user.");
-        }
-
-        // 3️⃣ Check minimum withdraw amount
-        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
-            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
-        }
-
-        // 4️⃣ Calculate max allowed withdraw based on rank
-        if (withdrawAmount.compareTo(maxWithdrawAllowed) > 0) {
-            throw new TransactionException( "You can withdraw a maximum of " + maxWithdrawAllowed + " based on your current rank.");
-        }
-
-        // 5️⃣ Check if user has enough balance including service charge
-        if (totalDeduction.compareTo(walletBalance) > 0) {
-            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
-        }
-
-        // 6️⃣ Create PendingWithdraw
-        PendingWithdraw withdraw = new PendingWithdraw();
-        withdraw.setUserId(userId);
-        withdraw.setAmount(withdrawAmount);
-        withdraw.setServiceCharge(appliedServiceCharge);
-        withdraw.setWalletAddress(walletAddress);
-        withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
-        withdraw.setRemarks(remarks);
-
-        // 7️⃣ Optional: publish notification
-        publishWithdrawRequestReceivedNotification(userInfo, withdraw);
-
-        return pendingWithdrawRepository.save(withdraw);
-    }
-
-    private BigDecimal calculateServiceCharge(BigDecimal withdrawAmount, WithdrawConfigProperty config) {
-        BigDecimal appliedServiceCharge;
-        if (withdrawAmount.compareTo(config.getServiceChargeThreshold()) < 0) {
-            appliedServiceCharge = config.getServiceChargeFixed();
-        } else {
-            appliedServiceCharge = withdrawAmount.multiply(config.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
-        }
-        return appliedServiceCharge;
-    }
-
-    private BigDecimal calculateMaxWithdrawAllowed(BigDecimal walletBalance, String rankCode) {
-        // Get withdraw percentage from config map
-        BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap()
-                .getOrDefault(rankCode, BigDecimal.ONE); // default 100% if rank not found
-
-        // Max withdraw = walletBalance * percentage
-        return walletBalance.multiply(withdrawPercentage);
-    }
-
-    @Override
-    @Transactional
-    public PendingWithdraw approveWithdraw(long withdrawId, String approver) {
-        PendingWithdraw withdraw = pendingWithdrawRepository.findById(withdrawId)
-                .orElseThrow(() -> new TransactionException("Withdraw request not found"));
-        UserInfo userInfo = userApi.getUserById(withdraw.getUserId());
-
-        if (withdraw.getStatus() != PendingWithdraw.WithdrawStatus.PENDING) {
-            throw new TransactionException("Only pending withdrawals can be approved");
-        }
-
-        BigDecimal currentBalance = walletService.getWalletBalance(withdraw.getUserId());
-        BigDecimal totalDeductAmount = withdraw.getAmount().add(withdraw.getServiceCharge());
-        BigDecimal serviceCharge = withdraw.getServiceCharge();
-
-        if (totalDeductAmount.compareTo(currentBalance) > 0) {
-            throw new TransactionException("Insufficient wallet balance");
-        }
-
-        log.info("Approving withdrawal. UserID: {}, Current Balance: {}, Total Deduct Amount: {} (Amount: {}, Service Charge: {})",
-                withdraw.getUserId(), currentBalance, totalDeductAmount, withdraw.getAmount(), serviceCharge);
-        Transaction txn = walletService.updateWalletBalance(
-                withdraw.getUserId(),
-                totalDeductAmount,
-                serviceCharge,
-                TransactionType.WITHDRAWAL,
-                "withdraw-service",
-                false,
-                "Withdrawal approved",
-                null
-        );
-
-        // Update withdrawal
-        withdraw.setStatus(PendingWithdraw.WithdrawStatus.APPROVED);
-        withdraw.setApprovedBy(approver);
-        withdraw.setApprovedAt(LocalDateTime.now());
-
-        publishWithdrawApprovedNotification(userInfo, withdraw);
-        return pendingWithdrawRepository.save(withdraw);
-    }
-
-    @Override
-    @Transactional
-    public PendingWithdraw rejectWithdraw(long withdrawId, String approver, String rejectReason) {
-        PendingWithdraw withdraw = pendingWithdrawRepository.findById(withdrawId)
-                .orElseThrow(() -> new TransactionException("Withdraw request not found"));
-
-        if (withdraw.getStatus() != PendingWithdraw.WithdrawStatus.PENDING) {
-            throw new TransactionException("Only pending withdrawals can be rejected");
-        }
-
-        withdraw.setStatus(PendingWithdraw.WithdrawStatus.REJECTED);
-        withdraw.setRejectedBy(approver);
-        withdraw.setRejectedAt(LocalDateTime.now());
-        withdraw.setRejectionReason(rejectReason);
-
-        return pendingWithdrawRepository.save(withdraw);
-    }
-
-    /*@Override
-    public Page<WithdrawHistoryItem> getPendingWithdrawHistory(@Nullable Long userId, Pageable pageable) {
-        Page<PendingWithdraw> transactions;
-
-        if (userId == null) { // admin
-            transactions = pendingWithdrawRepository.findByStatus( PendingWithdraw.WithdrawStatus.PENDING, pageable);
-        } else {
-            transactions = pendingWithdrawRepository.findByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING, pageable);
-        }
-
-        return transactions.map(withdraw -> new WithdrawHistoryItem(
-                withdraw.getId(),
-                null,
-                withdraw.getAmount(),
-                withdraw.getServiceCharge(),
-                withdraw.getStatus().name(),
-                DateUtils.formatDisplayDate(withdraw.getCreatedAt()),
-                withdraw.getWalletAddress(),
-                withdraw.getCreatedBy()
-        ));
-    }*/
+    private final WithdrawNotificationService withdrawNotificationService;
 
     @Override
     public Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, PendingWithdraw.WithdrawStatus status, Pageable pageable) {
@@ -271,67 +78,168 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         ));
     }
 
+    @Override
+    @Transactional
+    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
+        UserInfo userInfo = userApi.getUserById(userId);
+        BigDecimal walletBalance = userInfo.getWalletBalance();
+        String walletAddress = userInfo.getWalletAddress();
+        String rankCode = userInfo.getRankCode();
 
+        // 1️⃣ Pre-calculate max withdraw and service charge
+        BigDecimal maxWithdrawAllowed  = calculateMaxWithdrawAllowed(walletBalance, rankCode);
+        BigDecimal appliedServiceCharge = calculateServiceCharge(withdrawAmount, withdrawConfig);
+        //BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
 
-    @Async
-    private void publishWithdrawRequestReceivedNotification(UserInfo userInfo, PendingWithdraw withdraw) {
-        String firstName = userInfo.getFirstname() != null ? userInfo.getFirstname() : "User";
-        String amount = withdraw.getAmount().toPlainString();
+        // 2️⃣ Check for existing pending withdraw
+        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
+        if (hasPendingWithdraw) {
+            throw new TransactionException("There is already a pending withdraw request for this user.");
+        }
 
-        String title = "Withdrawal Request Received";
-        String message = String.format(
-                "Hello %s, we have received your withdrawal request for %s. Our team will review and process it shortly. Thank you for choosing TrustAI!",
-                firstName,
-                amount
+        // 3️⃣ Check minimum withdraw amount
+        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
+            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
+        }
+
+        // 4️⃣ Calculate max allowed withdraw based on rank
+        if (withdrawAmount.compareTo(maxWithdrawAllowed) > 0) {
+            throw new TransactionException( "You can withdraw a maximum of " + maxWithdrawAllowed + " based on your current rank.");
+        }
+
+        // 5️⃣ Check if user has enough balance including service charge
+        /*if (totalDeduction.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
+        }*/
+
+        // Deduct only the requested withdraw amount
+        if (withdrawAmount.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient wallet balance.");
+        }
+
+        // 6️⃣ Deduct immediately from wallet
+        walletService.updateWalletBalance(
+                userId,
+                withdrawAmount,        // deduct only withdraw amount from wallet
+                appliedServiceCharge,  // track service charge for system accounting
+                TransactionType.WITHDRAWAL,
+                "withdraw-service",
+                false,
+                "Withdrawal requested",
+                null
         );
 
-        // 1. Publish In-App Notification
-        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
-        NotificationRequest inAppRequest = NotificationRequest.forInApp(
-                String.valueOf(userInfo.getId()),
-                title,
-                message
-        );
-        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+        // 7️⃣ Create PendingWithdraw record
+        PendingWithdraw withdraw = new PendingWithdraw();
+        withdraw.setUserId(userId);
+        withdraw.setAmount(withdrawAmount);
+        withdraw.setServiceCharge(appliedServiceCharge);
+        withdraw.setWalletAddress(walletAddress);
+        withdraw.setRankCode(rankCode); // <-- store rankCode for attempt tracking
+        withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
+        withdraw.setRemarks(remarks);
 
+        // 8️⃣ Publish notification
+        withdrawNotificationService.publishWithdrawRequestReceived(userInfo, withdraw);
 
-        // 2. Publish Email Notification
-        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
-        NotificationRequest emailRequest = NotificationRequest.forEmail(
-                userInfo.getEmail(),
-                title,
-                message
-        );
-        publisher.publishEvent(new NotificationEvent(this, emailRequest));
+        return pendingWithdrawRepository.save(withdraw);
     }
 
+    private BigDecimal calculateServiceCharge(BigDecimal withdrawAmount, WithdrawConfigProperty config) {
+        BigDecimal appliedServiceCharge;
+        if (withdrawAmount.compareTo(config.getServiceChargeThreshold()) < 0) {
+            appliedServiceCharge = config.getServiceChargeFixed();
+        } else {
+            appliedServiceCharge = withdrawAmount.multiply(config.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
+        }
+        return appliedServiceCharge;
+    }
 
-    @Async
-    private void publishWithdrawApprovedNotification(UserInfo userInfo, PendingWithdraw withdraw) {
-        String title = "Your Withdrawal Request Has Been Approved";
-        String message = String.format(
-                "Hello %s, your withdrawal request of %s has been successfully approved and is being processed. Thank you for using TrustAI!",
-                userInfo.getFirstname() != null ? userInfo.getFirstname() : "User",
-                withdraw.getAmount().toPlainString()
+    private BigDecimal calculateMaxWithdrawAllowed(BigDecimal walletBalance, String rankCode) {
+        // Get withdraw percentage from config map
+        BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap()
+                .getOrDefault(rankCode, BigDecimal.ONE); // default 100% if rank not found
+
+        // Max withdraw = walletBalance * percentage
+        return walletBalance.multiply(withdrawPercentage);
+    }
+
+    @Override
+    @Transactional
+    public PendingWithdraw approveWithdraw(long withdrawId, String approver) {
+        PendingWithdraw withdraw = pendingWithdrawRepository.findById(withdrawId)
+                .orElseThrow(() -> new TransactionException("Withdraw request not found"));
+
+        if (withdraw.getStatus() != PendingWithdraw.WithdrawStatus.PENDING) {
+            throw new TransactionException("Only pending withdrawals can be approved");
+        }
+
+        // Update withdrawal
+        withdraw.setStatus(PendingWithdraw.WithdrawStatus.APPROVED);
+        withdraw.setApprovedBy(approver);
+        withdraw.setApprovedAt(LocalDateTime.now());
+        withdraw = pendingWithdrawRepository.save(withdraw);
+
+        // publish withdraw approved notification...
+        UserInfo userInfo = userApi.getUserById(withdraw.getUserId());
+        withdrawNotificationService.publishWithdrawApproved(userInfo, withdraw);
+
+        return withdraw;
+    }
+
+    @Override
+    @Transactional
+    public PendingWithdraw rejectWithdraw(long withdrawId, String approver, String rejectReason) {
+        PendingWithdraw withdraw = pendingWithdrawRepository.findById(withdrawId)
+                .orElseThrow(() -> new TransactionException("Withdraw request not found"));
+
+        if (withdraw.getStatus() != PendingWithdraw.WithdrawStatus.PENDING) {
+            throw new TransactionException("Only pending withdrawals can be rejected");
+        }
+
+        // Refund wallet
+        walletService.updateWalletBalance(
+                withdraw.getUserId(),
+                withdraw.getAmount(),  //  refund full requested amount
+                BigDecimal.ZERO,       // no service charge when refund
+                TransactionType.REFUND,
+                "withdraw-service",
+                true,
+                "Withdrawal rejected " + rejectReason,
+                null
         );
 
-        // 1. Publish In-App Notification
-        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
-        NotificationRequest inAppRequest = NotificationRequest.forInApp(
-                String.valueOf(userInfo.getId()),
-                title,
-                message
-        );
-        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+        withdraw.setStatus(PendingWithdraw.WithdrawStatus.REJECTED);
+        withdraw.setRejectedBy(approver);
+        withdraw.setRejectedAt(LocalDateTime.now());
+        withdraw.setRejectionReason(rejectReason);
+        withdraw = pendingWithdrawRepository.save(withdraw);
 
 
-        // 2. Publish Email Notification
-        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
-        NotificationRequest emailRequest = NotificationRequest.forEmail(
-                userInfo.getEmail(),
-                title,
-                message
+        // publish withdraw approved notification...
+        UserInfo userInfo = userApi.getUserById(withdraw.getUserId());
+        withdrawNotificationService.publishWithdrawRejected(userInfo, withdraw);
+
+        return withdraw;
+    }
+
+    private void validateWithdrawAttempts(Long userId, String rankCode) {
+        BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap().getOrDefault(rankCode, BigDecimal.ONE);
+
+        // If rank is allowed full withdraw (100%), skip attempt restriction
+        if (withdrawPercentage.compareTo(BigDecimal.ONE) == 0) {
+            return; // unlimited
+        }
+
+        // Otherwise restrict attempts
+        int usedAttempts = pendingWithdrawRepository.countByUserIdAndRankCodeAndStatus(
+                userId,
+                rankCode,
+                PendingWithdraw.WithdrawStatus.APPROVED
         );
-        publisher.publishEvent(new NotificationEvent(this, emailRequest));
+
+        if (usedAttempts >= 1) {  // 🔄 configurable if needed
+            throw new TransactionException("You have already used your maximum withdraw limit for rank " + rankCode);
+        }
     }
 }

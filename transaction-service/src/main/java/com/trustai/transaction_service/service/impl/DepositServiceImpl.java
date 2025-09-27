@@ -10,7 +10,6 @@ import com.trustai.common.enums.TransactionType;
 import com.trustai.common.event.DepositActivityEvent;
 import com.trustai.common.event.FirstDepositEvent;
 import com.trustai.common.event.NotificationEvent;
-import com.trustai.common.event.UserActivatedActivityEvent;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
 import com.trustai.transaction_service.dto.request.ManualDepositRequest;
@@ -82,13 +81,12 @@ public class DepositServiceImpl implements DepositService {
         BigDecimal netAmount = amount.subtract(fee);
         log.debug("Calculated fee: {}, netAmount: {}", fee, netAmount);
 
-        String txnRefId = TransactionIdGenerator.generateTransactionId(); // As txnRefId empty for manual
 
         PendingDeposit deposit = buildPendingDeposit(
                 userId,
                 amount,
                 imageUrl,
-                txnRefId,
+                txnId,
                 fee,
                 paymentGateway,
                 "Manual deposit Request for Binance Payment",

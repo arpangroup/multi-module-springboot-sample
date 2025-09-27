@@ -34,6 +34,10 @@ public class WithdrawConfigProperty {
     //@Value("${withdraw.config.service.charge.threshold:10}")
     private BigDecimal serviceChargeThreshold;
 
+    //@NotNull
+    //@Value("${withdraw.config.max-withdraw-attempts-per-rank}")
+    //private Integer maxWithdrawAttemptsPerRank = 1; // default once per rank
+
     @NotNull
     //@Value("${withdraw.config.withdraw-limit-by-rank=RANK_0=0.5,RANK_1=0.5,RANK_2=0.5,RANK_3=1.0,RANK_4=1.0,RANK_5=1.0,RANK_6=1.0,RANK_7=1.0}")
     /*

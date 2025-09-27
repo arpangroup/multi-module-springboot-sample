@@ -1,12 +1,13 @@
 package com.trustai.transaction_service.service.impl;
 
 import com.trustai.common.api.UserApi;
-import com.trustai.common.dto.NotificationRequest;
+import com.trustai.common.dto.UserHierarchyDto;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.TransactionType;
-import com.trustai.common.event.NotificationEvent;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.transaction_service.config.WithdrawConfigProperty;
+import com.trustai.transaction_service.entity.WithdrawRule;
+import com.trustai.transaction_service.config.WithdrawRuleConfigCache;
 import com.trustai.transaction_service.dto.response.WithdrawHistoryItem;
 import com.trustai.transaction_service.entity.PendingWithdraw;
 import com.trustai.transaction_service.entity.Transaction;
@@ -20,20 +21,18 @@ import com.trustai.transaction_service.util.TransactionRemarks;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +44,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final UserApi userApi;
     private final WithdrawConfigProperty withdrawConfig;
     private final WithdrawNotificationService withdrawNotificationService;
+    private final WithdrawRuleConfigCache withdrawRuleConfigCache;
 
     @Override
     public Page<WithdrawHistoryItem> getWithdrawHistory(@Nullable Long userId, PendingWithdraw.WithdrawStatus status, Pageable pageable) {
@@ -79,6 +79,74 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         ));
     }
 
+    /*@Override
+    @Transactional
+    public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
+        UserInfo userInfo = userApi.getUserById(userId);
+        BigDecimal walletBalance = userInfo.getWalletBalance();
+        String walletAddress = userInfo.getWalletAddress();
+        String rankCode = userInfo.getRankCode();
+
+        // 1️⃣ Pre-calculate max withdraw and service charge
+        BigDecimal maxWithdrawAllowed  = calculateMaxWithdrawAllowed(walletBalance, rankCode);
+        BigDecimal appliedServiceCharge = calculateServiceCharge(withdrawAmount, withdrawConfig);
+        //BigDecimal totalDeduction = withdrawAmount.add(appliedServiceCharge);
+
+        // 2️⃣ Check for existing pending withdraw
+        boolean hasPendingWithdraw = pendingWithdrawRepository.existsByUserIdAndStatus(userId, PendingWithdraw.WithdrawStatus.PENDING);
+        if (hasPendingWithdraw) {
+            throw new TransactionException("There is already a pending withdraw request for this user.");
+        }
+
+        // 3️⃣ Check minimum withdraw amount
+        if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
+            throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
+        }
+
+        // 4️⃣ Calculate max allowed withdraw based on rank
+        if (withdrawAmount.compareTo(maxWithdrawAllowed) > 0) {
+            throw new TransactionException( "You can withdraw a maximum of " + maxWithdrawAllowed + " based on your current rank.");
+        }
+
+        // 5️⃣ Check if user has enough balance including service charge
+        *//*if (totalDeduction.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient balance to cover withdrawal and service charge.");
+        }*//*
+
+        // Deduct only the requested withdraw amount
+        if (withdrawAmount.compareTo(walletBalance) > 0) {
+            throw new TransactionException("Insufficient wallet balance.");
+        }
+
+        // 6️⃣ Deduct immediately from wallet
+        Transaction transaction = walletService.updateWalletBalance(
+                userId,
+                withdrawAmount,        // deduct only withdraw amount from wallet
+                appliedServiceCharge,  // track service charge for system accounting
+                TransactionType.WITHDRAWAL,
+                "withdraw-service",
+                false,
+                TransactionRemarks.WITHDRAW_REQUESTED,
+                null
+        );
+
+        // 7️⃣ Create PendingWithdraw record
+        PendingWithdraw withdraw = new PendingWithdraw();
+        withdraw.setTxnRefId(transaction.getTxnRefId());
+        withdraw.setUserId(userId);
+        withdraw.setAmount(withdrawAmount);
+        withdraw.setServiceCharge(appliedServiceCharge);
+        withdraw.setWalletAddress(walletAddress);
+        withdraw.setRankCode(rankCode); // <-- store rankCode for attempt tracking
+        withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
+        withdraw.setRemarks(remarks);
+
+        // 8️⃣ Publish notification
+        withdrawNotificationService.publishWithdrawRequestReceived(userInfo, withdraw);
+
+        return pendingWithdrawRepository.save(withdraw);
+    }*/
+
     @Override
     @Transactional
     public PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks) {
@@ -102,6 +170,9 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         if (withdrawAmount.compareTo(withdrawConfig.getAmountMin()) < 0) {
             throw new TransactionException("Withdrawal amount must be at least " + withdrawConfig.getAmountMin());
         }
+
+        // Validate rank rules (members & referrals)
+        validateWithdrawRules(userId, rankCode);
 
         // 4️⃣ Calculate max allowed withdraw based on rank
         if (withdrawAmount.compareTo(maxWithdrawAllowed) > 0) {
@@ -158,12 +229,20 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     }
 
     private BigDecimal calculateMaxWithdrawAllowed(BigDecimal walletBalance, String rankCode) {
+        /*
         // Get withdraw percentage from config map
         BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap()
                 .getOrDefault(rankCode, BigDecimal.ONE); // default 100% if rank not found
 
         // Max withdraw = walletBalance * percentage
         return walletBalance.multiply(withdrawPercentage);
+         */
+
+        WithdrawRule rule = withdrawRuleConfigCache.getByRankCode(rankCode);
+        if (rule.getMaxWithdrawAmount() != null && rule.getMaxWithdrawAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return walletBalance.min(rule.getMaxWithdrawAmount());
+        }
+        return walletBalance; // fallback: full balance allowed
     }
 
     @Override
@@ -261,4 +340,44 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             throw new TransactionException("You have already used your maximum withdraw limit for rank " + rankCode);
         }
     }
+
+    private void validateWithdrawRules(long userId, String rankCode) {
+        WithdrawRule rule = withdrawRuleConfigCache.getByRankCode(rankCode);
+
+
+        List<UserHierarchyDto> descendants = userApi.findByDescendant(userId);
+
+        // Count total members
+        long totalMembers = descendants.stream()
+                .filter(UserHierarchyDto::isActive)
+                .count();
+
+        // Count direct referrals (depth = 1)
+        long directReferrals = descendants.stream()
+                .filter(UserHierarchyDto::isActive)
+                .filter(dto -> dto.getDepth() == 1)
+                .count();
+
+        if (totalMembers < rule.getRequiredTotalMembers()) {
+            throw new TransactionException("You need at least " + rule.getRequiredTotalMembers() +
+                    " active team members to withdraw with rank " + rankCode);
+        }
+
+        if (directReferrals < rule.getRequiredDirectReferrals()) {
+            throw new TransactionException("You need at least " + rule.getRequiredDirectReferrals() +
+                    " direct referrals to withdraw with rank " + rankCode);
+        }
+
+        // Check withdraw attempts
+        int approvedAttempts = pendingWithdrawRepository.countByUserIdAndRankCodeAndStatus(
+                userId,
+                rankCode,
+                PendingWithdraw.WithdrawStatus.APPROVED
+        );
+
+        if (approvedAttempts >= rule.getWithdrawLimit()) {
+            throw new TransactionException("You have already used your maximum withdraw attempts for rank " + rankCode);
+        }
+    }
+
 }

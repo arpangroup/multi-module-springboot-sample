@@ -28,14 +28,14 @@ public class WithdrawRuleDataInitializer {
 
     private List<WithdrawRule> getAllWithdrawRules() {
         return List.of(
-            new WithdrawRule(null, "RANK_0", 0, 0, 1, BigDecimal.valueOf(100)),
-            new WithdrawRule(null, "RANK_1", 2, 2, 2, BigDecimal.valueOf(500)),
-            new WithdrawRule(null, "RANK_2", 5, 1, 3, BigDecimal.valueOf(1000)),
-            new WithdrawRule(null, "RANK_3", 8, 2, 4, BigDecimal.valueOf(3000)),
-            new WithdrawRule(null, "RANK_4", 12, 2, 6, BigDecimal.valueOf(5000)),
-            new WithdrawRule(null, "RANK_5", 15, 2, 8, BigDecimal.valueOf(10000)),
-            new WithdrawRule(null, "RANK_6", 20, 3, 12, BigDecimal.valueOf(20000)),
-            new WithdrawRule(null, "RANK_7", 25, 5, 15, BigDecimal.valueOf(30000))
+            new WithdrawRule(null, "RANK_0", 0, 1, BigDecimal.valueOf(100)),
+            new WithdrawRule(null, "RANK_1", 2, 2, BigDecimal.valueOf(500)),
+            new WithdrawRule(null, "RANK_2", 1, 3, BigDecimal.valueOf(1000)),
+            new WithdrawRule(null, "RANK_3", 2, 4, BigDecimal.valueOf(3000)),
+            new WithdrawRule(null, "RANK_4", 2, 6, BigDecimal.valueOf(5000)),
+            new WithdrawRule(null, "RANK_5", 2, 8, BigDecimal.valueOf(10000)),
+            new WithdrawRule(null, "RANK_6", 3, 12, BigDecimal.valueOf(20000)),
+            new WithdrawRule(null, "RANK_7", 5, 15, BigDecimal.valueOf(30000))
         );
     }
 }

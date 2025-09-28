@@ -21,7 +21,7 @@ public class WithdrawRule {
     @Column(nullable = false, unique = true)
     private String rankCode; // e.g. RANK_0, RANK_1 ...
 
-    private int requiredTotalMembers;
+    //private int requiredTotalMembers;
     private int requiredDirectReferrals;
     private int withdrawLimit;
     private BigDecimal maxWithdrawAmount;

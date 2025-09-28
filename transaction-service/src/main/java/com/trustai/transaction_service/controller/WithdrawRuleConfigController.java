@@ -1,5 +1,6 @@
 package com.trustai.transaction_service.controller;
 
+import com.trustai.transaction_service.config.WithdrawRuleConfigCache;
 import com.trustai.transaction_service.entity.WithdrawRule;
 import com.trustai.transaction_service.repository.WithdrawRuleRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +16,11 @@ import java.util.List;
 @Slf4j
 public class WithdrawRuleConfigController {
     private final WithdrawRuleRepository withdrawRuleRepository;
+    private final WithdrawRuleConfigCache withdrawRuleConfigCache;
 
     @GetMapping
     public List<WithdrawRule> getAllRules() {
-        return withdrawRuleRepository.findAll();
+        return withdrawRuleConfigCache.findAll();
     }
 
 
@@ -26,9 +28,9 @@ public class WithdrawRuleConfigController {
     public ResponseEntity<?> updateRules(@RequestBody List<WithdrawRule> updatedRules) {
         for (WithdrawRule updated : updatedRules) {
             withdrawRuleRepository.findById(updated.getId()).ifPresent(existing -> {
-                if (updated.getRequiredTotalMembers() != 0) {
-                    existing.setRequiredTotalMembers(updated.getRequiredTotalMembers());
-                }
+//                if (updated.getRequiredTotalMembers() != 0) {
+//                    existing.setRequiredTotalMembers(updated.getRequiredTotalMembers());
+//                }
                 if (updated.getRequiredDirectReferrals() != 0) {
                     existing.setRequiredDirectReferrals(updated.getRequiredDirectReferrals());
                 }

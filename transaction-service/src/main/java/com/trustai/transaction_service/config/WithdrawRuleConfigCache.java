@@ -8,9 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -33,11 +32,17 @@ public class WithdrawRuleConfigCache implements Reloadable {
         rules.forEach(r -> withdrawRuleCache.put(r.getRankCode(), r));
     }
 
-    public WithdrawRule getByRankCode(String code) {
+    public WithdrawRule findByRankCode(String code) {
         WithdrawRule rule = withdrawRuleCache.get(code);
         if (rule == null) {
             throw new IllegalArgumentException("No withdraw rule found for rank code: " + code);
         }
         return rule;
+    }
+
+    public List<WithdrawRule> findAll() {
+        return withdrawRuleCache.values().stream()
+                .sorted(Comparator.comparing(WithdrawRule::getRankCode))
+                .toList();
     }
 }

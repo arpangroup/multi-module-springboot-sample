@@ -238,7 +238,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         return walletBalance.multiply(withdrawPercentage);
          */
 
-        WithdrawRule rule = withdrawRuleConfigCache.getByRankCode(rankCode);
+        WithdrawRule rule = withdrawRuleConfigCache.findByRankCode(rankCode);
         if (rule.getMaxWithdrawAmount() != null && rule.getMaxWithdrawAmount().compareTo(BigDecimal.ZERO) > 0) {
             return walletBalance.min(rule.getMaxWithdrawAmount());
         }
@@ -342,7 +342,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     }
 
     private void validateWithdrawRules(long userId, String rankCode) {
-        WithdrawRule rule = withdrawRuleConfigCache.getByRankCode(rankCode);
+        WithdrawRule rule = withdrawRuleConfigCache.findByRankCode(rankCode);
 
 
         List<UserHierarchyDto> descendants = userApi.findByDescendant(userId);
@@ -358,10 +358,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 .filter(dto -> dto.getDepth() == 1)
                 .count();
 
-        if (totalMembers < rule.getRequiredTotalMembers()) {
-            throw new TransactionException("You need at least " + rule.getRequiredTotalMembers() +
-                    " active team members to withdraw with rank " + rankCode);
-        }
+//        if (totalMembers < rule.getRequiredTotalMembers()) {
+//            throw new TransactionException("You need at least " + rule.getRequiredTotalMembers() +
+//                    " active team members to withdraw with rank " + rankCode);
+//        }
 
         if (directReferrals < rule.getRequiredDirectReferrals()) {
             throw new TransactionException("You need at least " + rule.getRequiredDirectReferrals() +

@@ -131,7 +131,7 @@ public class IncomeDistributionService {
         // 2. Load full hierarchy in one query
         // Propagate team income
         log.info("Fetching uplines for sellerId={} to propagate team income", sellerId);
-        List<UserHierarchyDto> hierarchy = userApi.findByDescendant(sellerId);
+        List<UserHierarchyDto> hierarchy = userApi.fetchUplines(sellerId);
         Map<Long, Integer> uplinesWithDepth = hierarchy.stream()
                 .filter(UserHierarchyDto::isActive)
                 .collect(Collectors.toMap(UserHierarchyDto::getAncestor, UserHierarchyDto::getDepth));

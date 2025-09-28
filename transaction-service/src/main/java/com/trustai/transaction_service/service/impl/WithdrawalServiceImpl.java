@@ -345,7 +345,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         WithdrawRule rule = withdrawRuleConfigCache.findByRankCode(rankCode);
 
 
-        List<UserHierarchyDto> descendants = userApi.findAllDownline(userId);
+        List<UserHierarchyDto> descendants = userApi.fetchDownline(userId);
         log.debug("Found {} descendants for userId={}", descendants.size(), userId);
 
         // Count total members

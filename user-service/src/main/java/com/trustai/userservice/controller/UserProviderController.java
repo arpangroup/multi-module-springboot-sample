@@ -103,7 +103,7 @@ public class UserProviderController {
         return memberSummaryService.computeMetrics(userId);
     }
 
-    @GetMapping("/hierarchy/descendant/{descendant}")
+    @GetMapping("/hierarchy/upline/{descendant}")
     public List<UserHierarchy> findByDescendant(@PathVariable Long descendant) {
         log.info("Received request to get user hierarchy for descendant: {}", descendant);
         List<UserHierarchy> hierarchy = userHierarchyRepository.findByDescendant(descendant);
@@ -111,7 +111,7 @@ public class UserProviderController {
         return hierarchy;
     }
 
-    @GetMapping("/hierarchy/ancestor/{descendant}")
+    @GetMapping("/hierarchy/downline/{ancestor}")
     public List<UserHierarchy> findByAncestor(@PathVariable Long ancestor) {
         log.info("Received request to get user hierarchy for ancestor: {}", ancestor);
         List<UserHierarchy> hierarchy = userHierarchyRepository.findByAncestor(ancestor);

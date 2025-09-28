@@ -36,11 +36,11 @@ public interface UserApi {
     @PutMapping("/updateWalletBalance/{userId}/{updatedNewBalance}")
     void updateWalletBalance(@PathVariable Long userId, @PathVariable BigDecimal updatedNewBalance);
 
-    @GetMapping("/hierarchy/descendant/{descendant}")
-    List<UserHierarchyDto> findByDescendant(@PathVariable Long descendant);
+    @GetMapping("/hierarchy/upline/{descendant}")
+    List<UserHierarchyDto> fetchUplines(@PathVariable Long descendant);
 
-    @GetMapping("/hierarchy/ancestor/{ancestor}")
-    List<UserHierarchyDto> findAllDownline(@PathVariable Long ancestor);
+    @GetMapping("/hierarchy/downline/{ancestor}")
+    List<UserHierarchyDto> fetchDownline(@PathVariable Long ancestor);
 
     @GetMapping("/metrics/{userId}")
     UserMetrics computeMetrics(@PathVariable Long userId);

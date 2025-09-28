@@ -48,7 +48,7 @@ public class RankEventListener {
         rankOrchestrator.reevaluateRank(userId, RankTriggerSource.DEPOSIT.name(), correlationId);
 
         if (event.isFirstDeposit()) { // update all upline users rank
-            List<UserHierarchyDto> uplines = userApi.findByDescendant(userId);
+            List<UserHierarchyDto> uplines = userApi.fetchUplines(userId);
             List<Long> uplineIds = uplines.stream()
                     .map(UserHierarchyDto::getAncestor)
                     .filter(ancestorId -> !ancestorId.equals(event.getUserId()))

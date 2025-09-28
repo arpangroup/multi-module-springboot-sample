@@ -345,7 +345,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         WithdrawRule rule = withdrawRuleConfigCache.findByRankCode(rankCode);
 
 
-        List<UserHierarchyDto> descendants = userApi.findByDescendant(userId);
+        List<UserHierarchyDto> descendants = userApi.findAllDownline(userId);
+        log.debug("Found {} descendants for userId={}", descendants.size(), userId);
 
         // Count total members
         long totalMembers = descendants.stream()
@@ -357,6 +358,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 .filter(UserHierarchyDto::isActive)
                 .filter(dto -> dto.getDepth() == 1)
                 .count();
+        log.info("User {} has {} active team members and {} direct referrals", userId, totalMembers, directReferrals);
 
 //        if (totalMembers < rule.getRequiredTotalMembers()) {
 //            throw new TransactionException("You need at least " + rule.getRequiredTotalMembers() +
@@ -364,6 +366,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 //        }
 
         if (directReferrals < rule.getRequiredDirectReferrals()) {
+            log.warn("User {} does not meet direct referral requirement: has={}, required={}", userId, directReferrals, rule.getRequiredDirectReferrals());
             throw new TransactionException("You need at least " + rule.getRequiredDirectReferrals() +
                     " direct referrals to withdraw with rank " + rankCode);
         }
@@ -376,6 +379,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         );
 
         if (approvedAttempts >= rule.getWithdrawLimit()) {
+            log.warn("User {} has reached withdraw limit: attempts={}, limit={}", userId, approvedAttempts, rule.getWithdrawLimit());
             throw new TransactionException("You have already used your maximum withdraw attempts for rank " + rankCode);
         }
     }

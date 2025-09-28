@@ -111,4 +111,12 @@ public class UserProviderController {
         return hierarchy;
     }
 
+    @GetMapping("/hierarchy/ancestor/{descendant}")
+    public List<UserHierarchy> findByAncestor(@PathVariable Long ancestor) {
+        log.info("Received request to get user hierarchy for ancestor: {}", ancestor);
+        List<UserHierarchy> hierarchy = userHierarchyRepository.findByAncestor(ancestor);
+        log.info("Returning {} hierarchy records for ancestor: {}", hierarchy.size(), ancestor);
+        return hierarchy;
+    }
+
 }

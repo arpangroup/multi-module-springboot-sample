@@ -158,4 +158,16 @@ public class UserApiRestClientImpl implements UserApi {
 
     }
 
+    @Override
+    public List<UserHierarchyDto> findAllDownline(Long ancestor) {
+        log.info("Calling findByDescendant with ancestor={}", ancestor);
+        return handleRestCall(() -> {
+            UserHierarchyDto[] response = restClient.get()
+                    .uri("/hierarchy/ancestor/{id}", ancestor)
+                    .retrieve()
+                    .body(UserHierarchyDto[].class);
+            return Arrays.asList(response);
+        });
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.trustai.investment_service.controller;
 
 import com.trustai.common.controller.BaseController;
+import com.trustai.common.dto.PagedResponse;
 import com.trustai.investment_service.dto.InvestmentRequest;
 import com.trustai.investment_service.dto.InvestmentResponse;
 import com.trustai.investment_service.dto.UserInvestmentSummary;
@@ -11,9 +12,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +39,20 @@ public class InvestmentController extends BaseController {
         } else {
             return ResponseEntity.ok(investmentService.getUserInvestments(userId, status, pageable));
         }
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<PagedResponse<UserInvestmentSummary>> getInvestmentsByUserId(
+            @PathVariable Long userId,
+            @RequestParam(required = false) InvestmentStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
+            Pageable pageable
+    ) {
+        Page<UserInvestmentSummary> paginatedTransactions = investmentService.getUserInvestments(userId, status, pageable);
+        log.info("Returning {} investments for userId: {}", paginatedTransactions.getNumberOfElements(), userId);
+        return ResponseEntity.ok(PagedResponse.from(paginatedTransactions));
     }
 
     @GetMapping("/total")

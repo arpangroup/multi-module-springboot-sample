@@ -61,7 +61,7 @@ public class WithdrawController extends BaseController {
     public ResponseEntity<ApiResponse<String>> requestWithdraw(@RequestBody @Valid WithdrawRequest request) {
         Long currentUserId = getCurrentUserId();
         log.info("Received withdraw request for userId: {}, amount: {}, walletAddress: {}", currentUserId, request.amount(), request.walletAddress());
-        PendingWithdraw transaction = withdrawalService.requestWithdraw(currentUserId, request.amount(), null);
+        PendingWithdraw transaction = withdrawalService.requestWithdraw(currentUserId, request.amount(), request.isWithdrawFromProfit(), null);
         log.info("Withdraw request completed for userId: {}. Transaction ID: {}", currentUserId, transaction.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Withdraw request successfully completed."));
     }

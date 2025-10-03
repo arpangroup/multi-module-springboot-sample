@@ -6,6 +6,7 @@ import com.trustai.transaction_service.repository.WithdrawRuleRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -41,6 +42,9 @@ public class WithdrawRuleConfigCache implements Reloadable {
     }
 
     public List<WithdrawRule> findAll() {
+        if (withdrawRuleCache.isEmpty()) {
+            preload();
+        }
         return withdrawRuleCache.values().stream()
                 .sorted(Comparator.comparing(WithdrawRule::getRankCode))
                 .toList();

@@ -2,6 +2,7 @@ package com.trustai.transaction_service.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Builder
 public class WithdrawRule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,8 +23,16 @@ public class WithdrawRule {
     @Column(nullable = false, unique = true)
     private String rankCode; // e.g. RANK_0, RANK_1 ...
 
-    //private int requiredTotalMembers;
-    private int requiredDirectReferrals;
-    private int withdrawLimit;
-    private BigDecimal maxWithdrawAmount;
+    // % based limits (0–100)
+    private BigDecimal withdrawLimitFromWalletInPercentage;
+    private BigDecimal withdrawLimitFromProfitWalletInPercentage;
+
+    // Absolute maximums
+    private BigDecimal maxWithdrawFromWallet;
+    private BigDecimal maxWithdrawFromProfitWallet;
+
+    // Fees & limits
+    private BigDecimal serviceCharge;
+    private int dailyWithdrawLimit;
+    private int totalWithdrawLimit;
 }

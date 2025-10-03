@@ -10,6 +10,8 @@ public record WithdrawRequest(
         @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be at least 0.01")
         BigDecimal amount,
 
+        boolean isWithdrawFromProfit,
+
         String walletAddress
 ) {
 }

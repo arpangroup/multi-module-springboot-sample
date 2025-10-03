@@ -6,7 +6,8 @@ public enum TransactionType {
     // Deposit & Withdrawal
     DEPOSIT("Deposit"),
     DEPOSIT_MANUAL("Manual Deposit"),
-    WITHDRAWAL("Withdrawal"),
+    WITHDRAWAL("Withdrawal"), // from wallet
+    WITHDRAWAL_FROM_PROFIT("Withdrawal From Profit"),
     REFUND("Refund"),
 
     // Adjustments

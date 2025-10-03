@@ -28,14 +28,93 @@ public class WithdrawRuleDataInitializer {
 
     private List<WithdrawRule> getAllWithdrawRules() {
         return List.of(
-            new WithdrawRule(null, "RANK_0", 0, 1, BigDecimal.valueOf(100)),
-            new WithdrawRule(null, "RANK_1", 2, 2, BigDecimal.valueOf(500)),
-            new WithdrawRule(null, "RANK_2", 1, 3, BigDecimal.valueOf(1000)),
-            new WithdrawRule(null, "RANK_3", 2, 4, BigDecimal.valueOf(3000)),
-            new WithdrawRule(null, "RANK_4", 2, 6, BigDecimal.valueOf(5000)),
-            new WithdrawRule(null, "RANK_5", 2, 8, BigDecimal.valueOf(10000)),
-            new WithdrawRule(null, "RANK_6", 3, 12, BigDecimal.valueOf(20000)),
-            new WithdrawRule(null, "RANK_7", 5, 15, BigDecimal.valueOf(30000))
+                WithdrawRule.builder()
+                        .rankCode("RANK_0")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.ZERO)
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(1)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_1")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.ZERO)
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(1)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_2")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(50))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(100)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_3")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(100))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(100)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_4")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(100))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(100)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_5")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(100))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(100)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_6")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(100))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(99999)
+                        .build(),
+
+                WithdrawRule.builder()
+                        .rankCode("RANK_7")
+                        .withdrawLimitFromWalletInPercentage(BigDecimal.valueOf(100))
+                        .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
+                        .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
+                        .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
+                        .serviceCharge(BigDecimal.TEN)
+                        .dailyWithdrawLimit(1)
+                        .totalWithdrawLimit(99999)
+                        .build()
         );
     }
 }

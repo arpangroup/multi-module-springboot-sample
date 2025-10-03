@@ -42,7 +42,7 @@ public interface WithdrawalService {
      * @throws InsufficientBalanceException if the user does not have enough funds.
      * @throws InvalidPaymentGatewayException if the destination account or channel is not supported.
      */
-    PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, String remarks);
+    PendingWithdraw requestWithdraw(long userId, @NonNull BigDecimal withdrawAmount, boolean isWithdrawFromProfit, String remarks);
 
     PendingWithdraw approveWithdraw(long withdrawId, String approver);
     PendingWithdraw rejectWithdraw(long withdrawId, String approver, String rejectReason);

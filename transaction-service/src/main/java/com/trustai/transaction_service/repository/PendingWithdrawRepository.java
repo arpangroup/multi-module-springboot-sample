@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -19,4 +20,12 @@ public interface PendingWithdrawRepository extends JpaRepository<PendingWithdraw
     Page<PendingWithdraw> findByStatus(PendingWithdraw.WithdrawStatus status, Pageable pageable);
 
     int countByUserIdAndRankCodeAndStatus(Long userId, String rankCode, PendingWithdraw.WithdrawStatus status);
+
+    int countByUserIdAndRankCodeAndStatusAndCreatedAtBetween(
+            long userId,
+            String rankCode,
+            PendingWithdraw.WithdrawStatus withdrawStatus,
+            LocalDateTime from,
+            LocalDateTime to
+    );
 }

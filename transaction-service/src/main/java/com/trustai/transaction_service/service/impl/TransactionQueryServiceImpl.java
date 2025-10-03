@@ -31,7 +31,6 @@ import static com.trustai.common.enums.TransactionType.*;
 public class TransactionQueryServiceImpl implements TransactionQueryService {
     private final TransactionRepository transactionRepository;
 //    private final MeterRegistry meterRegistry;
-    private final List<TransactionType> PROFIT_TYPES = List.of(SIGNUP_BONUS, REFERRAL, BONUS, INTEREST);
 
 
     @Override
@@ -78,7 +77,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
         log.info("Fetching profit transactions, page: {}, size: {}", pageNumber, pageSize);
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Transaction> transactionPage = transactionRepository.findByTxnTypeIn(PROFIT_TYPES, pageable);
+        Page<Transaction> transactionPage = transactionRepository.findByTxnTypeIn(TransactionType.getProfitTypes(), pageable);
 
         log.info("Fetched {} profit transactions", transactionPage.getNumberOfElements());
         return transactionPage;

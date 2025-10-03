@@ -22,15 +22,15 @@ public class ExchangeServiceImpl implements ExchangeService {
     @Override
     @Transactional
     public Transaction exchange(long userId, BigDecimal fromAmount, String fromCurrency, BigDecimal toAmount, String toCurrency, String metaInfo) {
-        walletService.ensureSufficientBalance(userId, fromAmount);
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
+        walletService.ensureSufficientBalance(userId, fromAmount, false);
+        BigDecimal currentBalance = walletService.getWalletBalance(userId).walletBalance();
         BigDecimal updatedBalance = currentBalance.subtract(fromAmount).add(toAmount);
         Transaction txn = new Transaction(userId, toAmount, TransactionType.EXCHANGE, updatedBalance, true);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
         txn.setRemarks("Exchange: " + fromCurrency + " to " + toCurrency);
         txn.setMetaInfo(metaInfo);
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, toAmount.subtract(fromAmount));
+        walletService.updateBalanceFromTransaction(userId, toAmount.subtract(fromAmount), false);
         return txn;
     }
 }

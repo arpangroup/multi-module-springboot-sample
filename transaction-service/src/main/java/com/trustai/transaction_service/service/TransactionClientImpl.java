@@ -1,3 +1,4 @@
+/*
 //package com.trustai.transaction_service.service;
 //
 //import com.trustai.common.client.TransactionClient;
@@ -16,3 +17,4 @@
 //        return depositService.getTotalDeposit(userId);
 //    }
 //}
+*/

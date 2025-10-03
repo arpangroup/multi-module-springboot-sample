@@ -4,7 +4,6 @@ import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.*;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.common.utils.IdConverter;
-import com.trustai.common.utils.PhoneMaskingUtil;
 import com.trustai.userservice.user.entity.Kyc;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +41,7 @@ public class UserMapper {
                 .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
-                .profitBalance(user.getProfitBalance())
+                .profitWallet(user.getProfitBalance())
                 // Referral:
                 .referralCode(user.getReferralCode())
                 // Status:

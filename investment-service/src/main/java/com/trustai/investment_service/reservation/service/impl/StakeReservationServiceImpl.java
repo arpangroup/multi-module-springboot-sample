@@ -162,7 +162,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 .build();
 
         // Step 5. Deduct reserved amount from user's wallet and create a transaction record
-        String remarks = "Investment reserved for reservationId: " + reservation.getId() +
+        String remarks = "Investment reserved: for reservationId: " + reservation.getId() +
                 " and amount: " + reservation.getReservedAmount() +
                 " at " + DateUtils.formatDisplayDate(LocalDateTime.now());
         TransactionDto walletTxn = updateWalletBalance(userId, reserveAmount, false, remarks);

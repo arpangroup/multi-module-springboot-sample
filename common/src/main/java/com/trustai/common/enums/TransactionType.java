@@ -1,5 +1,7 @@
 package com.trustai.common.enums;
 
+import java.util.List;
+
 public enum TransactionType {
     // Deposit & Withdrawal
     DEPOSIT("Deposit"),
@@ -40,5 +42,10 @@ public enum TransactionType {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+
+    public static List<TransactionType> getProfitTypes() {
+        return List.of(SIGNUP_BONUS, REFERRAL, BONUS, DAILY_INCOME, TEAM_INCOME, INTEREST);
     }
 }

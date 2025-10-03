@@ -122,12 +122,17 @@ public class UserApiRestClientImpl implements UserApi {
 
     @PutMapping("/updateWalletBalance/{userId}/{updatedNewBalance}")
     @Override
-    public void updateWalletBalance(Long userId, BigDecimal updatedNewBalance) {
+    public void updateWalletBalance(Long userId, BigDecimal updatedNewBalance, boolean isProfitWallet) {
         log.info("Calling updateWalletBalance with userId={}, updatedNewBalance={}", userId, updatedNewBalance);
 
         handleRestCall(() -> {
             restClient.put()
-                    .uri("/users/{userId}/wallet-balance", userId)
+                    //.uri("/users/{userId}/wallet-balance", userId)
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/users/{userId}/wallet-balance")
+                            .queryParam("isProfitWallet", isProfitWallet)
+                            .build(userId)
+                    )
                     .body(updatedNewBalance)
                     .retrieve()
                     .toBodilessEntity();

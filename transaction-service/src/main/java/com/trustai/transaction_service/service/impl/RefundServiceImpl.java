@@ -21,13 +21,13 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     public Transaction refund(long userId, @NonNull BigDecimal amount, String originalTxnRef, String reason) {
-        BigDecimal updatedBalance = walletService.getWalletBalance(userId).add(amount);
+        BigDecimal updatedBalance = walletService.getWalletBalance(userId).walletBalance().add(amount);
         Transaction txn = new Transaction(userId, amount, TransactionType.REFUND, updatedBalance, true);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
         txn.setRemarks("Refund for txnRef: " + originalTxnRef);
         txn.setMetaInfo(reason);;
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, amount);
+        walletService.updateBalanceFromTransaction(userId, amount, false);
         return txn;
     }
 }

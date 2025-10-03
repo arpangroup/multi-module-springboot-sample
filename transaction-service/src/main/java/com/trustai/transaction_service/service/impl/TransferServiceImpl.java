@@ -24,7 +24,7 @@ public class TransferServiceImpl implements TransferService {
         }
 
         // Debit sender
-        BigDecimal senderBalance = walletService.getWalletBalance(senderId).subtract(amount);
+        BigDecimal senderBalance = walletService.getWalletBalance(senderId).walletBalance().subtract(amount);
         Transaction debitTxn = new Transaction(senderId, amount, TransactionType.SEND_MONEY, senderBalance, false);
         debitTxn.setSenderId(senderId);
         debitTxn.setGateway(PaymentGateway.SYSTEM);
@@ -32,10 +32,10 @@ public class TransferServiceImpl implements TransferService {
         debitTxn.setRemarks("Transfer to user " + receiverId);
         debitTxn.setMetaInfo(message);
         transactionRepository.save(debitTxn);
-        walletService.updateBalanceFromTransaction(senderId, amount.negate());
+        walletService.updateBalanceFromTransaction(senderId, amount.negate(), false);
 
         // Credit receiver
-        BigDecimal receiverBalance = walletService.getWalletBalance(receiverId).add(amount);
+        BigDecimal receiverBalance = walletService.getWalletBalance(receiverId).walletBalance().add(amount);
         Transaction creditTxn = new Transaction(receiverId, amount, TransactionType.RECEIVE_MONEY, receiverBalance, true);
         creditTxn.setSenderId(senderId);
         creditTxn.setGateway(PaymentGateway.SYSTEM);
@@ -43,7 +43,7 @@ public class TransferServiceImpl implements TransferService {
         creditTxn.setRemarks("Received from user " + senderId);
         creditTxn.setMetaInfo(message);
         transactionRepository.save(creditTxn);
-        walletService.updateBalanceFromTransaction(receiverId, amount);
+        walletService.updateBalanceFromTransaction(receiverId, amount, false);
 
         return creditTxn;
     }

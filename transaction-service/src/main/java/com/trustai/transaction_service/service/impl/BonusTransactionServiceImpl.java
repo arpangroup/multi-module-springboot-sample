@@ -23,49 +23,49 @@ public class BonusTransactionServiceImpl implements BonusTransactionService {
     @Override
     @Transactional
     public Transaction applySignupBonus(long userId, BigDecimal bonusAmount) {
-        BigDecimal updatedBalance = walletService.getWalletBalance(userId).add(bonusAmount);
+        BigDecimal updatedBalance = walletService.getWalletBalance(userId).profitWallet().add(bonusAmount);
         Transaction txn = new Transaction(userId, bonusAmount, TransactionType.BONUS, updatedBalance, true);
         txn.setGateway(PaymentGateway.SYSTEM);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
         txn.setRemarks("Signup Bonus");
         txn.setMetaInfo("signup_bonus");
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, bonusAmount);
+        walletService.updateBalanceFromTransaction(userId, bonusAmount, true);
         return txn;
     }
 
     @Override
     @Transactional
     public Transaction applyReferralBonus(long referrerUserId, long referredUserId, BigDecimal bonusAmount) {
-        BigDecimal updatedBalance = walletService.getWalletBalance(referrerUserId).add(bonusAmount);
+        BigDecimal updatedBalance = walletService.getWalletBalance(referrerUserId).profitWallet().add(bonusAmount);
         Transaction txn = new Transaction(referrerUserId, bonusAmount, TransactionType.BONUS, updatedBalance, true);
         txn.setGateway(PaymentGateway.SYSTEM);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
         txn.setRemarks("Referral Bonus for referring user: " + referredUserId);
         txn.setMetaInfo("referral_bonus");
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(referrerUserId, bonusAmount);
+        walletService.updateBalanceFromTransaction(referrerUserId, bonusAmount, true);
         return txn;
     }
 
     @Override
     @Transactional
     public Transaction applyBonus(long userId, BigDecimal bonusAmount, String reason) {
-        BigDecimal updatedBalance = walletService.getWalletBalance(userId).add(bonusAmount);
+        BigDecimal updatedBalance = walletService.getWalletBalance(userId).profitWallet().add(bonusAmount);
         Transaction txn = new Transaction(userId, bonusAmount, TransactionType.BONUS, updatedBalance, true);
         txn.setGateway(PaymentGateway.SYSTEM);
         txn.setStatus(Transaction.TransactionStatus.SUCCESS);
         txn.setRemarks("Bonus: " + reason);
         txn.setMetaInfo("custom_bonus");
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, bonusAmount);
+        walletService.updateBalanceFromTransaction(userId, bonusAmount, true);
         return txn;
     }
 
     @Override
     @Transactional
     public Transaction applyInterest(long userId, BigDecimal interestAmount, String periodDescription) {
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
+        BigDecimal currentBalance = walletService.getWalletBalance(userId).profitWallet();
         BigDecimal updatedBalance = currentBalance.add(interestAmount);
 
         Transaction txn = new Transaction(userId, interestAmount, TransactionType.INTEREST, updatedBalance, true);
@@ -75,7 +75,7 @@ public class BonusTransactionServiceImpl implements BonusTransactionService {
         txn.setMetaInfo("interest_payment");
 
         transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, interestAmount);
+        walletService.updateBalanceFromTransaction(userId, interestAmount, true);
         return txn;
     }
 }

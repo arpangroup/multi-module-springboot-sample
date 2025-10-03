@@ -26,7 +26,7 @@ public class UserInfo {
     private String walletAddress;
     // Balance
     private BigDecimal walletBalance;
-    private BigDecimal profitBalance;
+    private BigDecimal profitWallet;
     // Referral
     private String referralCode;
     //Status:

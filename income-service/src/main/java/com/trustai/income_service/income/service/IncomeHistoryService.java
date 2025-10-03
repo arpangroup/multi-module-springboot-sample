@@ -77,6 +77,8 @@ public class IncomeHistoryService {
             completeList.add(map.getOrDefault(type, cloneProjection(type, null)));
         }
 
+
+        /*
         // ✅ Step 3: Add TOTAL projection
         BigDecimal totalToday = completeList.stream()
                 .map(IncomeSummaryProjection::getTodayAmount)
@@ -102,7 +104,6 @@ public class IncomeHistoryService {
                 .mapToLong(IncomeSummaryProjection::getProcessingOrders)
                 .sum();
 
-
         completeList.add(new IncomeSummaryProjection() {
             public IncomeType getIncomeType() { return IncomeType.TOTAL; }
             public BigDecimal getTodayAmount() { return totalToday; }
@@ -112,6 +113,8 @@ public class IncomeHistoryService {
             public Long getTotalOrders() { return totalOrders; }
             public Long getProcessingOrders() { return totalProcessingOrders; }
         });
+        */
+
 
         return completeList;
     }

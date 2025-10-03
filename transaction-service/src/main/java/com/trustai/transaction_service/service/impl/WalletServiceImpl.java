@@ -2,6 +2,8 @@ package com.trustai.transaction_service.service.impl;
 
 import com.trustai.common.api.UserApi;
 import com.trustai.common.dto.UserInfo;
+import com.trustai.common.dto.WalletResponse;
+import com.trustai.common.enums.CurrencyType;
 import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.transaction_service.entity.Transaction;
@@ -29,30 +31,32 @@ public class WalletServiceImpl implements WalletService {
      * then subtracting all withdrawals, investments, and transfers sent.
      */
     @Override
-    public BigDecimal getWalletBalance(Long userId) {
+    public WalletResponse getWalletBalance(Long userId) {
         log.debug("Retrieving wallet balance for userId: {}", userId);
         /*BigDecimal credits = transactionRepository.sumCredits(userId);
         BigDecimal debits = transactionRepository.sumDebits(userId);
         return credits.subtract(debits);*/
         UserInfo userInfo = userClient.getUserById(userId);
         if (userInfo == null) throw new IllegalArgumentException("User not found");
-        return userInfo.getWalletBalance();
+        return new WalletResponse(userInfo.getWalletBalance(), userInfo.getProfitWallet(), CurrencyType.USD.getSymbol());
     }
 
     @Override
     @Transactional
-    public void updateBalanceFromTransaction(Long userId, BigDecimal delta) {
-        log.debug("Updating wallet balance for userId: {} with delta: {}", userId, delta);
-        BigDecimal current = getWalletBalance(userId);
+    public void updateBalanceFromTransaction(Long userId, BigDecimal delta, boolean isProfitWallet) {
+        log.debug("Updating wallet balance for userId: {} with delta: {} with isProfitWallet: {}", userId, delta, isProfitWallet);
+        WalletResponse walletResponse = getWalletBalance(userId);
+        BigDecimal current = isProfitWallet ? walletResponse.profitWallet() : walletResponse.walletBalance();
         BigDecimal updated = current.add(delta);
-        userClient.updateWalletBalance(userId, updated);
+        userClient.updateWalletBalance(userId, updated, isProfitWallet);
         log.info("Wallet balance updated for userId: {}. Old Balance: {}, New Balance: {}", userId, current, updated);
     }
 
 
     @Override
-    public void ensureSufficientBalance(Long userId, BigDecimal amount) {
-        BigDecimal current = getWalletBalance(userId);
+    public void ensureSufficientBalance(Long userId, BigDecimal amount, boolean isProfitWallet) {
+        WalletResponse walletResponse = getWalletBalance(userId);
+        BigDecimal current = isProfitWallet ? walletResponse.profitWallet() : walletResponse.walletBalance();
         log.debug("Checking if userId: {} has sufficient balance. Required: {}, Current: {}", userId, amount, current);
         if (current.compareTo(amount) < 0) {
             log.warn("Insufficient balance for userId: {}. Required: {}, Current: {}", userId, amount, current);
@@ -73,13 +77,17 @@ public class WalletServiceImpl implements WalletService {
                 isCredit ? "CREDIT" : "DEBIT", userId, amount, transactionType, remarks, sourceModule);
 
 
+        boolean isProfitWallet = TransactionType.getProfitTypes().contains(transactionType);
+
+
         // Load current balance
-        BigDecimal currentBalance = getWalletBalance(userId);
+        WalletResponse walletResponse = getWalletBalance(userId);
+        BigDecimal currentBalance = isProfitWallet ? walletResponse.profitWallet() : walletResponse.walletBalance();
         BigDecimal newBalance = currentBalance.add(amount);
 
 
         if (!isCredit) {
-            ensureSufficientBalance(userId, amount);
+            ensureSufficientBalance(userId, amount, isProfitWallet);
         }
 
         Transaction.TransactionStatus status =  Transaction.TransactionStatus.SUCCESS;
@@ -102,7 +110,7 @@ public class WalletServiceImpl implements WalletService {
         }
 
         transactionRepository.save(txn);
-        updateBalanceFromTransaction(userId, isCredit ? amount : amount.negate()); // Update wallet balance
+        updateBalanceFromTransaction(userId, isCredit ? amount : amount.negate(), isProfitWallet); // Update wallet balance
 
         log.info("Wallet [{}] completed for userId: {}. txnId: {}, amount: {}, newBalance: {}",
                 isCredit ? "CREDIT" : "DEBIT", userId, txn.getId(), amount, newBalance);

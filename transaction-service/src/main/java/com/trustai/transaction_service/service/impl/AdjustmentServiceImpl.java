@@ -27,7 +27,7 @@ public class AdjustmentServiceImpl implements AdjustmentService {
             throw new IllegalArgumentException("Amount to add must be greater than zero.");
         }
 
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
+        BigDecimal currentBalance = walletService.getWalletBalance(userId).walletBalance();
         BigDecimal newBalance = currentBalance.add(amount);
         log.debug("Current balance={}, New balance after add={}", currentBalance, newBalance);
 
@@ -40,7 +40,7 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         transactionRepository.save(txn);
         log.info("Transaction saved successfully. txnId={}", txn.getId());
 
-        walletService.updateBalanceFromTransaction(userId, amount);
+        walletService.updateBalanceFromTransaction(userId, amount, false);
         log.info("Balance updated in wallet for userId={}", userId);
 
         return txn;
@@ -54,10 +54,10 @@ public class AdjustmentServiceImpl implements AdjustmentService {
             throw new IllegalArgumentException("Amount to subtract must be greater than zero.");
         }
 
-        walletService.ensureSufficientBalance(userId, amount);
+        walletService.ensureSufficientBalance(userId, amount, false);
         log.debug("Sufficient balance confirmed for userId={}", userId);
 
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
+        BigDecimal currentBalance = walletService.getWalletBalance(userId).walletBalance();
         BigDecimal newBalance = currentBalance.subtract(amount);
         log.debug("Current balance={}, New balance after subtract={}", currentBalance, newBalance);
 
@@ -70,7 +70,7 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         transactionRepository.save(txn);
         log.info("Transaction saved successfully. txnId={}", txn.getId());
 
-        walletService.updateBalanceFromTransaction(userId, amount.negate());
+        walletService.updateBalanceFromTransaction(userId, amount.negate(), false);
         log.info("Balance updated in wallet for userId={}", userId);
 
         return txn;

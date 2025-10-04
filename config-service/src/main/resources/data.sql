@@ -121,6 +121,18 @@ VALUES
 ON DUPLICATE KEY UPDATE
 config_value=VALUES(config_value);
 
+-- Withdraw Settings
+INSERT INTO config_properties
+(config_key, config_value, application, profile, enum_values, value_type, label, info)
+VALUES
+('app.config.accepted.file.types', 'image/png, image/jpeg, image/gif', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info'),
+('app.config.header.main.title', 'Welcome to TrustAI', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info'),
+('app.config.support.telegram.link', 'https://t.me/your_username', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info'),
+('app.config.support.whatsapp.link', 'https://wa.me/919876543210', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info'),
+('app.config.support.email.link', 'trustaihelp@gmail.com', 'nft_app', 'default', NULL, 'STRING', 'Label', 'info')
+ON DUPLICATE KEY UPDATE
+config_value=VALUES(config_value);
+
 
 -- Withdraw Settings
 INSERT INTO config_properties

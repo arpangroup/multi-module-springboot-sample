@@ -27,7 +27,7 @@ public class NftServiceCache implements Reloadable {
     private volatile List<NftItem> nfts = List.of();
     private static final List<String> OWNER_NAMES = List.of("CryptoPunks", "MetaHeroes", "PixelCats", "MoonApes", "GalaxyKnights");
 
-    @Value("${app.config.currency.symbol}")
+    @Value("${app.config.currency.symbol:$}")
     String currencySymbol;
 
     @Value("${app.config.currency.unit:USDT}")

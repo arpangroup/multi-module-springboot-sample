@@ -27,4 +27,22 @@ public interface UserInvestmentRepository extends JpaRepository<UserInvestment, 
     List<UserInvestment> findActiveInvestmentsDueForPayout(@Param("now") LocalDateTime now);
 
 
+    @Query("""
+        SELECT u FROM UserInvestment u
+        WHERE u.status = 'ACTIVE'
+        AND u.nextPayoutAt <= :now
+        AND u.maturityAt > :now
+        AND u.isCancelled = false
+    """)
+    List<UserInvestment> findDueInvestments(@Param("now") LocalDateTime now);
+
+    @Query("""
+        SELECT u FROM UserInvestment u
+        WHERE u.status = 'ACTIVE'
+        AND u.maturityAt <= :now
+        AND u.isCancelled = false
+    """)
+    List<UserInvestment> findMaturedInvestments(@Param("now") LocalDateTime now);
+
+
 }

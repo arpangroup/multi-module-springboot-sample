@@ -37,7 +37,7 @@ public class InvestmentPeriodHelper {
         return investment.getSubscribedAt().plusMinutes((long) interval * (completed + 1));
     }
 
-    public LocalDateTime calculateNextPayoutDateV1(UserInvestment investment) {
+    /*public LocalDateTime calculateNextPayoutDateV1(UserInvestment investment) {
         InvestmentSchema schema = investment.getSchema();
         LocalDateTime now = LocalDateTime.now();
 
@@ -52,7 +52,7 @@ public class InvestmentPeriodHelper {
                         schema.getReturnSchedule().getIntervalMinutes()
                 );
         }
-    }
+    }*/
 
     public LocalDateTime calculateMaturityDate(UserInvestment investment) {
         int totalPeriods = investment.getSchema().getTotalReturnPeriods();

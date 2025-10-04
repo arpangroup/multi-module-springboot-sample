@@ -1,3 +1,4 @@
+/*
 package com.trustai.investment_service.entity.data;
 
 import com.trustai.common.enums.CurrencyType;
@@ -155,7 +156,7 @@ public class InvestmentSchemaDataInitializer {
             schema.setCancellationGracePeriodMinutes(1440);
             schema.setCurrency(CurrencyType.INR);
             schema.setPayoutMode(PayoutMode.WEEKLY);
-            schema.setPayoutDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY));
+            //schema.setPayoutDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY));
         });
 
         // Monthly Growth Plan
@@ -173,7 +174,7 @@ public class InvestmentSchemaDataInitializer {
             schema.setCancellationGracePeriodMinutes(1440);
             schema.setCurrency(CurrencyType.INR);
             schema.setPayoutMode(PayoutMode.MONTHLY);
-            schema.setPayoutDates(Set.of(1, 15));
+            //schema.setPayoutDates(Set.of(1, 15));
         });
 
         // CRYPTO 15$
@@ -237,3 +238,4 @@ public class InvestmentSchemaDataInitializer {
         }
     }
 }
+*/

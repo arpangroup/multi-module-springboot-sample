@@ -23,6 +23,11 @@ public class InvestmentValidator {
 
     public void validateEligibility(UserInfo user, InvestmentSchema schema, BigDecimal investmentAmount) {
         log.debug("Validating eligibility for userId={}, schemaId={}, amount={}", user.getId(), schema.getId(), investmentAmount);
+        if (!schema.isActive()) {
+            log.warn("Schema {} is inactive", schema.getId());
+            throw new ValidationException("Schema is inactive");
+        }
+
         validateAmountAgainstSchema(schema, investmentAmount);
         validateInvestAmountEligibility(user, investmentAmount);
         validateUserEligibilityAgainstSchema(user, schema);
@@ -31,10 +36,6 @@ public class InvestmentValidator {
 
     private void validateAmountAgainstSchema(InvestmentSchema schema, BigDecimal amount) {
         log.debug("Validating amount against schema: schemaId={}, schemaType={}, amount={}", schema.getId(), schema.getSchemaType(), amount);
-        if (!schema.isActive()) {
-            log.warn("Schema {} is inactive", schema.getId());
-            throw new ValidationException("Schema is inactive");
-        }
 
         if (amount == null) {
             log.warn("Amount is null for schema {}", schema.getId());
@@ -45,13 +46,13 @@ public class InvestmentValidator {
             case FIXED:
                 if (amount.compareTo(schema.getMinimumInvestmentAmount()) != 0) {
                     log.warn("Amount {} does not match fixed minimum {}", amount, schema.getMinimumInvestmentAmount());
-                    throw new ValidationException("Amount must be exactly " + schema.getMinimumInvestmentAmount(), ErrorCode.FIXED_AMOUNT_MISMATCH);
+                    throw new ValidationException("Amount must be exactly " + schema.getMinimumInvestmentAmount().stripTrailingZeros().toPlainString(), ErrorCode.FIXED_AMOUNT_MISMATCH);
                 }
                 break;
             case RANGE:
                 if (amount.compareTo(schema.getMinimumInvestmentAmount()) < 0 || amount.compareTo(schema.getMaximumInvestmentAmount()) > 0) {
                     log.warn("Amount {} not within range [{}, {}]", amount, schema.getMinimumInvestmentAmount(), schema.getMaximumInvestmentAmount());
-                    throw new ValidationException("Amount must be between " + schema.getMinimumInvestmentAmount() + " and " + schema.getMaximumInvestmentAmount(), ErrorCode.INVESTMENT_AMOUNT_OUT_OF_RANGE);
+                    throw new ValidationException("Amount must be between " + schema.getMinimumInvestmentAmount().stripTrailingZeros().toPlainString() + " and " + schema.getMaximumInvestmentAmount().stripTrailingZeros().toPlainString(), ErrorCode.INVESTMENT_AMOUNT_OUT_OF_RANGE);
                 }
                 break;
             default:
@@ -67,10 +68,10 @@ public class InvestmentValidator {
 
         // Wallet Check
         //BigDecimal walletBalance = walletClient.getWalletBalance(user.getId());
-        BigDecimal walletBalance = user.getWalletBalance();
+        BigDecimal walletBalance = user.getProfitWallet(); // we will use only profit balance to subscribe stake
         if (walletBalance.compareTo(investmentAmount) < 0) {
             log.warn("User {} has insufficient balance: required={}, actual={}", user.getId(), investmentAmount, walletBalance);
-            throw new ValidationException("Insufficient wallet balance", ErrorCode.INSUFFICIENT_BALANCE);
+            throw new ValidationException("Insufficient profit wallet balance", ErrorCode.INSUFFICIENT_BALANCE);
         }
 
         // Rank config check
@@ -83,7 +84,11 @@ public class InvestmentValidator {
 
         if (investmentAmount.compareTo(rankConfig.getMinInvestmentAmount()) < 0) {
             log.warn("Amount {} is below min required {} for user rank {}", investmentAmount, rankConfig.getMinInvestmentAmount(), user.getRankCode());
-            throw new ValidationException("Doesn't meet min investment for current rank, minimum investment should be = " + rankConfig.getMinInvestmentAmount(), ErrorCode.MIN_INVESTMENT_NOT_MET);
+            throw new ValidationException(
+                    "Doesn't meet min investment for current rank, minimum investment should be = " +
+                            rankConfig.getMinInvestmentAmount().stripTrailingZeros().toPlainString(),
+                    ErrorCode.MIN_INVESTMENT_NOT_MET
+            );
         }
         log.debug("User {} passed wallet and rank eligibility", user.getId());
     }

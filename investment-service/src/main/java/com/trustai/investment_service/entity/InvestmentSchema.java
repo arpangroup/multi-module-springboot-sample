@@ -94,6 +94,7 @@ public class InvestmentSchema {
     @Column(nullable = false)
     private PayoutMode payoutMode = PayoutMode.DAILY;
 
+    /*
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "investment_schema_payout_days", joinColumns = @JoinColumn(name = "schema_id"))
     @Column(name = "day_of_week")
@@ -109,6 +110,7 @@ public class InvestmentSchema {
     @CollectionTable(name = "investment_schema_participation_levels", joinColumns = @JoinColumn(name = "schema_id"))
     @Column(name = "required_level")
     private Set<String> participationLevels;
+    */
 
 
     @Column(nullable = false, updatable = false) private LocalDateTime createdAt;

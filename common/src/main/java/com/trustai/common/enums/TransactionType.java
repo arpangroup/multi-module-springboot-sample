@@ -21,6 +21,7 @@ public enum TransactionType {
     // Investments
     INVESTMENT("Investment"),
     INVESTMENT_RESERVE("Reserve"),
+    INVESTMENT_MATURITY("Investment Mature"),
 
     // Currency Operations
     EXCHANGE("Exchange"),
@@ -47,6 +48,6 @@ public enum TransactionType {
 
 
     public static List<TransactionType> getProfitTypes() {
-        return List.of(SIGNUP_BONUS, REFERRAL, BONUS, DAILY_INCOME, TEAM_INCOME, INTEREST);
+        return List.of(SIGNUP_BONUS, REFERRAL, BONUS, DAILY_INCOME, TEAM_INCOME, INVESTMENT, INVESTMENT_MATURITY, INTEREST);
     }
 }

@@ -6,6 +6,9 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.common.dto.WalletUpdateRequest;
 import com.trustai.common.enums.CalculationType;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.exceptions.ErrorCode;
+import com.trustai.common.exceptions.ValidationException;
+import com.trustai.common.utils.DateUtils;
 import com.trustai.investment_service.dto.InvestmentResponse;
 import com.trustai.investment_service.dto.UserInvestmentSummary;
 import com.trustai.investment_service.entity.InvestmentSchema;
@@ -17,6 +20,7 @@ import com.trustai.investment_service.exception.ResourceNotFoundException;
 import com.trustai.common.api.WalletApi;
 import com.trustai.investment_service.repository.SchemaRepository;
 import com.trustai.investment_service.repository.UserInvestmentRepository;
+import com.trustai.investment_service.reservation.entity.UserReservation;
 import com.trustai.investment_service.service.InvestmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -39,34 +43,37 @@ public class InvestmentServiceImpl implements InvestmentService {
     private final InvestmentValidator validator;
     private final UserApi userClient;
     private final WalletApi walletApi;
-
+    private final InvestmentNotificationPublisher notificationPublisher;
     private final InvestmentProfitCalculator profitCalculator;
     private final InvestmentPeriodHelper periodHelper;
 
 
     @Override
+    @Transactional
     public InvestmentResponse subscribeToInvestment(Long userId, Long schemaId, BigDecimal investmentAmount) {
         InvestmentSchema schema = schemaRepo.findById(schemaId).orElseThrow(() -> new ResourceNotFoundException("Invalid schemaId"));
         UserInfo user = userClient.getUserById(userId);
 
-        // Validate rules
+        // Step 1. Validate rules
         validator.validateEligibility(user, schema, investmentAmount);
 
-        // Calculate deduct amount
+        // Step 2. Calculate deduct amount
         BigDecimal totalDeduct = investmentAmount.add(schema.getHandlingFee());
 
         // Deduct wallet balance
-        WalletUpdateRequest deductRequest = new WalletUpdateRequest(
-                totalDeduct,
-                TransactionType.INVESTMENT,
+        String remarks = "Invested in Stake: for scheme: " + schema.getName() +
+                " and amount: " + totalDeduct +
+                " at " + DateUtils.formatDisplayDate(LocalDateTime.now());
+        TransactionDto walletTxn = updateWalletBalance(
+                userId,
+                investmentAmount,
                 false,
-                "investment",
-                "Investment subscription: " + schema.getName(),
-                null
+                remarks
         );
-        TransactionDto txn = walletApi.updateWalletBalance(userId, deductRequest);
-        log.info("Investment deducted: txnId={}, userId={}", txn.getId(), userId);
+        log.info("Investment deducted successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, investmentAmount);
 
+
+        // Step 3. Construct a new UserInvestment entity to record the investment
         // Prepare a temporary UserInvestment object for calculation
         UserInvestment tempInvestment = UserInvestment.builder()
                 .userId(userId)
@@ -98,9 +105,15 @@ public class InvestmentServiceImpl implements InvestmentService {
                 .status(InvestmentStatus.ACTIVE)
                 .build();
 
+        // Step 6: Save the investment
         userInvestmentRepo.save(finalInvestment);
-        return new InvestmentResponse(finalInvestment.getId(), finalInvestment.getExpectedTotalReturnAmount());
+        log.info("Investment created successfully - investmentId: {}, userId: {}", finalInvestment.getId(), userId);
+
+
+        notificationPublisher.sendInvestmentSuccessNotification(user, finalInvestment);
+        return new InvestmentResponse(finalInvestment.getId(), expectedReturn, maturity);
     }
+
 
 
     @Override
@@ -261,4 +274,29 @@ public class InvestmentServiceImpl implements InvestmentService {
         return LocalDateTime.now().isAfter(investment.getNextPayoutAt());
     }
 
+
+
+    private TransactionDto updateWalletBalance(Long userId, BigDecimal amount, boolean isCredit, String remarks) {
+        String operation = isCredit ? "Crediting" : "Debiting";
+        log.info("{} wallet balance - userId: {}, amount: {}", operation, userId, amount);
+
+        WalletUpdateRequest walletUpdateRequest = new WalletUpdateRequest(
+                amount,
+                TransactionType.INVESTMENT,
+                isCredit,
+                "investment",
+                remarks,
+                null
+        );
+
+        TransactionDto txn = walletApi.updateWalletBalance(userId, walletUpdateRequest);
+        if (txn == null || txn.getId() == null) {
+            String failOp = isCredit ? "credit" : "debit";
+            log.error("Wallet deduction failed - userId: {}, amount: {}", userId, amount);
+            throw new ValidationException("Wallet " + failOp + " failed", ErrorCode.WALLET_DEDUCTION_FAILED);
+        }
+        String successOp = isCredit ? "credit" : "debit";
+        log.info("Wallet {} successful - txnId: {}, userId: {}, amount: {}", successOp, txn.getId(), userId, amount);
+        return txn;
+    }
 }

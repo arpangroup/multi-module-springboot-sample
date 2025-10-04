@@ -25,8 +25,4 @@ public class Schedule {
     private int intervalMinutes; // e.g., 1440 = 1 day, 10080 = 1 week
 
     private String description;
-
-    public Duration getIntervalDuration() {
-        return Duration.ofMinutes(this.intervalMinutes);
-    }
 }

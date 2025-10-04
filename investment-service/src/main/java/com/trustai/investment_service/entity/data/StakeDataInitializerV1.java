@@ -1,4 +1,3 @@
-/*
 package com.trustai.investment_service.entity.data;
 
 import com.trustai.common.api.RankConfigApi;
@@ -24,7 +23,7 @@ import java.util.stream.IntStream;
 @Component
 @DependsOn("scheduleData")
 @RequiredArgsConstructor
-public class StakeDataInitializer {
+public class StakeDataInitializerV1 {
     private final SchemaRepository schemaRepository;
     private final ScheduleRepository scheduleRepository;
     private final RankConfigApi rankConfigApi;
@@ -45,26 +44,24 @@ public class StakeDataInitializer {
         imageList = loadImages();
 
         // RANK_0: 100-200
-        createStake("RANK_0", 100, 200, 200, 90, 0, noSchedule);
+        createStake( "RANK_0", 15, 90, 0, noSchedule);
         // RANK_1: 200-300
-        createStake("RANK_1", 200, 300, 300, 90, 1.5f, scheduleDaily);
-        createStake("RANK_1", 200, 300, 290, 90, 1.8f, scheduleDaily);
-        createStake("RANK_1", 200, 300, 280, 90, 2.4f, scheduleDaily);
-        createStake("RANK_1", 200, 300, 270, 90, 3.0f, scheduleDaily);
-        createStake("RANK_1", 200, 300, 260, 90, 3.4f, scheduleDaily);
-        createStake("RANK_1", 200, 300, 250, 90, 4.0f, scheduleDaily);
+        createStake( "RANK_1", 100, 90, 1.5f, scheduleDaily);
+        createStake( "RANK_2", 150, 90, 1.8f, scheduleDaily);
+        createStake( "RANK_2", 280, 90, 2.4f, scheduleDaily);
+        createStake( "RANK_2", 270, 90, 3.0f, scheduleDaily);
+        createStake( "RANK_2", 260, 90, 3.4f, scheduleDaily);
+        createStake( "RANK_2", 250, 90, 4.0f, scheduleDaily);
         // RANK_2: 300-400
-        createStake("RANK_2", 300, 400, 390, 90, 5.0f, scheduleDaily);
+        createStake( "RANK_2", 390, 90, 5.0f, scheduleDaily);
         // RANK_3: 400-500
-        createStake("RANK_3", 400, 500, 490, 90, 6.0f, scheduleDaily);
+        createStake( "RANK_2", 490, 90, 6.0f, scheduleDaily);
     }
 
-    private void createStake(String rank, int minInvest, int maxInvest, int stakePrice, int days, float roi, Schedule schedule) {
-        if (stakePrice < minInvest || stakePrice > maxInvest) {
-            throw new RuntimeException("StakePrice should be between the investment schema range");
-        }
+    private void createStake(String rank, int stakePrice, int days, float roi, Schedule schedule) {
 
-        String stakeName = rank + " " + days + " days plan of " + stakePrice + " for roi " + roi;
+        //String stakeName = rank + " " + days + " days plan of " + stakePrice + " for roi " + roi;
+        String stakeName = "Stake " + count;
 
         // Check if already exists
         if (schemaRepository.existsByName(stakeName)) {
@@ -73,22 +70,22 @@ public class StakeDataInitializer {
 
         // Investment Schema 1 - FIXED + PERIOD + cancellable
         InvestmentSchema stake1 = new InvestmentSchema();
-        stake1.setLinkedRank(rank);
+        //stake1.setLinkedRank(rank);
         stake1.setName(stakeName);
-        stake1.setSchemaBadge("STAKE_" + rank + "_" + days);
+        stake1.setSchemaBadge("STAKE_" + "_" + days);
         stake1.setImageUrl(imageList.get(++count));
         stake1.setInvestmentType(InvestmentType.STAKE);
         stake1.setSchemaType(SchemaType.FIXED);
         stake1.setStakePrice(new BigDecimal(stakePrice));
-        stake1.setMinimumInvestmentAmount(new BigDecimal(minInvest));
-        stake1.setMaximumInvestmentAmount(new BigDecimal(maxInvest));
+        stake1.setMinimumInvestmentAmount(new BigDecimal(stakePrice));
+        //stake1.setMaximumInvestmentAmount(new BigDecimal(maxInvest));
         stake1.setHandlingFee(BigDecimal.ZERO);
         stake1.setMinimumWithdrawalAmount(BigDecimal.ZERO);
         stake1.setReturnRate(new BigDecimal(roi));
         stake1.setInterestCalculationMethod(InterestCalculationType.PERCENTAGE);
         stake1.setReturnSchedule(schedule);
         stake1.setReturnType(ReturnType.PERIOD);
-        stake1.setTotalReturnPeriods(days);
+        stake1.setTotalReturnPeriods(2); // days
         stake1.setCapitalReturned(true);
         stake1.setFeatured(true);
         stake1.setCancellable(false);
@@ -113,4 +110,3 @@ public class StakeDataInitializer {
                 .collect(Collectors.toList());
     }
 }
-*/

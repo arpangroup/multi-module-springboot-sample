@@ -39,12 +39,12 @@ public class StakeDataInitializerV1 {
         //Schedule scheduleWeekly = scheduleRepository.findByScheduleNameIgnoreCase("Weekly");
         //Schedule schedule2Weekly = scheduleRepository.findByScheduleNameIgnoreCase("2 Week");
         //Schedule scheduleMonthly = scheduleRepository.findByScheduleNameIgnoreCase("Monthly");
-        Schedule noSchedule = scheduleRepository.findByScheduleNameIgnoreCase("No Schedule");
+        //Schedule noSchedule = scheduleRepository.findByScheduleNameIgnoreCase("No Schedule");
 
         imageList = loadImages();
 
         // RANK_0: 100-200
-        createStake( "RANK_0", 15, 90, 0, noSchedule);
+        createStake( "RANK_0", 15, 90, 0, scheduleDaily);
         // RANK_1: 200-300
         createStake( "RANK_1", 100, 90, 1.5f, scheduleDaily);
         createStake( "RANK_2", 150, 90, 1.8f, scheduleDaily);

@@ -258,6 +258,10 @@ public class SchemaServiceImpl implements SchemaService {
                     }
                     case "stakePrice" -> {
                         schema.setStakePrice(new BigDecimal(value.toString()));
+                        if (schema.getInvestmentType() == InvestmentType.STAKE) {
+                            schema.setMinimumInvestmentAmount(new BigDecimal(value.toString()));
+                            schema.setMaximumInvestmentAmount(new BigDecimal(value.toString()));
+                        }
                         log.debug("Updated field 'stakePrice' to '{}'", value);
                     }
                     case "minimumInvestmentAmount" -> {

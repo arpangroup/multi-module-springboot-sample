@@ -24,7 +24,7 @@ public class WithdrawRuleConfigController {
     }
 
 
-    @PatchMapping("/update")
+    /*@PatchMapping("/update")
     public ResponseEntity<?> updateRules(@RequestBody List<WithdrawRule> updatedRules) {
         for (WithdrawRule updated : updatedRules) {
             withdrawRuleRepository.findById(updated.getId()).ifPresent(existing -> {
@@ -39,9 +39,9 @@ public class WithdrawRuleConfigController {
             });
         }
         return ResponseEntity.ok().build();
-    }
+    }*/
 
-    /*@PatchMapping("/update")
+    @PatchMapping("/update")
     public ResponseEntity<?> updateRules(@RequestBody List<WithdrawRule> updatedRules) {
         for (WithdrawRule updated : updatedRules) {
             withdrawRuleRepository.findById(updated.getId()).ifPresent(existing -> {
@@ -57,9 +57,6 @@ public class WithdrawRuleConfigController {
                 if (updated.getMaxWithdrawFromProfitWallet() != null) {
                     existing.setMaxWithdrawFromProfitWallet(updated.getMaxWithdrawFromProfitWallet());
                 }
-                if (updated.getServiceCharge() != null) {
-                    existing.setServiceCharge(updated.getServiceCharge());
-                }
                 if (updated.getDailyWithdrawLimit() > 0) {
                     existing.setDailyWithdrawLimit(updated.getDailyWithdrawLimit());
                 }
@@ -70,5 +67,5 @@ public class WithdrawRuleConfigController {
             });
         }
         return ResponseEntity.ok().build();
-    }*/
+    }
 }

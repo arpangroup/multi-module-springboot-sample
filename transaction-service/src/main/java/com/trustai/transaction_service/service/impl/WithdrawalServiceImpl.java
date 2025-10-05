@@ -281,25 +281,24 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     }
 
     private BigDecimal calculateServiceCharge(BigDecimal withdrawAmount, WithdrawConfigProperty config) {
+        log.debug("Calculating service charge for withdrawAmount={}", withdrawAmount);
+
         BigDecimal appliedServiceCharge;
-        if (withdrawAmount.compareTo(config.getServiceChargeThreshold()) < 0) {
+        BigDecimal threshold = config.getServiceChargeThreshold();
+        BigDecimal fixedCharge = config.getServiceChargeFixed();
+        BigDecimal percentage = config.getServiceChargePercentage();
+
+        if (withdrawAmount.compareTo(threshold) < 0) {
+            log.debug("Withdraw amount {} is below threshold {}. Applying fixed service charge: {}", withdrawAmount, threshold, fixedCharge);
             appliedServiceCharge = config.getServiceChargeFixed();
         } else {
             appliedServiceCharge = withdrawAmount.multiply(config.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
+            log.debug("Withdraw amount {} is above or equal to threshold {}. Applying percentage-based charge: {}% → {}", withdrawAmount, threshold, percentage.multiply(BigDecimal.valueOf(100)), appliedServiceCharge);
         }
+        log.info("Final service charge for withdrawAmount {} is {}", withdrawAmount, appliedServiceCharge);
         return appliedServiceCharge;
     }
 
-
-    private BigDecimal calculateServiceChargeV1(BigDecimal withdrawAmount, WithdrawConfigProperty config) {
-        BigDecimal appliedServiceCharge;
-        if (withdrawAmount.compareTo(config.getServiceChargeThreshold()) < 0) {
-            appliedServiceCharge = config.getServiceChargeFixed();
-        } else {
-            appliedServiceCharge = withdrawAmount.multiply(config.getServiceChargePercentage()).setScale(2, RoundingMode.HALF_UP);
-        }
-        return appliedServiceCharge;
-    }
 
     private BigDecimal calculateMaxWithdrawAllowed(BigDecimal walletBalance, WithdrawRule rule) {
         /*
@@ -436,6 +435,9 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             boolean isWithdrawFromProfit,
             BigDecimal balance
     ) {
+        log.debug("Validating withdraw rules for userId={}, rankCode={}, amount={}, fromProfit={}, balance={}",
+                userId, rankCode, withdrawAmount, isWithdrawFromProfit, balance);
+
         WithdrawRule rule = withdrawRuleConfigCache.findByRankCode(rankCode);
         if (rule == null) {
             throw new TransactionException("No withdrawal rule configured for rank " + rankCode);
@@ -445,6 +447,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
         // 1️⃣ Basic balance check first
         if (withdrawAmount.compareTo(balance) > 0) {
+            log.warn("Insufficient {} balance for userId={}. Requested={}, Available={}", walletLabel, userId, withdrawAmount, balance);
             throw new TransactionException("Insufficient " + walletLabel + " balance.");
         }
 
@@ -457,20 +460,31 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 : rule.getMaxWithdrawFromWallet();
 
         // 2️⃣ Percentage-based withdraw limit
-        if (percentageLimit != null && percentageLimit.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal allowedByPercentage = balance
-                    .multiply(percentageLimit)
-                    .divide(BigDecimal.valueOf(100), RoundingMode.DOWN);
+        if (percentageLimit != null) {
+            if (percentageLimit.compareTo(BigDecimal.ZERO) == 0) {
+                log.warn("Withdraw not allowed from {} for userId={} (0% rule)", walletLabel, userId);
+                throw new TransactionException("Withdraw from " + walletLabel + " is not allowed for rank " + rankCode);
+            }
 
-            if (withdrawAmount.compareTo(allowedByPercentage) > 0) {
-                throw new TransactionException("You can withdraw from " + walletLabel + " up to "
-                        + allowedByPercentage + " (" + percentageLimit + "% of balance) for rank " + rankCode);
+            if (percentageLimit.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal allowedByPercentage = balance
+                        .multiply(percentageLimit)
+                        .divide(BigDecimal.valueOf(100), RoundingMode.DOWN);
+
+                log.debug("Percentage-based limit for userId={}, wallet={}, allowed={}, percentageLimit={}%",
+                        userId, walletLabel, allowedByPercentage, percentageLimit);
+
+                if (withdrawAmount.compareTo(allowedByPercentage) > 0) {
+                    throw new TransactionException("You can withdraw from " + walletLabel + " up to "
+                            + allowedByPercentage + " (" + percentageLimit + "% of balance) for rank " + rankCode);
+                }
             }
         }
 
         // 3️⃣ Absolute max per request
         if (absoluteLimit != null && absoluteLimit.compareTo(BigDecimal.ZERO) > 0
                 && withdrawAmount.compareTo(absoluteLimit) > 0) {
+            log.warn("Withdraw amount exceeds absolute limit for userId={}. Requested={}, MaxAllowed={}", userId, withdrawAmount, absoluteLimit);
             throw new TransactionException("Maximum withdraw from " + walletLabel
                     + " per request is " + absoluteLimit + " for rank " + rankCode);
         }
@@ -484,7 +498,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                     LocalDate.now().atStartOfDay(),
                     LocalDate.now().plusDays(1).atStartOfDay()
             );
+            log.debug("Daily withdraw attempts for userId={}, rankCode={}: {}/{}", userId, rankCode, todayAttempts, rule.getDailyWithdrawLimit());
+
             if (todayAttempts >= rule.getDailyWithdrawLimit()) {
+                log.warn("UserId={} has reached daily withdraw limit for rankCode={}", userId, rankCode);
                 throw new TransactionException("You have reached your daily withdraw limit ("
                         + rule.getDailyWithdrawLimit() + ")");
             }
@@ -497,7 +514,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                     rankCode,
                     PendingWithdraw.WithdrawStatus.APPROVED
             );
+
+            log.debug("Total approved withdraws for userId={}, rankCode={}: {}/{}", userId, rankCode, totalApproved, rule.getTotalWithdrawLimit());
             if (totalApproved >= rule.getTotalWithdrawLimit()) {
+                log.warn("UserId={} has exceeded total withdraw limit for rankCode={}", userId, rankCode);
                 throw new TransactionException("You have already used your total withdraw limit for rank " + rankCode);
             }
         }

@@ -1,3 +1,4 @@
+/*
 package com.trustai.investment_service.controller;
 
 import com.trustai.investment_service.scheduler.InvestmentProfitSchedulerService;
@@ -35,3 +36,4 @@ public class InvestmentSchedulerController {
     }
 
 }
+*/

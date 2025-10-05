@@ -34,9 +34,8 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
-                        .dailyWithdrawLimit(1)
-                        .totalWithdrawLimit(1)
+                        .dailyWithdrawLimit(3)
+                        .totalWithdrawLimit(999999)
                         .build(),
 
                 WithdrawRule.builder()
@@ -45,7 +44,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(1)
                         .build(),
@@ -56,7 +54,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(50))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(100)
                         .build(),
@@ -67,7 +64,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(100)
                         .build(),
@@ -78,7 +74,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(100)
                         .build(),
@@ -89,7 +84,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(100)
                         .build(),
@@ -100,7 +94,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(99999)
                         .build(),
@@ -111,7 +104,6 @@ public class WithdrawRuleDataInitializer {
                         .withdrawLimitFromProfitWalletInPercentage(BigDecimal.valueOf(100))
                         .maxWithdrawFromWallet(BigDecimal.valueOf(999999))
                         .maxWithdrawFromProfitWallet(BigDecimal.valueOf(999999))
-                        .serviceCharge(BigDecimal.TEN)
                         .dailyWithdrawLimit(1)
                         .totalWithdrawLimit(99999)
                         .build()

@@ -1,3 +1,4 @@
+/*
 package com.trustai.investment_service.scheduler;
 
 import com.trustai.common.api.WalletApi;
@@ -28,7 +29,9 @@ public class InvestmentProfitSchedulerService {
         processMaturedInvestments();
     }
 
-    /** Manually trigger daily profit payout */
+    */
+/** Manually trigger daily profit payout *//*
+
     @Transactional
     public void processDailyProfits() {
         LocalDateTime now = LocalDateTime.now();
@@ -44,7 +47,9 @@ public class InvestmentProfitSchedulerService {
         }
     }
 
-    /** Manually trigger maturity processing */
+    */
+/** Manually trigger maturity processing *//*
+
     @Transactional
     public void processMaturedInvestments() {
         LocalDateTime now = LocalDateTime.now();
@@ -60,3 +65,4 @@ public class InvestmentProfitSchedulerService {
         }
     }
 }
+*/

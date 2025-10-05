@@ -55,7 +55,7 @@ public class InvestmentPeriodHelper {
     }*/
 
     public LocalDateTime calculateMaturityDate(UserInvestment investment) {
-        int totalPeriods = investment.getSchema().getTotalReturnPeriods();
+        int totalPeriods = investment.getSchema().getTotalReturnPeriods() + 1; // dont count today(subscribe date)
         int interval = investment.getSchema().getReturnSchedule().getIntervalMinutes();
         return investment.getSubscribedAt().plusMinutes((long) interval * totalPeriods);
     }

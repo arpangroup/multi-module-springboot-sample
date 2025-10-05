@@ -16,4 +16,5 @@ public interface InvestmentService {
     List<UserInvestmentSummary> exportUserInvestments(Long userId);
     UserInvestmentSummary getInvestmentDetails(Long investmentId);
     UserInvestmentSummary cancelInvestment(Long userId, Long investmentId);
+    UserInvestmentSummary redeemStake(Long investmentId);
 }

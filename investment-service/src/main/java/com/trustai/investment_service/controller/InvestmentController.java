@@ -84,4 +84,10 @@ public class InvestmentController extends BaseController {
     public ResponseEntity<List<UserInvestmentSummary>> exportUserInvestments(@PathVariable Long userId) {
         return ResponseEntity.ok(investmentService.exportUserInvestments(userId));
     }
+
+    @PostMapping("/redeem/{investmentId}")
+    public ResponseEntity<?> redeemStake(@PathVariable Long investmentId) {
+        return ResponseEntity.ok(investmentService.redeemStake(investmentId));
+
+    }
 }

@@ -5,7 +5,9 @@ import com.trustai.common.dto.TransactionDto;
 import com.trustai.common.dto.UserInfo;
 import com.trustai.common.dto.WalletUpdateRequest;
 import com.trustai.common.enums.CalculationType;
+import com.trustai.common.enums.IncomeType;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.event.IncomeCreditedEvent;
 import com.trustai.common.exceptions.ErrorCode;
 import com.trustai.common.exceptions.ValidationException;
 import com.trustai.common.utils.DateUtils;
@@ -25,13 +27,17 @@ import com.trustai.investment_service.service.InvestmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -46,6 +52,7 @@ public class InvestmentServiceImpl implements InvestmentService {
     private final InvestmentNotificationPublisher notificationPublisher;
     private final InvestmentProfitCalculator profitCalculator;
     private final InvestmentPeriodHelper periodHelper;
+    private final ApplicationEventPublisher publisher;
 
 
     @Override
@@ -203,6 +210,123 @@ public class InvestmentServiceImpl implements InvestmentService {
         return mapToSummary(investment); // You already have this mapper in place
     }
 
+    @Override
+    @Transactional
+    public UserInvestmentSummary redeemStake(Long investmentId) {
+        log.info("🔁 Redeeming stake for investment ID: {}", investmentId);
+        // 1️⃣ Find the investment
+        UserInvestment investment = userInvestmentRepo.findById(investmentId).orElseThrow(() -> new IllegalArgumentException("Investment not found"));
+        InvestmentSchema schema = investment.getSchema();
+
+        // 2️⃣ Check already redeemed/cancelled
+        if (InvestmentStatus.COMPLETED == investment.getStatus() || InvestmentStatus.CANCELLED == investment.getStatus()) {
+            throw new IllegalStateException("Investment already redeemed");
+        }
+        if (investment.isCancelled()) {
+            throw new IllegalStateException("Cancelled investment cannot be redeemed");
+        }
+
+        // 3️⃣ Check maturity
+        if (investment.getMaturityAt() == null) {
+            throw new IllegalStateException("Maturity date not set for this investment");
+        }
+        if (LocalDateTime.now().isBefore(investment.getMaturityAt())) {
+            throw new IllegalStateException("Investment not matured yet — redeem allowed only after " +
+                    investment.getMaturityAt());
+        }
+
+
+        // 4️⃣ Calculate total profit (e.g., based on ROI type and duration)
+        BigDecimal totalProfit = calculateTotalProfit(investment);
+        BigDecimal investmentAmount = investment.getInvestedAmount();
+        BigDecimal totalRedeemAmount = investmentAmount.add(totalProfit); //redeem amount = principal + profit
+        log.info("💰 Calculated redemption: Invested={}, Profit={}, Total={}", investmentAmount, totalProfit, totalRedeemAmount);
+
+
+        // 5️⃣ credit profit to user wallet
+        WalletUpdateRequest profitCreditReq = new WalletUpdateRequest(
+                totalProfit,
+                TransactionType.INTEREST,
+                true,
+                "investment-profit",
+                "Total profit for investment " + schema.getName(),
+                null
+        );
+        walletApi.updateWalletBalance(investment.getUserId(), profitCreditReq);
+        log.debug("👛 Wallet credited with stake profit: UserID={}, Amount={}", investment.getUserId(), totalProfit);
+
+        // ✅ Record the profit to income History
+        publisher.publishEvent(new IncomeCreditedEvent(investment.getUserId(), totalProfit, IncomeType.STAKE, "Profit for Stake " + schema.getName()));
+
+
+        // ✅ Credit Capital Amount to user wallet
+        WalletUpdateRequest creditReq = new WalletUpdateRequest(
+                investmentAmount,
+                TransactionType.INVESTMENT_MATURITY,
+                true,
+                "investment-maturity",
+                "Maturity payout for investment #" + investment.getId(),
+                null
+        );
+        walletApi.updateWalletBalance(investment.getUserId(), creditReq);
+        log.debug("👛 Wallet credited with stake capital: UserID={}, Amount={}", investment.getUserId(), investmentAmount);
+
+        // 6️⃣ Mark investment as redeemed
+        investment.setFinalReturnAmount(totalRedeemAmount);
+        investment.setReceivedReturnAmount(totalRedeemAmount);
+        //investment.setEarnedPeriods(investment.getEarnedPeriods() + 1);
+        investment.setStatus(InvestmentStatus.COMPLETED);
+        investment.setCapitalReturned(true);
+        investment.setCapitalAmountReturned(investment.getInvestedAmount());
+        investment.setLastPayoutAt(LocalDateTime.now());
+        investment = userInvestmentRepo.save(investment);
+        log.info("✅ Investment marked as COMPLETED and saved: ID={}", investment.getId());
+
+        // 7️⃣ Send Notification
+        log.info("Sending Investment Redeemed notification....");
+        UserInfo user = userClient.getUserById(investment.getUserId());
+        notificationPublisher.sendInvestmentMatureNotification(user, investment);
+
+        return mapToSummary(investment);
+    }
+
+    private BigDecimal calculateTotalProfit(UserInvestment investment) {
+        InvestmentSchema schema = investment.getSchema();
+        BigDecimal invested = investment.getInvestedAmount();
+        log.debug("Calculating profit for Investment ID: {}, Invested Amount: {}, Return Rate: {}, Subscribed At: {}, Maturity At: {}",
+                investment.getId(), invested, schema.getReturnRate(), investment.getSubscribedAt(), investment.getMaturityAt());
+
+
+        /*if (schema.getRoiType() == RoiType.FIXED) {
+            // e.g. returnRate = 12 → 12% total
+            return invested.multiply(schema.getReturnRate()).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+        } else {
+            // Daily ROI
+            long daysHeld = ...
+            if (daysHeld < 0) daysHeld = 0;
+        }*/
+
+        long daysHeld = ChronoUnit.DAYS.between(
+                investment.getSubscribedAt().toLocalDate(),
+                investment.getMaturityAt().toLocalDate()
+        );
+
+        // If a user redeems early, the profit should only be for the days held:
+        /*long daysHeld = ChronoUnit.DAYS.between(
+                investment.getSubscribedAt().toLocalDate(),
+                (LocalDateTime.now().isBefore(investment.getMaturityAt()) ? LocalDateTime.now() : investment.getMaturityAt()).toLocalDate()
+        );*/
+        if (daysHeld < 0) daysHeld = 0;
+
+        BigDecimal dailyRate = schema.getReturnRate().divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+        BigDecimal profitPerDay = invested.multiply(dailyRate);
+        BigDecimal totalProfit = profitPerDay.multiply(BigDecimal.valueOf(daysHeld));
+        log.debug("Days Held: {}, Daily Rate: {}, Profit Per Day: {}, Total Profit: {}",
+                daysHeld, dailyRate, profitPerDay, totalProfit);
+
+        return totalProfit;
+    }
+
 
     private UserInvestmentSummary mapToSummary(UserInvestment investment) {
         InvestmentSchema schema = investment.getSchema();
@@ -210,8 +334,10 @@ public class InvestmentServiceImpl implements InvestmentService {
         BigDecimal perPeriodProfit = profitCalculator.calculateProfit(investment);
         int completedPeriods = periodHelper.calculateCompletedPeriods(investment);
         int remainingPeriods = periodHelper.calculateRemainingPeriods(investment);
-        LocalDateTime nextPayout = periodHelper.calculateNextPayoutDate(investment);
-        LocalDateTime maturity = periodHelper.calculateMaturityDate(investment);
+        //LocalDateTime nextPayout = periodHelper.calculateNextPayoutDate(investment);
+        //LocalDateTime maturity = periodHelper.calculateMaturityDate(investment);
+        LocalDateTime nextPayout = investment.getNextPayoutAt();
+        LocalDateTime maturity = investment.getMaturityAt();
 
         BigDecimal expectedReturn = profitCalculator.calculateTotalExpectedReturn(investment);
         BigDecimal totalEarningPotential = schema.isCapitalReturned()

@@ -44,6 +44,6 @@ public class NotificationService {
                 log.warn("No sender found for channel: {}", channel);
             }
         });
-        log.info("Notification processing completed for request: {}", request);
+        //log.info("Notification processing completed for request: {}", request);
     }
 }

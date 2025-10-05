@@ -28,7 +28,7 @@ public class InvestmentValidator {
             throw new ValidationException("Schema is inactive");
         }
 
-        validateAmountAgainstSchema(schema, investmentAmount);
+        //validateAmountAgainstSchema(schema, investmentAmount);
         validateInvestAmountEligibility(user, investmentAmount);
         validateUserEligibilityAgainstSchema(user, schema);
         log.debug("User {} passed all eligibility validations", user.getId());

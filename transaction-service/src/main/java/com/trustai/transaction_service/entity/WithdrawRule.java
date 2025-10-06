@@ -34,5 +34,6 @@ public class WithdrawRule {
     // Fees & limits
 //    private BigDecimal serviceCharge;
     private int dailyWithdrawLimit;
-    private int totalWithdrawLimit;
+    private int totalWalletWithdrawLimit;
+    private int totalProfitWithdrawLimit;
 }

@@ -1,9 +1,7 @@
 package com.trustai.transaction_service.service.impl;
 
 import com.trustai.common.api.UserApi;
-import com.trustai.common.dto.UserHierarchyDto;
 import com.trustai.common.dto.UserInfo;
-import com.trustai.common.dto.WalletResponse;
 import com.trustai.common.enums.TransactionType;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.transaction_service.config.WithdrawConfigProperty;
@@ -34,7 +32,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -271,6 +268,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdraw.setServiceCharge(appliedServiceCharge);
         withdraw.setWalletAddress(walletAddress);
         withdraw.setRankCode(rankCode); // <-- store rankCode for attempt tracking
+        withdraw.setProfitWallet(isWithdrawFromProfit);
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.PENDING);
         withdraw.setRemarks(remarks);
 
@@ -408,7 +406,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         return withdraw;
     }
 
-    private void validateWithdrawAttempts(Long userId, String rankCode) {
+    private void validateWithdrawAttempts(Long userId, String rankCode, boolean isWithdrawFromProfit) {
         BigDecimal withdrawPercentage = withdrawConfig.getWithdrawLimitByRankMap().getOrDefault(rankCode, BigDecimal.ONE);
 
         // If rank is allowed full withdraw (100%), skip attempt restriction
@@ -417,9 +415,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         // Otherwise restrict attempts
-        int usedAttempts = pendingWithdrawRepository.countByUserIdAndRankCodeAndStatus(
+        int usedAttempts = pendingWithdrawRepository.countByUserIdAndRankCodeAndIsProfitWalletAndStatus(
                 userId,
                 rankCode,
+                isWithdrawFromProfit,
                 PendingWithdraw.WithdrawStatus.APPROVED
         );
 
@@ -508,17 +507,24 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         // 5️⃣ Total lifetime withdraw attempts
-        if (rule.getTotalWithdrawLimit() > 0) {
-            int totalApproved = pendingWithdrawRepository.countByUserIdAndRankCodeAndStatus(
-                    userId,
-                    rankCode,
-                    PendingWithdraw.WithdrawStatus.APPROVED
-            );
+        int totalApproved = pendingWithdrawRepository.countByUserIdAndRankCodeAndIsProfitWalletAndStatus(
+                userId,
+                rankCode,
+                isWithdrawFromProfit,
+                PendingWithdraw.WithdrawStatus.APPROVED
+        );
 
-            log.debug("Total approved withdraws for userId={}, rankCode={}: {}/{}", userId, rankCode, totalApproved, rule.getTotalWithdrawLimit());
-            if (totalApproved >= rule.getTotalWithdrawLimit()) {
-                log.warn("UserId={} has exceeded total withdraw limit for rankCode={}", userId, rankCode);
-                throw new TransactionException("You have already used your total withdraw limit for rank " + rankCode);
+        int lifetimeLimit = isWithdrawFromProfit
+                ? rule.getTotalProfitWithdrawLimit()
+                : rule.getTotalWalletWithdrawLimit();
+        String walletType = isWithdrawFromProfit ? "profit wallet" : "main wallet";
+
+        if (lifetimeLimit > 0) {
+            log.debug("Total approved {} withdraws for userId={}, rankCode={}: {}/{}", walletType, userId, rankCode, totalApproved, lifetimeLimit);
+
+            if (totalApproved >= lifetimeLimit) {
+                log.warn("UserId={} has exceeded total {} withdraw limit for rankCode={}", userId, walletType, rankCode);
+                throw new TransactionException("You have already used your total " + walletType + " withdraw limit for rank " + rankCode);
             }
         }
     }

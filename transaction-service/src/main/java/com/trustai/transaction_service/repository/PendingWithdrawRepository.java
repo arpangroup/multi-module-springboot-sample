@@ -19,7 +19,7 @@ public interface PendingWithdrawRepository extends JpaRepository<PendingWithdraw
 
     Page<PendingWithdraw> findByStatus(PendingWithdraw.WithdrawStatus status, Pageable pageable);
 
-    int countByUserIdAndRankCodeAndStatus(Long userId, String rankCode, PendingWithdraw.WithdrawStatus status);
+    int countByUserIdAndRankCodeAndIsProfitWalletAndStatus(Long userId, String rankCode, boolean isProfitWallet, PendingWithdraw.WithdrawStatus status);
 
     int countByUserIdAndRankCodeAndStatusAndCreatedAtBetween(
             long userId,

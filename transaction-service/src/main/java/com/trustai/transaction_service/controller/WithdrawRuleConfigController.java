@@ -60,8 +60,8 @@ public class WithdrawRuleConfigController {
                 if (updated.getDailyWithdrawLimit() > 0) {
                     existing.setDailyWithdrawLimit(updated.getDailyWithdrawLimit());
                 }
-                if (updated.getTotalWithdrawLimit() > 0) {
-                    existing.setTotalWithdrawLimit(updated.getTotalWithdrawLimit());
+                if (updated.getTotalWalletWithdrawLimit() > 0) {
+                    existing.setTotalWalletWithdrawLimit(updated.getTotalWalletWithdrawLimit());
                 }
                 withdrawRuleRepository.save(existing);
             });

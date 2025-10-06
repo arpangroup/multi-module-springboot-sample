@@ -31,6 +31,7 @@ public class PendingWithdraw {
     private BigDecimal serviceCharge;
     private String walletAddress;
     private String rankCode;
+    private boolean isProfitWallet;
 
     @Enumerated(EnumType.STRING)
     private WithdrawStatus status = WithdrawStatus.PENDING;

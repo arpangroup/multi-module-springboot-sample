@@ -33,7 +33,7 @@ public class WithdrawRule {
 
     // Fees & limits
 //    private BigDecimal serviceCharge;
-    private int dailyWithdrawLimit;
-    private int totalWalletWithdrawLimit;
-    private int totalProfitWithdrawLimit;
+    private Integer dailyWithdrawLimit;
+    private Integer totalWalletWithdrawLimit;
+    private Integer totalProfitWithdrawLimit;
 }

@@ -57,11 +57,14 @@ public class WithdrawRuleConfigController {
                 if (updated.getMaxWithdrawFromProfitWallet() != null) {
                     existing.setMaxWithdrawFromProfitWallet(updated.getMaxWithdrawFromProfitWallet());
                 }
-                if (updated.getDailyWithdrawLimit() > 0) {
+                if (updated.getDailyWithdrawLimit() != null) {
                     existing.setDailyWithdrawLimit(updated.getDailyWithdrawLimit());
                 }
-                if (updated.getTotalWalletWithdrawLimit() > 0) {
+                if (updated.getTotalWalletWithdrawLimit() != null) {
                     existing.setTotalWalletWithdrawLimit(updated.getTotalWalletWithdrawLimit());
+                }
+                if (updated.getTotalProfitWithdrawLimit() != null) {
+                    existing.setTotalProfitWithdrawLimit(updated.getTotalProfitWithdrawLimit());
                 }
                 withdrawRuleRepository.save(existing);
             });

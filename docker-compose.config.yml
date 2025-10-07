@@ -29,8 +29,10 @@ services:
       db:
         condition: service_healthy
     environment:
+      TZ: "Asia/Kolkata"
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_TIME_ZONE: "Asia/Kolkata"
       # Datasource override
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-root}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-password}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver

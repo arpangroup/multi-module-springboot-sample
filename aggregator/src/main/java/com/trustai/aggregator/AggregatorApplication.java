@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.TimeZone;
 
 @SpringBootApplication(scanBasePackages = "com.trustai")
 @ComponentScan(basePackages = {"com.trustai"})
@@ -27,6 +28,10 @@ public class AggregatorApplication implements CommandLineRunner {
     RoleRepository roleRepository;
 
     public static void main(String[] args) {
+        // Set default JVM timezone to India
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
+        System.out.println("Timezone set to: " + TimeZone.getDefault().getID());
+
         SpringApplication.run(AggregatorApplication.class, args);
     }
 

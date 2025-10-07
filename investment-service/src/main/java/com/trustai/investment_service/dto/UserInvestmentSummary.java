@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /*
@@ -78,4 +79,14 @@ public class UserInvestmentSummary {
     private int daysRemaining;  // Add via helper for Duration.between(now, maturityAt)
 
     private String createdBy;
+
+
+    public boolean isMatured() {
+        if (maturityAt == null) {
+            return false; // or true depending on your business logic
+        }
+        // Compare only the date part
+        return !LocalDate.now().isBefore(maturityAt.toLocalDate());
+    }
+
 }

@@ -234,7 +234,7 @@ public class InvestmentServiceImpl implements InvestmentService {
         if (investment.getMaturityAt() == null) {
             throw new IllegalStateException("Maturity date not set for this investment");
         }
-        if (LocalDateTime.now().isBefore(investment.getMaturityAt())) {
+        if (LocalDate.now().isBefore(investment.getMaturityAt().toLocalDate())) { // LocalDateTime.now().isBefore(maturityAt)
             throw new IllegalStateException("Investment not matured yet — redeem allowed only after " +
                     investment.getMaturityAt());
         }

@@ -17,6 +17,7 @@ public interface UserInvestmentRepository extends JpaRepository<UserInvestment, 
     List<UserInvestment> findByUserId(Long userId);
     Page<UserInvestment> findByUserId(Long userId, Pageable pageable);
     Page<UserInvestment> findByUserIdAndStatus(Long userId, InvestmentStatus status, Pageable pageable);
+    Page<UserInvestment> findByUserIdAndStatusIn(Long userId, List<InvestmentStatus> status, Pageable pageable);
     Page<UserInvestment> findByStatus(InvestmentStatus status, Pageable pageable);
 
     @Query("""

@@ -137,7 +137,11 @@ public class InvestmentServiceImpl implements InvestmentService {
         Page<UserInvestment> investments;
 
         if (status != null) {
-            investments = userInvestmentRepo.findByUserIdAndStatus(userId, status, pageable);
+            if (status == InvestmentStatus.ACTIVE) {
+                investments = userInvestmentRepo.findByUserIdAndStatusIn(userId, List.of(InvestmentStatus.ACTIVE, InvestmentStatus.COMPLETED), pageable);
+            } else {
+                investments = userInvestmentRepo.findByUserIdAndStatus(userId, status, pageable);
+            }
         } else {
             investments = userInvestmentRepo.findByUserId(userId, pageable);
         }

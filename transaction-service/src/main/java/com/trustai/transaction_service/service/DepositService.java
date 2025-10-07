@@ -71,7 +71,7 @@ public interface DepositService {
      * @param pageable
      * @return
      */
-    Page<DepositHistoryItem> getDepositHistory(String userId, Pageable pageable);
+    Page<DepositHistoryItem> getDepositHistory(Long userId, PendingDeposit.DepositStatus status, Pageable pageable);
     Page<DepositHistoryItem> getDepositHistory(PendingDeposit.DepositStatus status, Pageable pageable);
 
     /**

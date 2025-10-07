@@ -225,10 +225,11 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public Page<DepositHistoryItem> getDepositHistory(String userId, Pageable pageable) {
+    public Page<DepositHistoryItem> getDepositHistory(Long userId, PendingDeposit.DepositStatus status, Pageable pageable) {
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"));
 
-        Page<Transaction> transactions = transactionRepository.findByUserIdAndTxnType(userId, TransactionType.DEPOSIT, pageable);
+        Page<PendingDeposit> transactions = pendingDepositRepository.findByUserIdAndStatus(userId, status, pageable);
+
         return transactions.map(mapper::mapToDepositHistory);
     }
 

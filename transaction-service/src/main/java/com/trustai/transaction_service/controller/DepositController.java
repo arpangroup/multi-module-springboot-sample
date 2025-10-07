@@ -40,14 +40,14 @@ public class DepositController extends BaseController {
             @RequestParam(required = false) PendingDeposit.DepositStatus status,
             Pageable pageable
     ) {
-        String currentUserId = getCurrentUserId() + "";
+        Long currentUserId = getCurrentUserId();
         log.info("Received request for deposit history. userId: {}, Status: {}, Page: {}, Size: {}", currentUserId, status, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<DepositHistoryItem> transactions;
         if (isAdmin()) {
             transactions = depositService.getDepositHistory(status, pageable);
         } else {
-            transactions = depositService.getDepositHistory(status, pageable);
+            transactions = depositService.getDepositHistory(currentUserId, status, pageable);
         }
         log.info("Fetched {} deposit transactions.", transactions.getNumberOfElements());
         return ResponseEntity.ok(PagedResponse.from(transactions));

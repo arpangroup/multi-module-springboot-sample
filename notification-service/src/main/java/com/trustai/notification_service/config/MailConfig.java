@@ -1,6 +1,7 @@
 package com.trustai.notification_service.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -33,6 +34,7 @@ public class MailConfig {
     }*/
 
     @Bean
+    @RefreshScope
     public JavaMailSender getJavaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
 

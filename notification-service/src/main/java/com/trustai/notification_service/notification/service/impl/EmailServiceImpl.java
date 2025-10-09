@@ -1,6 +1,6 @@
 package com.trustai.notification_service.notification.service.impl;
 
-import com.trustai.notification_service.config.MailProperties;
+import com.trustai.notification_service.config.MailConfigProperties;
 import com.trustai.notification_service.notification.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -22,25 +22,25 @@ import java.io.File;
 @Slf4j
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
-    private final MailProperties mailProperties;
+    private final MailConfigProperties mailConfigProperties;
 
     @Override
     @Async
     public void sendSimpleMail(String to, String subject, String text) {
         log.info("Sending simple text email to: {}, subject: {}", to, subject);
         try {
-//            SimpleMailMessage message = new SimpleMailMessage();
-//            //message.setFrom("arpangroup1@gmail.com");
-//            message.setFrom(mailProperties.getFrom().getAddress());
-//            message.setTo(to);
-//            message.setSubject(subject);
-//            message.setText(text);
-//            mailSender.send(message);
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailConfigProperties.getFrom().getAddress());
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+
+            log.error("MAIL_PROPERTIES ---> {}", mailConfigProperties);
+            mailSender.send(message);
             log.info("Simple email sent successfully to {}", to);
-            throw new Exception("error");
         } catch (Exception e) {
             log.error("Failed to send simple email to {}. Error: {}", to, e.getMessage(), e);
-            log.error("MAIL_PROPERTIES: {}", mailProperties.toString() );
+            log.error("MAIL_PROPERTIES: {}", mailConfigProperties.toString() );
             e.printStackTrace();
         }
     }
@@ -53,15 +53,17 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setFrom(mailProperties.getFrom().getAddress());
+            helper.setFrom(mailConfigProperties.getFrom().getAddress());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true); // true = send as HTML
 
+            log.error("MAIL_PROPERTIES ---> {}", mailConfigProperties);
             mailSender.send(mimeMessage);
             log.info("HTML email sent successfully to {}", to);
         } catch (Exception e) {
             log.error("Failed to send HTML email to {}. Error: {}", to, e.getMessage(), e);
+            log.error("MAIL_PROPERTIES: {}", mailConfigProperties.toString() );
             //e.printStackTrace();
         }
     }

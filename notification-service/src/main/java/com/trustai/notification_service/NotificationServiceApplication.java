@@ -1,12 +1,12 @@
 package com.trustai.notification_service;
 
-import com.trustai.notification_service.config.MailProperties;
+import com.trustai.notification_service.config.MailConfigProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(MailProperties.class)
+@EnableConfigurationProperties(MailConfigProperties.class)
 public class NotificationServiceApplication {
 
 	public static void main(String[] args) {

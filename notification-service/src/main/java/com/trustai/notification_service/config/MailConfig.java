@@ -12,7 +12,7 @@ import java.util.Properties;
 @Configuration
 @RequiredArgsConstructor
 public class MailConfig {
-    private final MailProperties mailProperties;
+    private final MailConfigProperties mailConfigProperties;
 
     /*@Bean
     public JavaMailSender getJavaMailSender() {
@@ -36,11 +36,11 @@ public class MailConfig {
     public JavaMailSender getJavaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
 
-        mailSender.setHost(mailProperties.getHost());
-        mailSender.setPort(mailProperties.getPort());
-        mailSender.setUsername(mailProperties.getUsername());
-        mailSender.setPassword(mailProperties.getPassword());
-        mailSender.setProtocol(mailProperties.getProtocol());
+        mailSender.setHost(mailConfigProperties.getHost());
+        mailSender.setPort(mailConfigProperties.getPort());
+        mailSender.setUsername(mailConfigProperties.getUsername());
+        mailSender.setPassword(mailConfigProperties.getPassword());
+        mailSender.setProtocol(mailConfigProperties.getProtocol());
         //mailSender.setDefaultEncoding(mailProperties.getDefaultEncoding().name());
 
         Properties props = mailSender.getJavaMailProperties();
@@ -50,8 +50,8 @@ public class MailConfig {
         //props.put("mail.debug", "true");
 
         // Include additional custom properties if needed
-        if (mailProperties.getProperties() != null) {
-            mailProperties.getProperties().forEach(props::put);
+        if (mailConfigProperties.getProperties() != null) {
+            mailConfigProperties.getProperties().forEach(props::put);
         }
 
         return mailSender;

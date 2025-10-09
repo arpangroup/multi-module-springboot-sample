@@ -50,4 +50,6 @@ public enum TransactionType {
     public static List<TransactionType> getProfitTypes() {
         return List.of(SIGNUP_BONUS, REFERRAL, BONUS, DAILY_INCOME, TEAM_INCOME, INVESTMENT, INVESTMENT_MATURITY, INTEREST, WITHDRAWAL_FROM_PROFIT);
     }
+
+
 }

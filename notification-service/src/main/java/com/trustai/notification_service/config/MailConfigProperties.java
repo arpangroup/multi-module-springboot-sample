@@ -2,6 +2,7 @@ package com.trustai.notification_service.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Configuration;
 
 import java.nio.charset.Charset;
@@ -10,7 +11,8 @@ import java.util.Map;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "mail")
-public class MailProperties {
+@RefreshScope
+public class MailConfigProperties {
 
     private String host;
     private Integer port;
@@ -32,4 +34,15 @@ public class MailProperties {
         private String address;
     }
 
+    @Override
+    public String toString() {
+        return "{" +
+                "host='" + host + '\'' +
+                ", port=" + port +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", protocol='" + protocol + '\'' +
+                ", from=" + from +
+                '}';
+    }
 }

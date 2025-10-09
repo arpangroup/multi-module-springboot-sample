@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @Component
 @ConfigurationProperties(prefix = "withdraw.config")
+@RefreshScope
 @Validated
 @Getter
 @Setter

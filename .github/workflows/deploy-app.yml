@@ -1,4 +1,4 @@
-name: Deploy Aggregator (Docker + GHCR )
+name: Deploy TrustAI Backend Aggregator (Docker + GHCR )
 
 on:
   push:

@@ -1,10 +1,12 @@
 package com.trustai.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConfigurationProperties(prefix = "app")
+@RefreshScope
 public class AppProperties {
 
     private final Auth auth = new Auth();

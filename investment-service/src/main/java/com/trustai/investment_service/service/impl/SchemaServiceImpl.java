@@ -55,7 +55,7 @@ public class SchemaServiceImpl implements SchemaService {
                 pageable != null ? pageable.getPageSize(): 10,
                 //Sort.by(Sort.Order.asc("linkedRank"), Sort.Order.asc("minimumInvestmentAmount"))
                 //Sort.by(Sort.Order.asc("stakePrice"))
-                Sort.by(Sort.Order.desc("minimumInvestmentAmount"))
+                Sort.by(Sort.Order.asc("minimumInvestmentAmount"))
         );
         if (investmentSubType != null) {
             return schemaRepository.findByInvestmentType(investmentSubType, pageable);

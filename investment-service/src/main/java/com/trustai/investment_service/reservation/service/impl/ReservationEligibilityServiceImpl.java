@@ -7,7 +7,10 @@ import com.trustai.common.dto.UserInfo;
 import com.trustai.investment_service.dto.EligibleInvestmentSummary;
 import com.trustai.investment_service.dto.SchemaSummary;
 import com.trustai.investment_service.entity.InvestmentSchema;
+import com.trustai.investment_service.enums.InvestmentType;
 import com.trustai.investment_service.repository.SchemaRepository;
+import com.trustai.investment_service.reservation.entity.UserReservation;
+import com.trustai.investment_service.reservation.repository.UserReservationRepository;
 import com.trustai.investment_service.reservation.service.ReservationEligibilityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,19 +18,23 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ReservationEligibilityServiceImpl implements ReservationEligibilityService {
     private final SchemaRepository schemaRepository;
+    private final UserReservationRepository userReservationRepository;
     private final RankConfigApi rankConfigApi;
     private final UserApi userApi;
     private final DecimalFormat df = new DecimalFormat("0.##");
 
-    @Override
+    /*@Override
     public List<EligibleInvestmentSummary> getEligibleInvestmentSummaries(Long userId) {
         log.info("Fetching investment summary for userId={}", userId);
 
@@ -47,7 +54,7 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
                 });
         log.info("Generating investment summary for ranks (userRankOrder={}): {}", userRank.getRankOrder(), userRankCode);
 
-        List<InvestmentSchema> activeSchemas = schemaRepository.findByIsActiveTrueAndInvestmentSubType(InvestmentSchema.InvestmentSubType.STAKE);
+        List<InvestmentSchema> activeSchemas = schemaRepository.findByIsActiveTrueAndInvestmentType(InvestmentType.STAKE);
         log.debug("Fetched total active schemas: {}", activeSchemas.size());
 
         return allRanks.stream().map(rank -> {
@@ -77,7 +84,7 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
 
             // Convert to SchemaSummary DTO
             List<SchemaSummary> schemaSummaries = eligibleSchemas.stream()
-                    .map(schema -> new SchemaSummary(schema.getId(), schema.getTitle(), schema.getReturnRate()))
+                    .map(schema -> new SchemaSummary(schema.getId(), schema.getName(), schema.getReturnRate()))
                     .toList();
 
             EligibleInvestmentSummary dto = new EligibleInvestmentSummary();
@@ -95,6 +102,62 @@ public class ReservationEligibilityServiceImpl implements ReservationEligibility
 
             return dto;
         }).toList();
+    }*/
+
+    @Override
+    public List<EligibleInvestmentSummary> getEligibleInvestmentSummaries(Long userId) {
+        log.info("Fetching investment summary for userId={}", userId);
+
+        UserInfo user = userApi.getUserById(userId);
+        String userRankCode = user.getRankCode();
+        log.debug("Retrieved user info: id={}, rankCode={}", user.getId(), userRankCode);
+
+        List<RankConfigDto> allRanks = rankConfigApi.getAllRanks().stream()
+                .sorted(Comparator.comparingInt(RankConfigDto::getRankOrder))
+                .toList();
+        log.debug("Total ranks fetched: {}", allRanks.size());
+
+        List<UserReservation> todayReservations = userReservationRepository.findAllByUserIdAndToday(userId, LocalDate.now());
+
+        return IntStream.range(0, allRanks.size())
+                .mapToObj(i -> {
+                    RankConfigDto current = allRanks.get(i);
+                    RankConfigDto next = (i + 1 < allRanks.size()) ? allRanks.get(i + 1) : null;
+
+                    int txnPerDay = current.getTxnPerDay();
+                    int dailyTxnLimit = txnPerDay == 0 ? 0 :  txnPerDay - todayReservations.size();
+
+                    // ✅ incomePercentageRange logic
+                    String incomeRange;
+                    if (current.getCommissionPercentage() != null && next != null && next.getCommissionPercentage() != null) {
+                        incomeRange = current.getCommissionPercentage().stripTrailingZeros().toPlainString()
+                                + " - " + next.getCommissionPercentage().stripTrailingZeros().toPlainString() + "%";
+                    } else if (current.getCommissionPercentage() != null) {
+                        incomeRange = current.getCommissionPercentage().stripTrailingZeros().toPlainString()
+                                + " - " + current.getCommissionPercentage().stripTrailingZeros().toPlainString() + "%";
+                    } else {
+                        incomeRange = "N/A";
+                    }
+
+                    // build summary
+                    EligibleInvestmentSummary dto = new EligibleInvestmentSummary();
+                    dto.setRankCode(current.getCode());
+                    dto.setRankDisplayName(current.getDisplayName());
+                    dto.setMinDeposit(current.getMinDepositAmount());
+                    dto.setMaxDeposit(next == null ? null : next.getMinDepositAmount());
+                    dto.setMinInvestmentAmount(current.getMinInvestmentAmount());
+                    dto.setMaxInvestmentAmount(current.getMaxInvestmentAmount());
+                    dto.setIncomePercentageRange(incomeRange);
+                    dto.setEnabled(current.getCode().equalsIgnoreCase(userRankCode));
+                    dto.setTxnLimit(dailyTxnLimit);
+
+                    // load schemas for this rank (assuming you fetch schemaSummaries elsewhere)
+                    //List<SchemaSummary> schemaSummaries = fetchSchemasForRank(current);
+                    //dto.setSchemas(schemaSummaries);
+
+                    return dto;
+                })
+                .toList();
     }
 
     private boolean isWithinRange(RankConfigDto rank, InvestmentSchema schema) {

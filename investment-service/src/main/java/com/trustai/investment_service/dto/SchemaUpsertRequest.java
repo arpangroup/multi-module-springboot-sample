@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @ToString
 public class SchemaUpsertRequest {
     private Long id;
+    private String name;
+    private BigDecimal stakePrice;
     private String linkedRankCode;
     private BigDecimal minimumInvestmentAmount;
     private BigDecimal maximumInvestmentAmount;
@@ -18,5 +20,7 @@ public class SchemaUpsertRequest {
     private Integer totalReturnPeriods;
     private Long returnScheduleId;
     private Boolean capitalReturned;
+    private String imageUrl;
     private Boolean active;
+    private Boolean imageUrlSet;
 }

@@ -22,6 +22,8 @@ public class InternalTokenAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
+        String propagatedUser = request.getHeader("X-User-Name");
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             if (token.equals(internalToken)) {
@@ -30,6 +32,11 @@ public class InternalTokenAuthFilter extends OncePerRequestFilter {
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))
                 );
+               /* var authentication = new UsernamePasswordAuthenticationToken(
+                        propagatedUser,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))
+                );*/
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }

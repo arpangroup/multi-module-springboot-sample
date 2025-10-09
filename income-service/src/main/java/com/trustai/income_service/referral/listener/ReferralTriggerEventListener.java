@@ -11,7 +11,7 @@ import org.springframework.context.event.EventListener;
  * [DEPRECATED] This class is now obsolete.
  *
  * Rank update responsibilities are now handled by centralized event dispatchers:
- * - {@link com.arpangroup.referral_service.listener.FirstDepositEventDispatcher}
+ * - {@link com.trustai.referral_service.listener.FirstDepositEventDispatcher}
  *
  * This class remains only for reference and backward compatibility (if needed).
  */

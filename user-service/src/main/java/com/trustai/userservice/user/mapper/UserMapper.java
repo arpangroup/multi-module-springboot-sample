@@ -4,7 +4,6 @@ import com.trustai.common.domain.user.User;
 import com.trustai.common.dto.*;
 import com.trustai.common.utils.DateUtils;
 import com.trustai.common.utils.IdConverter;
-import com.trustai.common.utils.PhoneMaskingUtil;
 import com.trustai.userservice.user.entity.Kyc;
 import org.springframework.stereotype.Component;
 
@@ -31,19 +30,29 @@ public class UserMapper {
                 .id(user.getId())
                 .accountId(accountId)
                 .username(user.getUsername())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
                 .email(user.getEmail())
+                .mobile(user.getMobile())
                 .rankCode(user.getRankCode())
                 .point(user.getPoint())
                 .image(user.getImage())
+                .country(user.getCountry())
+                .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
-                .profitBalance(user.getProfitBalance())
+                .profitWallet(user.getProfitBalance())
                 // Referral:
                 .referralCode(user.getReferralCode())
                 // Status:
                 .isActive(user.getAccountStatus() == User.AccountStatus.ACTIVE)
                 .accountStatus(user.getAccountStatus().name())
                 //.kycStatus(user.getKycInfo().getStatus().name())
+                // Address
+                .state(user.getState())
+                .city(user.getCity())
+                .address(user.getAddress())
+                .zipCode(user.getZipCode())
                 // AuditLog
                 .createdAt(user.getCreatedAt())
                 .build();
@@ -51,14 +60,16 @@ public class UserMapper {
 
     public UserDetailsInfo mapToDetails(User user) {
         final User referrer = user.getReferrer();
-        String referrerId = IdConverter.encode(referrer.getId());
+        //String referrerId = IdConverter.encode(referrer.getId());
         return UserDetailsInfo.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .email(user.getEmail())
-                .phone(PhoneMaskingUtil.maskPhoneNumber(user.getMobile()))
+                //.phone(PhoneMaskingUtil.maskPhoneNumber(user.getMobile()))
+                .phone(user.getMobile())
+                .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
                 .profitBalance(user.getProfitBalance())
@@ -68,6 +79,11 @@ public class UserMapper {
                 .rankCode(user.getRankCode())
                 // KYC:
                 //.kyc(convert(user.getKycInfo()))
+                // Address
+                .state(user.getState())
+                .city(user.getCity())
+                .address(user.getAddress())
+                .zipCode(user.getZipCode())
                 // Status:
                 .accountStatus(convert(user))
                 // AuditLog

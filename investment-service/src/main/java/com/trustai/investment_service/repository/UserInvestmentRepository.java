@@ -17,6 +17,7 @@ public interface UserInvestmentRepository extends JpaRepository<UserInvestment, 
     List<UserInvestment> findByUserId(Long userId);
     Page<UserInvestment> findByUserId(Long userId, Pageable pageable);
     Page<UserInvestment> findByUserIdAndStatus(Long userId, InvestmentStatus status, Pageable pageable);
+    Page<UserInvestment> findByUserIdAndStatusIn(Long userId, List<InvestmentStatus> status, Pageable pageable);
     Page<UserInvestment> findByStatus(InvestmentStatus status, Pageable pageable);
 
     @Query("""
@@ -25,6 +26,24 @@ public interface UserInvestmentRepository extends JpaRepository<UserInvestment, 
       AND u.nextPayoutAt <= :now
     """)
     List<UserInvestment> findActiveInvestmentsDueForPayout(@Param("now") LocalDateTime now);
+
+
+    @Query("""
+        SELECT u FROM UserInvestment u
+        WHERE u.status = 'ACTIVE'
+        AND u.nextPayoutAt <= :now
+        AND u.maturityAt > :now
+        AND u.isCancelled = false
+    """)
+    List<UserInvestment> findDueInvestments(@Param("now") LocalDateTime now);
+
+    @Query("""
+        SELECT u FROM UserInvestment u
+        WHERE u.status = 'ACTIVE'
+        AND u.maturityAt <= :now
+        AND u.isCancelled = false
+    """)
+    List<UserInvestment> findMaturedInvestments(@Param("now") LocalDateTime now);
 
 
 }

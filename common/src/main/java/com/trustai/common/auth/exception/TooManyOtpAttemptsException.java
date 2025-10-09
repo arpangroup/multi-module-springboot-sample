@@ -8,6 +8,11 @@ public class TooManyOtpAttemptsException extends AuthException{
         this.lockedForMinutes = lockedForMinutes;
     }
 
+    public TooManyOtpAttemptsException(String message) {
+        super(message);
+        this.lockedForMinutes = 0;
+    }
+
     public int getLockedForMinutes() {
         return lockedForMinutes;
     }

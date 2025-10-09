@@ -11,6 +11,7 @@ import com.trustai.userservice.user.exception.IdNotFoundException;
 import com.trustai.userservice.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ public class UserProviderController {
     private final MemberSummaryService memberSummaryService;
     private final UserMapper mapper;
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")
     public List<UserInfo> getUsers() {
         log.info("Received request to get all users");
@@ -34,6 +36,7 @@ public class UserProviderController {
         return users;
     }
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users/activeIds")
     public List<Long> getAllActiveUserIds() {
         log.info("Received request to get all active user ids");
@@ -43,6 +46,7 @@ public class UserProviderController {
         return ids;
     }
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/users/by-ids")
     public List<UserInfo> getUserByIds(@RequestBody List<Long> ids) {
         log.info("Received request to get users by IDs: {}", ids);
@@ -51,6 +55,7 @@ public class UserProviderController {
         return users;
     }
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users/{userId}")
     public UserInfo getUserById(@PathVariable Long userId) {
         log.info("Received request to get user by ID: {}", userId);
@@ -65,6 +70,7 @@ public class UserProviderController {
                 });
     }
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/users/{userId}/rank")
     public void updateRank(@PathVariable Long userId, @RequestBody String rankCode) {
         log.info("Received request to update rank for userId: {} with rankCode: {}", userId, rankCode);
@@ -78,8 +84,9 @@ public class UserProviderController {
     }
 
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/users/{userId}/wallet-balance")
-    public void updateWalletBalance(@PathVariable Long userId, @RequestBody BigDecimal updatedNewBalance) {
+    public void updateWalletBalance(@PathVariable Long userId, @RequestBody BigDecimal updatedNewBalance, @RequestParam(name = "isProfitWallet", defaultValue = "false") boolean isProfitWallet) {
         log.info("Received request to update wallet balance for userId: {} with new balance: {}", userId, updatedNewBalance);
 
         // First, check if the user exists
@@ -89,7 +96,11 @@ public class UserProviderController {
         });
 
         // Update the wallet balance on the user entity
-        user.setWalletBalance(updatedNewBalance);
+        if (isProfitWallet) {
+            user.setProfitBalance(updatedNewBalance);
+        } else {
+            user.setWalletBalance(updatedNewBalance);
+        }
 
         // Persist the change
         userRepository.save(user);
@@ -97,17 +108,28 @@ public class UserProviderController {
         log.info("Successfully updated wallet balance to {} for userId: {}", updatedNewBalance, userId);
     }
 
+    //@PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users/{userId}/metrics")
     public UserMetrics computeMetrics(@PathVariable Long userId) {
         log.info("findByDescendant for userId: {}", userId);
         return memberSummaryService.computeMetrics(userId);
     }
 
-    @GetMapping("/hierarchy/descendant/{descendant}")
+    //@PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/hierarchy/upline/{descendant}")
     public List<UserHierarchy> findByDescendant(@PathVariable Long descendant) {
         log.info("Received request to get user hierarchy for descendant: {}", descendant);
         List<UserHierarchy> hierarchy = userHierarchyRepository.findByDescendant(descendant);
         log.info("Returning {} hierarchy records for descendant: {}", hierarchy.size(), descendant);
+        return hierarchy;
+    }
+
+    //@PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/hierarchy/downline/{ancestor}")
+    public List<UserHierarchy> findByAncestor(@PathVariable Long ancestor) {
+        log.info("Received request to get user hierarchy for ancestor: {}", ancestor);
+        List<UserHierarchy> hierarchy = userHierarchyRepository.findByAncestor(ancestor);
+        log.info("Returning {} hierarchy records for ancestor: {}", hierarchy.size(), ancestor);
         return hierarchy;
     }
 

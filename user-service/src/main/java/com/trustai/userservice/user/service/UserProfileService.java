@@ -13,6 +13,7 @@ public interface UserProfileService {
     User createUser(User user, String referralCode);
     User updateUser(Long userId, Map<String, Object> fieldsToUpdate);
     User updateUser(User user);
+    User updateUserStatus(Long userId, User.AccountStatus status);
     User updateUserRank(Long userId, String newRankCode);
     List<User> getUsers();
     List<User> getUserByIds(List<Long> userIds);

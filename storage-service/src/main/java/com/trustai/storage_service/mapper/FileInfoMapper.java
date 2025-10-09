@@ -2,7 +2,10 @@ package com.trustai.storage_service.mapper;
 
 import com.trustai.storage_service.dto.FileInfo;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -14,12 +17,36 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 @Component
+@Slf4j
 public class FileInfoMapper {
     public static final String IMAGE_PATH = "/images"; // CommonConstants
     public final String THUMBNAIL_PATH = IMAGE_PATH + "/thumbnail";
 
+
+    @Value("${app.base-url:http://trustai.co.in/}")
+    private String baseUrl;
+
     private String getBaseUrl(HttpServletRequest request) {
-        return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+        //return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+
+        String scheme = request.getScheme();
+        String hostHeader = request.getHeader("Host");
+        String contextPath = request.getContextPath();
+
+        log.info("Request scheme: {}", scheme);
+        log.info("Request Host header: {}", hostHeader);
+        log.info("Request context path: {}", contextPath);
+
+        String baseUrl1 = scheme  + "://" + hostHeader  + contextPath;
+        log.info("Manually constructed baseUrl1: {}", baseUrl1);
+
+        String baseUrl = ServletUriComponentsBuilder.fromRequestUri(request)
+                .replacePath(null)
+                .build()
+                .toUriString();
+        log.info("Base URL from ServletUriComponentsBuilder: {}", baseUrl);
+
+        return baseUrl;
     }
 
     private String getBaseUrl(HttpServletRequest request, String fileName) {
@@ -59,8 +86,8 @@ public class FileInfoMapper {
 
             // Download/thumbnail URLs (replace with your app's logic)
             String filename = path.getFileName().toString();
-            info.setDownloadUrl(getBaseUrl(request) + IMAGE_PATH + "/" + filename);
-            info.setThumbnailUrl(getBaseUrl(request) + THUMBNAIL_PATH + "/" + filename);
+            info.setDownloadUrl(baseUrl + IMAGE_PATH + "/" + filename);
+            info.setThumbnailUrl(baseUrl + THUMBNAIL_PATH + "/" + filename);
 
         } catch (IOException e) {
             throw new RuntimeException("Error mapping file info for: " + path, e);

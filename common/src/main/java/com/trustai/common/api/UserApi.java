@@ -6,6 +6,7 @@ import com.trustai.common.dto.UserMetrics;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,10 +35,13 @@ public interface UserApi {
     void updateRank(@PathVariable Long userId, String rankCode);
 
     @PutMapping("/updateWalletBalance/{userId}/{updatedNewBalance}")
-    void updateWalletBalance(@PathVariable Long userId, @PathVariable BigDecimal updatedNewBalance);
+    void updateWalletBalance(@PathVariable Long userId, @PathVariable BigDecimal updatedNewBalance, @RequestParam boolean isProfitWallet);
 
-    @GetMapping("/hierarchy/{descendant}")
-    List<UserHierarchyDto> findByDescendant(@PathVariable Long descendant);
+    @GetMapping("/hierarchy/upline/{descendant}")
+    List<UserHierarchyDto> fetchUplines(@PathVariable Long descendant);
+
+    @GetMapping("/hierarchy/downline/{ancestor}")
+    List<UserHierarchyDto> fetchDownline(@PathVariable Long ancestor);
 
     @GetMapping("/metrics/{userId}")
     UserMetrics computeMetrics(@PathVariable Long userId);

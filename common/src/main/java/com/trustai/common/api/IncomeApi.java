@@ -1,6 +1,7 @@
 package com.trustai.common.api;
 
 import com.trustai.common.dto.IncomeSummaryDto;
+import com.trustai.common.enums.IncomeType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,4 +12,5 @@ import java.util.Map;
 public interface IncomeApi {
     List<IncomeSummaryDto> getIncomeSummary(Long userId);
     Map<Long, BigDecimal> getUserShares(List<Long> userId, LocalDateTime startDate, LocalDateTime endDate);
+    //void updateIncome(Long userId, BigDecimal amount, IncomeType incomeType, String note);
 }

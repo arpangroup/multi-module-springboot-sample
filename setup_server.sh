@@ -8,108 +8,160 @@ DOMAIN="trustai.co.in"
 SUBDOMAIN="admin.${DOMAIN}"
 API_DOMAIN="api.${DOMAIN}"
 DOC_ROOT="/var/www"
+DEPLOY_USER="cicd_deploy"
+DEPLOY_HOME="/home/${DEPLOY_USER}"
 NGINX_CONF_DIR="/etc/nginx/sites-available"
-CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
-JKS_PASSWORD="CHANGEIT"
+EMAIL="admin@${DOMAIN}"
+
+CONFIG_DEPLOY_PATH="${DEPLOY_HOME}/config-service"
+APP_DEPLOY_PATH="${DEPLOY_HOME}/trustaiapp"
+
+BACKEND_HOST="localhost"
+BACKEND_PORT="8080"
+BACKEND_URL="http://${BACKEND_HOST}:${BACKEND_PORT}"
+
+JKS_PASSWORD="changeit"
 ALIAS="trustai"
 JKS_OUTPUT="/root/${DOMAIN}.jks"
-EMAIL="test@test.com"
-
-DB_NAME="nft"
-DB_USER="root"
-DB_PASSWORD="password"
-DB_ROOT_PASSWORD="supertest"
 
 # -----------------------------
-# Update & install prerequisites
+# Update & install prerequisites (non-interactive)
 # -----------------------------
-apt update -y
-apt upgrade -y
-apt install -y software-properties-common curl gnupg lsb-release apt-transport-https unzip
+export DEBIAN_FRONTEND=noninteractive
 
-# -----------------------------
-# Install Nginx
-# -----------------------------
-apt install -y nginx
+apt-get update -y
+
+# Upgrade packages without prompts and keep local config files
+apt-get -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold" \
+        upgrade -y
+
+# Install required packages without prompts
+apt-get install -y --no-install-recommends \
+    software-properties-common \
+    curl \
+    gnupg \
+    lsb-release \
+    apt-transport-https \
+    unzip \
+    ca-certificates \
+    nginx \
+    certbot \
+    python3-certbot-nginx \
+
 systemctl enable nginx
 systemctl start nginx
 
-# -----------------------------
-# Install Certbot (Let’s Encrypt)
-# -----------------------------
-apt install -y certbot python3-certbot-nginx
 
 # -----------------------------
-# Install Java 21 (OpenJDK)
+# Create deploy user if not exists
 # -----------------------------
-sudo apt update
-sudo apt install -y openjdk-21-jdk
-java -version
+if ! id -u ${DEPLOY_USER} >/dev/null 2>&1; then
+    useradd -m -s /bin/bash ${DEPLOY_USER}
+    echo "${DEPLOY_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEPLOY_USER}
+fi
 
-# -----------------------------
-# Install MySQL non-interactively
-# -----------------------------
-export DEBIAN_FRONTEND=noninteractive
-apt install -y mysql-server
-#mysql --execute="ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
-#mysql --execute="CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
-#mysql --execute="CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
-#mysql --execute="GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost'; FLUSH PRIVILEGES;"
-
-mysql --execute="
-CREATE DATABASE IF NOT EXISTS ${DB_NAME};
-CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
-FLUSH PRIVILEGES;
-"
-
-# Secure root with password (modern MySQL 8+ way, no plugin issues)
-mysql --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
-
-#mysql <<EOF
-#ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-#FLUSH PRIVILEGES;
-#CREATE DATABASE IF NOT EXISTS ${DB_NAME};
-#CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
-#GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
-#FLUSH PRIVILEGES;
-#EOF
 
 
 # -----------------------------
-# Setup Nginx server block
+# Setup SSH key for deploy user
 # -----------------------------
-mkdir -p ${DOC_ROOT}/${DOMAIN}
-cat > ${NGINX_CONF_DIR}/${DOMAIN}.conf <<EOL
+SSH_KEY="ssh-rsa <YOUR_KEY>"
+
+# Create .ssh directory if it does not exist
+mkdir -p ${DEPLOY_HOME}/.ssh
+
+# Add the public key to authorized_keys
+echo "${SSH_KEY}" > ${DEPLOY_HOME}/.ssh/authorized_keys
+
+# -----------------------------
+# Permissions:
+# 700 -> .ssh directory: only the user can read, write, and enter the directory
+# 600 -> authorized_keys file: only the user can read and write the file
+# These are required by SSH to accept the key, otherwise authentication will fail
+# -----------------------------
+chmod 700 ${DEPLOY_HOME}/.ssh
+chmod 600 ${DEPLOY_HOME}/.ssh/authorized_keys
+
+# Set ownership to the deploy user
+chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/.ssh
+
+# Reload SSH to apply new keys immediately (optional)
+systemctl reload ssh
+
+
+# -----------------------------
+# Prepare directories & permissions
+# -----------------------------
+# Create domain directories under DOC_ROOT
+mkdir -p "${DOC_ROOT}/${DOMAIN}" "${DOC_ROOT}/${SUBDOMAIN}" "${DOC_ROOT}/${API_DOMAIN}"
+
+# Set ownership to deploy user and group to www-data so Nginx can read files
+chown -R "${DEPLOY_USER}:www-data" "${DOC_ROOT}"
+chmod -R 750 "${DOC_ROOT}"
+
+# Create deploy path and other necessary directories
+mkdir -p "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs" "${DEPLOY_HOME}/uploads"
+
+# Set ownership for deployment related directories
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+chown -R "${DEPLOY_USER}:www-data" "${DEPLOY_HOME}/uploads"
+
+# Set permissions:
+# 750 - owner full, group read+exec, others no access
+chmod -R 750 "${DEPLOY_HOME}" "${APP_DEPLOY_PATH}" "${CONFIG_DEPLOY_PATH}" "${DEPLOY_HOME}/logs"
+
+# 770 - owner and group full access (uploads folder, allowing web server to write)
+chmod 770 "${DEPLOY_HOME}/uploads"
+
+echo "✅ Deploy path created at ${APP_DEPLOY_PATH} with correct permissions"
+
+
+if [ -f "${DEPLOY_HOME}/docker-compose.yml" ]; then
+    chown ${DEPLOY_USER}:${DEPLOY_USER} ${DEPLOY_HOME}/docker-compose.yml
+fi
+
+
+# -----------------------------
+# Install Docker & Compose v2
+# -----------------------------
+if ! command -v docker >/dev/null 2>&1; then
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+      > /etc/apt/sources.list.d/docker.list
+
+    apt update -y
+    apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    systemctl enable docker
+    systemctl start docker
+fi
+
+usermod -aG docker ${DEPLOY_USER}
+
+
+
+# -----------------------------
+# Setup Nginx server blocks (HTTP only initially)
+# -----------------------------
+mkdir -p ${NGINX_CONF_DIR}
+
+for SITE in ${DOMAIN} ${SUBDOMAIN} ${API_DOMAIN}; do
+cat > ${NGINX_CONF_DIR}/${SITE}.conf <<EOL
 server {
     listen 80;
-    server_name ${DOMAIN} www.${DOMAIN};
+    server_name ${SITE} www.${SITE};
 
-    # Redirect all HTTP -> HTTPS
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${DOMAIN} www.${DOMAIN};
-
-    # SSL certificates (reuse Let’s Encrypt ones from Apache)
-    ssl_certificate     ${CERT_DIR}/fullchain.pem;
-    ssl_certificate_key ${CERT_DIR}/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-
-    root ${DOC_ROOT}/${DOMAIN};
+    root ${DOC_ROOT}/${SITE};
     index index.html;
 
-    # React SPA fallback
-    location / {
-        try_files \$uri /index.html;
-    }
+    location / { try_files \$uri /index.html; }
 
-    # Proxy API calls
     location /api/ {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass ${BACKEND_URL};
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -117,119 +169,48 @@ server {
     }
 }
 EOL
+# Enable site
+ln -sf ${NGINX_CONF_DIR}/${SITE}.conf /etc/nginx/sites-enabled/
+done
 
-mkdir -p ${DOC_ROOT}/${SUBDOMAIN}
-cat > ${NGINX_CONF_DIR}/${SUBDOMAIN}.conf <<EOL
-server {
-    listen 80;
-    server_name ${SUBDOMAIN} www.${SUBDOMAIN};
-
-    # Redirect all HTTP -> HTTPS
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${SUBDOMAIN} www.${SUBDOMAIN};
-
-    # SSL certificates (reuse Let’s Encrypt ones from Apache)
-    ssl_certificate     ${CERT_DIR}/fullchain.pem;
-    ssl_certificate_key ${CERT_DIR}/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-
-    root ${DOC_ROOT}/${SUBDOMAIN};
-    index index.html;
-
-    # React SPA fallback
-    location / {
-        try_files \$uri /index.html;
-    }
-
-    # Proxy API calls
-    location /api/ {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOL
-
-mkdir -p ${DOC_ROOT}/${API_DOMAIN}
-cat > ${NGINX_CONF_DIR}/${API_DOMAIN}.conf <<EOL
-server {
-    listen 80;
-    server_name ${API_DOMAIN} www.${API_DOMAIN};
-
-    # Redirect all HTTP -> HTTPS
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${API_DOMAIN} www.${API_DOMAIN};
-
-    # SSL certificates (reuse Let’s Encrypt ones from Apache)
-    ssl_certificate     ${CERT_DIR}/fullchain.pem;
-    ssl_certificate_key ${CERT_DIR}/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-
-    # Proxy API calls
-    location / {
-        proxy_pass http://127.0.0.1:8080/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOL
-
-# creates symbolic link
 ln -sf ${NGINX_CONF_DIR}/${DOMAIN}.conf /etc/nginx/sites-enabled/
 ln -sf ${NGINX_CONF_DIR}/${SUBDOMAIN}.conf /etc/nginx/sites-enabled/
 ln -sf ${NGINX_CONF_DIR}/${API_DOMAIN}.conf /etc/nginx/sites-enabled/
+
+# Test and reload Nginx
 nginx -t
 systemctl reload nginx
 
-# -----------------------------
-# Obtain SSL certificates
-# -----------------------------
-#certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --non-interactive --agree-tos -m ${EMAIL} --redirect
-#certbot --nginx \
-#  -d ${DOMAIN} -d www.${DOMAIN} \
-#  -d ${SUBDOMAIN} -d www.${SUBDOMAIN} \
-#  -d ${API_DOMAIN} -d www.${API_DOMAIN} \
-#  --non-interactive --agree-tos -m ${EMAIL} --redirect
-sudo certbot --nginx -d trustai.co.in -d www.trustai.co.in -d admin.trustai.co.in -d api.trustai.co.in --expand
 
 # -----------------------------
-# Generate Java Keystore from SSL (optional)
+# Obtain SSL certificates (Certbot will auto-configure Nginx for HTTPS)
 # -----------------------------
-openssl pkcs12 -export -in ${CERT_DIR}/fullchain.pem -inkey ${CERT_DIR}/privkey.pem \
-    -out /tmp/${DOMAIN}.p12 -name ${ALIAS} -password pass:${JKS_PASSWORD}
-keytool -importkeystore -deststorepass ${JKS_PASSWORD} -destkeypass ${JKS_PASSWORD} \
-    -destkeystore ${JKS_OUTPUT} -srckeystore /tmp/${DOMAIN}.p12 -srcstoretype PKCS12 -srcstorepass ${JKS_PASSWORD} -alias ${ALIAS}
+certbot --nginx --agree-tos --non-interactive -m ${EMAIL} \
+    -d ${DOMAIN} -d www.${DOMAIN} \
+    -d ${SUBDOMAIN} -d www.${SUBDOMAIN} \
+    -d ${API_DOMAIN} -d www.${API_DOMAIN} \
+    --redirect
+
+# -----------------------------
+# Generate JKS & P12 from SSL (optional)
+# -----------------------------
+#if [ ! -f "${JKS_OUTPUT}" ]; then
+#    openssl pkcs12 -export \
+#            -in /etc/letsencrypt/live/${DOMAIN}/fullchain.pem \
+#            -inkey /etc/letsencrypt/live/${DOMAIN}/privkey.pem \
+#            -out /tmp/${DOMAIN}.p12 -name ${ALIAS} -password pass:${JKS_PASSWORD}
+#
+#    keytool -importkeystore \
+#        -deststorepass ${JKS_PASSWORD} \
+#        -destkeypass ${JKS_PASSWORD} \
+#        -destkeystore ${JKS_OUTPUT} \
+#        -srckeystore /tmp/${DOMAIN}.p12 \
+#        -srcstoretype PKCS12 \
+#        -srcstorepass ${JKS_PASSWORD} \
+#        -alias ${ALIAS}
+#fi
 
 echo "✅ Setup complete!"
 echo "🌐 Nginx running with SSL"
-echo "📦 Java 21 installed"
-echo "🛢️  MySQL setup complete"
+echo "📦 Docker installed"
 echo "🔐 Java Keystore generated at ${JKS_OUTPUT}"
-
-
-
-
-sudo apt-get update
-sudo apt-get install -y docker.io docker-compose
-sudo systemctl enable docker
-sudo systemctl start docker
-
-sudo usermod -aG docker $USER
-
-docker --version
-docker-compose --version  # if you’re using classic compose
-docker compose version    # if using Compose v2 (plugin)

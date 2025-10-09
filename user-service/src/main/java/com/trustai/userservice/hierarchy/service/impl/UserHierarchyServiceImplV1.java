@@ -92,6 +92,11 @@ public class UserHierarchyServiceImplV1 implements UserHierarchyService {
         return List.of();
     }
 
+    @Override
+    public void activateUserHierarchy(Long userId) {
+
+    }
+
     private UserTreeNode buildTreeRecursive(Long userId, Map<Long, User> userMap, Map<Long, List<Long>> childrenMap, int currentLevel, int maxLevel) {
         User user = userMap.get(userId);
         if (user == null || currentLevel > maxLevel) return null;

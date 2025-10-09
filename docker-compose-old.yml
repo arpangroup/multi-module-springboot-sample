@@ -1,0 +1,150 @@
+services:
+  config-service-db: # 👈 separate DB for config server
+    image: mysql:8.0
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: configdb        # 👈 dedicated DB
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "3308:3306"                   # exposed on host at 3308
+    volumes:
+      - config_mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-prootpass" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  config-service:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: config-service   # 👈 use the config-service stage
+    image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
+    ports:
+      - "8888:8888"
+    networks:
+      - backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://config-service-db:3306/configdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: aggregator   # 👈 make it explicit
+    image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
+    #image: trustai-backend
+    #build: .                   # You only need build: . locally <--- If you're pulling from GHCR and not building locally, remove the build: . line.
+    ports:
+      - "8080:8080"
+    depends_on:
+#      - db
+#      - splunk
+      config-service:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+#      splunk:
+#        condition: service_started
+    environment:
+      #SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}
+#      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+#      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+#      SPRING_JPA_HIBERNATE_DDL_AUTO: create #create, update
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-service:8888/
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - /home/logs:/logs  # Logs are saved to host directory
+      - /home/uploads:/app/uploads
+
+  db:
+    image: mysql:8.0
+    command: >
+      --default-authentication-plugin=mysql_native_password 
+      --character-set-server=utf8mb4 
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "3307:3306" # Container's MySQL will still listen on port 3306, but you will access it via port 3307
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped # always
+    networks:
+      - backend
+
+#  splunk:
+#    image: splunk/splunk:9.3.0
+#    container_name: splunk
+#    environment:
+#      SPLUNK_START_ARGS: --accept-license
+#      SPLUNK_USER: admin
+#      SPLUNK_PASSWORD: Password123
+#    ports:
+#      - "8000:8000"   # Splunk Web UI
+#      - "8088:8088"   # HTTP Event Collector (HEC)
+#      - "9997:9997"   # Universal Forwarder input
+#    volumes:
+#      - splunk_data:/opt/splunk/var
+#      - /home/logs:/mnt/logs   # mount your app logs
+#    restart: unless-stopped
+#    networks:
+#      - backend
+
+
+#  splunkforwarder:
+#    image: splunk/universalforwarder:6.5.3-monitor
+#    hostname: splunkforwarder
+#    environment:
+#      - SPLUNK_START_ARGS=--accept-license --answer-yes
+#      - SPLUNK_FORWARD_SERVER=splunk:9997
+#      - SPLUNK_USER=root
+#      - SPLUNK_PASSWORD=Naresh#240
+#      - SPLUNK_ADD=monitor /logs
+#    restart: always
+#    depends_on:
+#      - splunk
+#    volumes:
+#      - log_volume:/logs
+
+volumes:
+  config_mysql_data:
+  mysql_data:
+  splunk_data:
+networks:
+  backend:

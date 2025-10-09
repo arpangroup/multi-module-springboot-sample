@@ -18,6 +18,11 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends BaseRepository<User, Long> {
     Optional<User> findByUsername(String username);
+
+    @Query(value = "SELECT * FROM users WHERE BINARY username = :username", nativeQuery = true) // BINARY forces case-sensitive comparison in MySQL.
+    Optional<User> findByUsernameCaseSensitive(String username);
+
+    Optional<User> findByUsernameIgnoreCase(String username);
     Optional<User> findByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);

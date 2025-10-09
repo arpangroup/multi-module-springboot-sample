@@ -7,6 +7,7 @@ import com.trustai.rank_service.repository.RankConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -19,21 +20,47 @@ import java.util.Map;
 @Slf4j
 public class RankConfigService {
     private final RankConfigRepository rankConfigRepository;
+    private final RankConfigCache rankConfigCache;
 
     public Page<RankConfig> getAllRankConfigs(Pageable pageable) {
-        return rankConfigRepository.findAll(pageable);
+        //return rankConfigRepository.findAll(pageable);
+        List<RankConfig> allRanks = rankConfigCache.getAllRanksOrdered();
+
+        int pageSize = pageable.getPageSize();
+        int currentPage = pageable.getPageNumber();
+        int startItem = currentPage * pageSize;
+
+        List<RankConfig> pagedRanks;
+        if (startItem >= allRanks.size()) {
+            pagedRanks = List.of(); // empty page
+        } else {
+            int toIndex = Math.min(startItem + pageSize, allRanks.size());
+            pagedRanks = allRanks.subList(startItem, toIndex);
+        }
+
+        return new PageImpl<>(pagedRanks, pageable, allRanks.size());
     }
 
     public List<RankConfig> getAllRankConfigs() {
-        return rankConfigRepository.findAll();
+        return rankConfigCache.getAllRanksOrdered();
     }
 
     public RankConfig getRankById(Long id) {
-        return rankConfigRepository.findById(id).orElseThrow(() -> new RuntimeException("Id Not found"));
+        //return rankConfigRepository.findById(id).orElseThrow(() -> new RuntimeException("Id Not found"));
+        return rankConfigCache.getAllRanksOrdered().stream()
+                .filter(rank -> rank.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Rank with ID " + id + " not found in cache"));
     }
 
     public RankConfig getRankByRankCode(String code) {
-        return rankConfigRepository.findByCode(code).orElseThrow(() -> new RankNotFoundException(code));
+        //return rankConfigRepository.findByCode(code).orElseThrow(() -> new RankNotFoundException(code));
+
+        RankConfig rank = rankConfigCache.getByRankCode(code);
+        if (rank == null) {
+            throw new RankNotFoundException(code);
+        }
+        return rank;
     }
 
     public RankConfig createRank(RankConfigDto request) {
@@ -61,7 +88,13 @@ public class RankConfigService {
         rank.getRequiredLevelCounts().put(2, request.getMinLevel2Count());
         rank.getRequiredLevelCounts().put(3, request.getMinLevel3Count());
 
-        return rankConfigRepository.save(rank);
+        // ✅ Save to DB
+        RankConfig saved = rankConfigRepository.save(rank);
+
+        // ✅ Reload cache
+        rankConfigCache.reload();
+
+        return saved;
     }
 
     public void patchRank(Long id, Map<String, Object> updates) {
@@ -116,7 +149,13 @@ public class RankConfigService {
             }
         });
 
+
+        // ✅ Save to DB
         rankConfigRepository.save(rank);
+
+
+        // ✅ Reload cache
+        rankConfigCache.reload();
     }
 
     private int castToInt(Object value) {

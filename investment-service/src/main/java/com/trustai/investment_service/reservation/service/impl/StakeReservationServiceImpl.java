@@ -1,6 +1,7 @@
 package com.trustai.investment_service.reservation.service.impl;
 
 import com.trustai.common.api.IncomeApi;
+import com.trustai.common.api.RankConfigApi;
 import com.trustai.common.api.UserApi;
 import com.trustai.common.api.WalletApi;
 import com.trustai.common.dto.*;
@@ -11,6 +12,7 @@ import com.trustai.common.event.StakeSoldEvent;
 import com.trustai.common.exceptions.ErrorCode;
 import com.trustai.common.exceptions.ValidationException;
 import com.trustai.common.utils.DateUtils;
+import com.trustai.investment_service.config.StakeProperties;
 import com.trustai.investment_service.entity.InvestmentSchema;
 import com.trustai.investment_service.repository.SchemaRepository;
 import com.trustai.investment_service.reservation.dto.ReservationSummary;
@@ -29,6 +31,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,12 +46,14 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     private final SchemaRepository schemaRepository;
     private final UserReservationMapper mapper;
     private final UserApi userApi;
+    private final RankConfigApi rankConfigApi;
     private final WalletApi walletApi;
     private final IncomeApi incomeApi;
     private final ApplicationEventPublisher eventPublisher;
+    private final StakeProperties stakeProperties;
 
-    @Value("${investment.stake.valuationDelta}")
-    private BigDecimal stakeValuationDelta;
+    @Value("${wallet.reserve-percentage:0.7}") // Default 70%
+    private BigDecimal reservePercentage;
 
 
     @Override
@@ -56,11 +61,13 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         log.info("Retrieving reservation info for userId: {}", userId);
         var userInfo = userApi.getUserById(userId);
         List<IncomeSummaryDto> incomeSummary = incomeApi.getIncomeSummary(userId);
+        List<UserReservation> allReservations = reservationRepository.findByUserId(userId);
 
         var dailyIncome = incomeSummary.stream().filter(i -> i.getIncomeType() == IncomeType.DAILY).findFirst().get();
         var teamIncome = incomeSummary.stream().filter(i -> i.getIncomeType() == IncomeType.TEAM).findFirst().get();
         int totalOrders = dailyIncome.getTotalOrders();
-        int processingOrders = dailyIncome.getProcessingOrders();
+        //int processingOrders = dailyIncome.getProcessingOrders();
+        int processingOrders = (int) allReservations.stream().filter(r -> !r.isSold()).count();
 
         return ReservationSummary.builder()
                 .todayEarning(dailyIncome.getTodayAmount())
@@ -88,41 +95,65 @@ public class StakeReservationServiceImpl implements StakeReservationService {
     @Transactional
     public UserReservation autoReserve(Long userId) {
         log.info("Attempting to auto-reserve stake - userId: {}", userId);
-        UserInfo user = userApi.getUserById(userId);
 
-        // Step 1. CCheck if the user already has a reservation for today
-        boolean alreadyReserved = reservationRepository.existsByUserIdAndReservationDate(userId, LocalDate.now());
-        if (alreadyReserved) {
-            log.warn("Reservation failed: User has already reserved today - userId: {}", userId);
-            throw new ValidationException("User has already reserved a stake today", ErrorCode.STAKE_ALREADY_RESERVED );
+        UserInfo user = userApi.getUserById(userId);
+        String userRankCode = user.getRankCode();
+        log.debug("Retrieved user info: id={}, rankCode={}", user.getId(), userRankCode);
+
+
+        RankConfigDto rankConfig = rankConfigApi.getRankConfigByRankCode(userRankCode);
+        List<UserReservation> todayReservations = reservationRepository.findAllByUserIdAndToday(userId, LocalDate.now());
+        int dailyTxnLimit = rankConfig.getTxnPerDay() - todayReservations.size();
+
+        // Step 1. Validate eligibility
+        if ("RANK_0".equals(userRankCode) && rankConfig.getTxnPerDay() == 0) {
+            throw new ValidationException("Reservation not allowed for current rank, please upgrade your rank", ErrorCode.RESERVATION_NOT_ALLOWED );
         }
 
-        // Step 2. Get highest-priced eligible active stake schema
-        InvestmentSchema schema = schemaRepository
-                .findTopByInvestmentSubTypeAndIsActiveTrueOrderByPriceDesc(InvestmentSchema.InvestmentSubType.STAKE)
-                .orElseThrow(() -> {
-                    log.error("Reservation failed: No suitable stake schema found");
-                    throw new ValidationException("No suitable stake schema found for reservation", ErrorCode.STAKE_SCHEMA_NOT_FOUND );
-                });
+        if (dailyTxnLimit == 0) {
+            throw new ValidationException("You’ve reached your daily reservation limit. You can only make one reservation per day.", ErrorCode.STAKE_ALREADY_RESERVED );
+        }
 
-        // Step 3. Verify if the user has sufficient wallet balance for the reservation
+
+        // Step 2. Verify if the user has sufficient wallet balance for the reservation
         BigDecimal walletBalance = user.getWalletBalance();
-        BigDecimal reservedAmount = schema.getPrice();
-        BigDecimal minimumRequired = schema.getMinimumInvestmentAmount();
+        BigDecimal minimumRequired = rankConfig.getMinDepositAmount(); // schema.getMinimumInvestmentAmount();
+        //BigDecimal reservedAmount = user.getWalletBalance().min(minimumRequired); // schema.getStakePrice();
+        // Calculate 70% of wallet balance
+        BigDecimal reserveAmount = calculateReserveAmount(walletBalance);
 
         if (walletBalance.compareTo(minimumRequired) < 0) {
             log.warn("Reservation failed: Insufficient wallet balance. userId={}, balance={}, required={}", userId, walletBalance, minimumRequired);
             throw new ValidationException("Insufficient Wallet Balance", ErrorCode.INSUFFICIENT_WALLET_BALANCE );
         }
 
+
+        // Step 3. Get highest-priced eligible active stake schema
+        //log.info("finding best matched stake for reservation..........");
+        /*InvestmentSchema schema = schemaRepository
+                .findTopByInvestmentTypeAndIsActiveTrueOrderByMinimumInvestmentAmountDesc(InvestmentType.STAKE)
+                .orElseThrow(() -> {
+                    log.error("Reservation failed: No suitable stake schema found");
+                    throw new ValidationException("No suitable stake schema found for reservation", ErrorCode.STAKE_SCHEMA_NOT_FOUND );
+                });*/
+        log.info("Assign any random stake..........");
+        InvestmentSchema schema = schemaRepository.findRandomActiveSchema()
+                .orElseThrow(() -> {
+                    log.error("Reservation failed: No suitable stake schema found");
+                    return new ValidationException("No suitable stake schema found for reservation", ErrorCode.STAKE_SCHEMA_NOT_FOUND);
+                });
+        schema.setStakePrice(walletBalance);
+        schema.setMinimumInvestmentAmount(walletBalance);
+
+
         // Step 4. Construct a new reservation entity
-        BigDecimal valuationDeltaSafe = stakeValuationDelta != null ? stakeValuationDelta : BigDecimal.ZERO;
+        BigDecimal valuationDeltaSafe = stakeProperties.getValuationDelta()!= null ? stakeProperties.getValuationDelta() : BigDecimal.ZERO;
         LocalDateTime now = LocalDateTime.now();
 
         UserReservation reservation = UserReservation.builder()
                 .userId(userId)
                 .schema(schema)
-                .reservedAmount(schema.getPrice())
+                .reservedAmount(reserveAmount)
                 .valuationDelta(valuationDeltaSafe)
                 .reservedAt(now)
                 .expiryAt(now.plusDays(1)) // Reservation valid for 1 day
@@ -131,11 +162,11 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 .build();
 
         // Step 5. Deduct reserved amount from user's wallet and create a transaction record
-        String remarks = "Investment reserved for reservationId: " + reservation.getId() +
+        String remarks = "Investment reserved: for reservationId: " + reservation.getId() +
                 " and amount: " + reservation.getReservedAmount() +
                 " at " + DateUtils.formatDisplayDate(LocalDateTime.now());
-        TransactionDto walletTxn = updateWalletBalance(userId, schema.getPrice(), false, remarks);
-        log.info("Wallet debited successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, reservedAmount);
+        TransactionDto walletTxn = updateWalletBalance(userId, reserveAmount, false, remarks);
+        log.info("Wallet debited successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, reserveAmount);
 
         // Step 6: Save the reservation
         UserReservation savedReservation = reservationRepository.save(reservation);
@@ -201,9 +232,19 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         log.info("Reservation marked as sold - orderId: {}, userId: {}, reservedAmount: {}, gain: {}", orderId, userId, reservedAmount, realizedGain);
 
         // Step 6: Publish StakeSoldEvent for downstream processing (e.g., income accrual)
+        publishStakeSold(reservation);
+    }
+
+    @Async
+    private void publishStakeSold(UserReservation reservation) {
+        Long userId = reservation.getUserId();
+        BigDecimal reservedAmount = reservation.getReservedAmount();
+
+        log.info("Published StakeSoldEvent for userId: {}, reservedAmount: {}", reservation.getUserId(), reservedAmount);
         eventPublisher.publishEvent(new StakeSoldEvent(userId, reservedAmount));
-        log.info("Published StakeSoldEvent for userId: {}, reservedAmount: {}", userId, reservedAmount);
-        sendSaleNotification(userId, reservation, soldAmount);
+
+        log.info("Published notifications for userId: {}, reservedAmount: {}", reservation.getUserId(), reservedAmount);
+        sendSaleNotification(userId, reservation, reservation.getSoldAmount());
     }
 
 
@@ -322,4 +363,16 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 )
         );
     }
+
+    public BigDecimal calculateReserveAmount(BigDecimal walletBalance) {
+        BigDecimal percentage = reservePercentage;
+        if (percentage == null || percentage.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Reserve percentage is not configured properly.");
+        }
+
+        return walletBalance
+                .multiply(percentage)
+                .setScale(2, RoundingMode.DOWN);
+    }
+
 }

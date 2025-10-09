@@ -16,8 +16,10 @@ public class UserDetailsInfo {
     private String username;
     private String firstname;
     private String lastname;
+    private String fullName;
     private String email;
     private String phone;
+    private String walletAddress;
 
     // Balance Related
     private BigDecimal walletBalance;
@@ -30,6 +32,12 @@ public class UserDetailsInfo {
 
     // Kyc
     private KycInfo kyc;
+
+    //Address:
+    private String state;
+    private String city;
+    private String address;
+    private String zipCode;
 
     // Status
     private AccountStatus accountStatus;

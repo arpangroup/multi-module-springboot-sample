@@ -190,3 +190,7 @@ docker compose version
 # ================= Docker Install Complete =================
 echo "✅ Docker and Docker Compose installation complete!"
 echo "🔄 You may need to log out and back in for docker group changes to apply."
+
+
+
+docker network create backend

@@ -6,6 +6,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,6 +18,7 @@ import java.io.File;
 
 @Service
 @RequiredArgsConstructor
+@RefreshScope
 @Slf4j
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;

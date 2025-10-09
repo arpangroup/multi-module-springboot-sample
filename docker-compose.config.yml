@@ -1,0 +1,61 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: config-db
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-trustai_db}
+      MYSQL_USER: ${DB_USER:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+#    networks:
+#      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
+      timeout: 5s
+
+
+  config-service:
+    image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
+    container_name: config-service
+    user: "${CICD_UID:-1001}:${CICD_GID:-1001}"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: "Asia/Kolkata"
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_TIME_ZONE: "Asia/Kolkata"
+      # Datasource override
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-root}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-password}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      # JPA/ Hibernate
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      # Force Spring Boot to run data.sql
+      SPRING_SQL_INIT_MODE: always
+      # Optional: Logging
+      SPRING_LOGGING_FILE_NAME: /app/logs/config-service.log
+      SPRING_LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE_INIT: DEBUG
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data.sql:/app/data.sql:ro   # ensure your SQL is mounted
+      - ${HOST_LOG_DIR}:/app/logs # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
+#    networks:
+#      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+#networks:
+#  backend:
+#    external: true

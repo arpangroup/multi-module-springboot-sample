@@ -10,7 +10,10 @@ public class MinimumDepositAmountSpec implements RankSpecification {
 
     @Override
     public boolean isSatisfied(UserInfo user, UserMetrics metrics, RankConfig config) {
-        return metrics.getTotalDeposit()
+        /*return metrics.getTotalDeposit()
+                .compareTo(config.getMinDepositAmount()) >= 0;*/
+
+        return metrics.getWalletBalance()
                 .compareTo(config.getMinDepositAmount()) >= 0;
     }
 }

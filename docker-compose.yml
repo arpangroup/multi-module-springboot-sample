@@ -1,55 +1,87 @@
 version: "3.9"
-services:
-  app:
-    image: ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-    #image: trustai-backend
-    #build: .                   # You only need build: . locally <--- If you're pulling from GHCR and not building locally, remove the build: . line.
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-    environment:
-      #SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-#      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}
-#      SPRING_DATASOURCE_USERNAME: ${DB_USER}
-#      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-#      SPRING_JPA_HIBERNATE_DDL_AUTO: create #create, update
-      spring.datasource.url: jdbc:mysql://db:3306/${DB_NAME}
-      spring.datasource.username: ${DB_USER}
-      spring.datasource.password: ${DB_PASSWORD}
-      spring.jpa.hibernate.ddl-auto: create
-    restart: unless-stopped
-    networks:
-      - backend
-    volumes:
-      - /home/logs:/logs  # Logs are saved to host directory
-      - /home/uploads:/app/uploads
 
+services:
+  # ----------------------
+  # Database for Config-Service
+  # ----------------------
   db:
     image: mysql:8.0
-    command: >
-      --default-authentication-plugin=mysql_native_password 
-      --character-set-server=utf8mb4 
-      --collation-server=utf8mb4_unicode_ci
+    container_name: config-db
     environment:
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-    ports:
-      - "3307:3306" # Container's MySQL will still listen on port 3306, but you will access it via port 3307
+      MYSQL_DATABASE: ${DB_NAME:-trustai_db}
+      MYSQL_USER: ${DB_USER:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-password}
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped # always
+    ports:
+      - "3307:3306"
     networks:
       - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
+      timeout: 5s
 
+  # ----------------------
+  # Config-Service
+  # ----------------------
+  config-service:
+    image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
+    container_name: config-service
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-root}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-password}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      SPRING_SQL_INIT_MODE: always
+      SPRING_LOGGING_FILE_NAME: /app/logs/config-service.log
+      SPRING_LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE_INIT: DEBUG
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data.sql:/app/data.sql:ro
+      - ./logs:/app/logs
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # ----------------------
+  # Aggregator App
+  # ----------------------
+  app:
+    image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
+    container_name: trustai-backend
+    depends_on:
+      - config-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://72.60.101.185:8888
+      SPRING_CONFIG_IMPORT: configserver:http://72.60.101.185:8888
+      LOGGING_FILE_NAME: /app/logs/trustai-app.log
+    ports:
+      - "8080:8080"
+    volumes:
+      - /home/cicd_deploy/logs:/app/logs
+      - /home/cicd_deploy/uploads:/uploads
+#      - ./logs:/app/logs
+#      - ./uploads:/app/uploads
+    networks:
+      - backend
+    restart: unless-stopped
+
+# ----------------------
+# Volumes & Networks
+# ----------------------
 volumes:
   mysql_data:
+
 networks:
   backend:
+    driver: bridge

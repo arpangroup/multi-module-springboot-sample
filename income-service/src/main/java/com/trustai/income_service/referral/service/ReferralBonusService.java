@@ -3,6 +3,8 @@ package com.trustai.income_service.referral.service;
 
 import com.trustai.common.enums.TriggerType;
 
+import java.math.BigDecimal;
+
 public interface ReferralBonusService {
     /**
      * Creates a pending referral bonus for the specified referrer and referee.
@@ -38,6 +40,8 @@ public interface ReferralBonusService {
      * @param refereeId the ID of the user who triggered the referral condition
      */
     void evaluateBonus(Long refereeId);
+
+    void approvePendingBonus(Long refereeId, BigDecimal depositAmount);
 
 
     /**

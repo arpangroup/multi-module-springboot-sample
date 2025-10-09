@@ -1,11 +1,13 @@
 package com.trustai.investment_service.entity;
 
 import com.trustai.common.enums.CalculationType;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import com.trustai.investment_service.enums.InvestmentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /*
@@ -93,9 +95,42 @@ public class UserInvestment {
     @Column(nullable = false)
     private InvestmentStatus status;
 
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    @Column(nullable = false, updatable = true)
+    private LocalDateTime updatedAt;
+    @Column
+    private String createdBy;
+    @Column
+    private String updatedBy;
+
     @PrePersist
     protected void onCreate() {
         this.subscribedAt = LocalDateTime.now();
         this.status = InvestmentStatus.ACTIVE;
+
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+
+        this.createdBy = getCurrentUsername();
+        this.updatedBy = getCurrentUsername();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+
+        String currentUserId = getCurrentUserId();
+        this.updatedBy = currentUserId;
+    }
+
+
+    private String getCurrentUserId() {
+        return RequestContextHolderUtils.getCurrentUserId() + "";
+    }
+
+    private String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
     }
 }

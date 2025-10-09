@@ -1,10 +1,7 @@
 package com.trustai.common.domain.user;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "roles")
@@ -27,4 +24,10 @@ public class Role {
     public Role(String name) {
         this.name = name;
     }
+
+    public Role(Long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
 }

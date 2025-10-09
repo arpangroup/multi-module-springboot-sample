@@ -10,6 +10,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -28,6 +29,7 @@ public class DatabaseOtpService implements OtpService {
 
     @Override
     public OtpSession createSession(String username, String flow, int maxAttempts) {
+        log.info("createSession...");
         String sessionId = UUID.randomUUID().toString();
         String otp = generateOtp();
 
@@ -50,16 +52,15 @@ public class DatabaseOtpService implements OtpService {
                 .orElseThrow(() -> new IllegalStateException("OTP session not found"));
 
         System.out.printf("Sending OTP %s to %s via %s%n", entity.getOtp(), entity.getUsername(), channel);
-        eventPublisher.publishEvent(
-                new NotificationEvent(this,
-                        NotificationRequest.forEmail(
-                                String.valueOf(entity.getUsername()),
-                                "Verification Code from TrustAI",
-                                "Please enter the verification code to verify your account.\n" +
-                                        "<b>" + entity.getOtp() + "</b>"
-                        )
-                )
+
+        NotificationRequest notificationRequest = NotificationRequest.forEmail(
+                String.valueOf(entity.getUsername()),
+                "Verification Code from TrustAI",
+                "Please enter the verification code to verify your account.\n" +
+                        "<b>" + entity.getOtp() + "</b>"
         );
+
+        publishOTP(notificationRequest);
     }
 
     @Override
@@ -164,5 +165,14 @@ public class DatabaseOtpService implements OtpService {
         int bound = (int) Math.pow(10, SecurityConstants.OTP_LENGTH);
         int code = random.nextInt(bound);
         return String.format("%0" + SecurityConstants.OTP_LENGTH + "d", code);
+    }
+
+    @Async
+    private void publishOTP(NotificationRequest request) {
+        log.info("🔔 [Async OTP Publish] Triggered for user: {}, channel: {}, destination: {}",
+                request.getRecipient(),
+                request.getChannels(),
+                request.getRecipient());
+        eventPublisher.publishEvent(new NotificationEvent(this, request));
     }
 }

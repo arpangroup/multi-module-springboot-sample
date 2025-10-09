@@ -88,3 +88,20 @@ foundation-core
 └── pom.xml
 
 ````
+
+## Delete workflow run 
+
+1. Backend:
+````bash
+gh run list --repo arpangroup/multi-module-springboot-sample --limit 1000 --json databaseId --jq ".[].databaseId" | ForEach-Object { echo Y | gh run delete $_ --repo arpangroup/multi-module-springboot-sample }
+````
+
+2. Admin Panel
+````bash
+gh run list --repo arpangroup/trustai-admin-2025 --limit 1000 --json databaseId --jq ".[].databaseId" | ForEach-Object { echo Y | gh run delete $_ --repo arpangroup/trustai-admin-2025 }
+````
+
+3. CustomerApp
+````bash
+gh run list --repo arpangroup/trustai-frontend-2025 --limit 1000 --json databaseId --jq ".[].databaseId" | ForEach-Object { echo Y | gh run delete $_ --repo arpangroup/trustai-frontend-2025 }
+`````

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -52,7 +53,7 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider, userDetailsService);
-//        InternalTokenAuthFilter internalTokenAuthFilter = new InternalTokenAuthFilter(internalToken);
+        InternalTokenAuthFilter internalTokenAuthFilter = new InternalTokenAuthFilter(internalToken);
 
         http
                 .securityMatcher("/api/**")
@@ -64,14 +65,15 @@ public class SecurityConfig {
                 )
                 //.authenticationProvider(daoProvider) // keep this if not globally registered
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/register/**").permitAll()
+                        //.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 👈 allow preflight
+                        .requestMatchers("/api/auth/**", "/api/register/**", "/api/password/**", "/api/config", "/api/nfts").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Order is important: check internal token before JWT
                 // The order of these two lines matters — whichever you call last will run first. So to run internalTokenAuthFilter before JWT, make sure it’s added after JWT:
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-//                .addFilterBefore(internalTokenAuthFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalTokenAuthFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

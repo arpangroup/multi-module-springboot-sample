@@ -16,4 +16,5 @@ public class RankConfigDto {
     private BigDecimal maxInvestmentAmount;
     private BigDecimal commissionPercentage;
     private int rankOrder;
+    private int txnPerDay;
 }

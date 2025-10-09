@@ -1,0 +1,79 @@
+
+services:
+  # MySQL DB
+  db:
+    image: mysql:8.0
+    container_name: app-db
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "3307:3306" # maps host 3307 -> container 3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Config Service
+  config-service:
+    image: ${REGISTRY}/${IMAGE_NAME}-config:${IMAGE_TAG}
+    container_name: app-config-service
+    ports:
+      - "8888:8888"
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_started  # only wait until DB container is started
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      retries: 10
+      timeout: 5s
+    restart: unless-stopped
+
+  # Main App
+  app:
+    image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    depends_on:
+      - db
+      - config-service
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-service:8888/
+    restart: unless-stopped
+    volumes:
+      - /home/logs:/logs
+      - /home/uploads:/app/uploads
+
+volumes:
+  mysql_data:
+
+networks:
+  backend:

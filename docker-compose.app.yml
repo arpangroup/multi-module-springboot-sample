@@ -1,0 +1,30 @@
+
+services:
+  app:
+    image: ${REGISTRY}/${IMAGE_NAME}-aggregator:${IMAGE_TAG}
+    container_name: trustai-backend
+    user: "${CICD_UID:-1001}:${CICD_GID:-1001}"
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: "Asia/Kolkata"
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_TIME_ZONE: "Asia/Kolkata"
+      CONFIG_SERVER_HOST: ${CONFIG_SERVER_HOST:-72.60.101.185}
+      SPRING_CLOUD_CONFIG_URI: http://$CONFIG_SERVER_HOST:8888
+      SPRING_CONFIG_IMPORT: configserver:http://$CONFIG_SERVER_HOST:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://$CONFIG_SERVER_HOST:3307/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      LOGGING_FILE_NAME: /app/logs/trustai-app.log
+#    networks:
+#      - backend
+    restart: unless-stopped
+    volumes:
+      - ${HOST_LOG_DIR}:/app/logs              # mount host logs directory (./logs → relative to where you run docker-compose up on the host.)
+      - ${HOST_UPLOADS_DIR}:/app/uploads
+
+
+#networks:
+#  backend:
+#    external: true

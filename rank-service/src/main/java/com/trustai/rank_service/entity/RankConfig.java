@@ -80,7 +80,7 @@ public class RankConfig {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String code; // RANK_1, RANK_2
+    private String code = "RANK_0"; // RANK_0, RANK_1, RANK_2
     private String displayName; // e.g., Bronze, Silver, Gold
     @Column(unique = true)
     private int rankOrder; // Order of rank evaluation
@@ -105,7 +105,7 @@ public class RankConfig {
 
     private int txnPerDay;
     // Required downline users per level (depth = 1 = level A, etc.)
-    @ElementCollection //  Tells JPA this is a collection of simple values (not entities).
+    @ElementCollection(fetch = FetchType.EAGER) //  Tells JPA this is a collection of simple values (not entities).
     @CollectionTable(name = "rank_downline_requirements", joinColumns = @JoinColumn(name = "rank_id")) // Specifies a separate table to store the map.
     @MapKeyColumn(name = "depth") // The key of the map will be stored as depth (e.g., 1 = level A, 2 = level B...).
     @Column(name = "required_count") // The value of the map — how many users are required at that depth.

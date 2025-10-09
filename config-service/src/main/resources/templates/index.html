@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic MLM Tree</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="config.css">
+</head>
+
+<body>
+
+
+  <!-- Config Sidebar -->
+  <div class="container">
+    <div class="wrapper">
+      <section class="card">
+        <div class="header">
+          <h2>App Configuration Editor</h2>
+          <div class="button-container">
+            <button id="reloadConfig" class="add-button" onclick="loadConfigs()">🔄 Reload Config</button>
+          </div>
+        </div>
+        <input type="text" id="configSearch" placeholder="🔍 Search config keys..." oninput="filterConfigs()"/>
+        <div id="configContainer"></div>
+        <button onclick="updateConfigs();" class="update-button">Update Configs</button>
+      </section>
+    </div>
+    <div class="rightContainer">
+      <div class="card">
+        <div class="header">
+          <h2>Add New Configuration</h2>
+        </div>
+        <form id="addConfigForm" class="config-form">
+          <label>
+            Key:
+            <input type="text" name="key" required>
+          </label>
+
+          <!--<label id="valueTypeLabel">
+            Value Type:
+            <select name="valueType" id="valueTypeSelect" required>
+              <option value="INT">INT</option>
+              <option value="FLOAT">FLOAT</option>
+              <option value="DOUBLE">DOUBLE</option>
+              <option value="BIG_DECIMAL">BIG_DECIMAL</option>
+              <option value="BOOLEAN">BOOLEAN</option>
+              <option value="STRING" selected>STRING</option>
+            </select>
+          </label>-->
+
+          <label id="valueFieldLabel">
+            Value:
+            <span id="valueFieldContainer">
+              <input type="text" name="value" required>
+            </span>
+          </label>
+
+
+          <label>
+            Application:
+            <input type="text" name="application" value="nft_app" disabled>
+          </label>
+
+          <label>
+            Profile:
+            <input type="text" name="profile" value="dev" disabled>
+          </label>
+
+
+          <label>
+            Label:
+            <input type="text" name="label" value="">
+          </label>
+          <label>
+            Info:
+            <input type="text" name="info" value="">
+          </label>
+
+          <!--<label>
+            Enum Values:
+            <input type="text" name="enumValues" disabled>
+          </label>-->
+
+          <button type="submit">Add Configuration</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="header">
+          <h2>Export Configuration</h2>
+        </div>
+        <div class="button-container">
+          <button id="exportToProperty" class="add-button" onclick="exportToProperty()">📝 Export to <code>application.properties</code></button>
+          <button id="exportToYaml" class="add-button" onclick="exportToYaml()">📄 Export to <code>application.yml</code></button>
+        </div>
+        <div class="output">
+          <textarea id="propertiesOutput" rows="15" cols="100" readonly></textarea>
+
+          <ul>
+            <li><a href="http://localhost:8888/nft_app/dev" target="_blank" id="config_url">localhost:8888/http://localhost:8888/nft_app/dev</a></li>
+            <li>logging.level.org.springframework.cloud=DEBUG</li>
+          </ul>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+  <!-- ./Config Sidebar -->
+
+  <script src="configv1.js"></script>
+</body>
+
+</html>

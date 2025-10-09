@@ -12,6 +12,14 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
+    <!--<repositories>
+        <repository>
+            <id>splunk-ext-releases</id>
+            <name>Splunk External Releases</name>
+            <url>https://splunk.jfrog.io/splunk/ext-releases-local</url>
+        </repository>
+    </repositories>-->
+
     <dependencies>
         <dependency>
             <groupId>com.trustai</groupId>
@@ -70,6 +78,13 @@
             <version>${project.version}</version>
         </dependency>-->
 
+        <!-- Spring CLoud Config [Step1]-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+        <!-- ./Spring CLoud Config [Step1]-->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -127,6 +142,37 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Example dependency for Log4j2 -->
+        <!--<dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.25.1</version>
+        </dependency>-->
+
+        <!--<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>-->
+
+       <!-- <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>-->
+
+        <!-- Splunk Logging -->
+       <!-- <dependency>
+            <groupId>com.splunk.logging</groupId>
+            <artifactId>splunk-library-javalogging</artifactId>
+            <version>1.11.8</version>
+            <scope>runtime</scope>
+        </dependency>-->
 
         <!-- Lombok -->
         <dependency>

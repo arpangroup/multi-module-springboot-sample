@@ -1,6 +1,7 @@
 package com.trustai.transaction_service.entity;
 
 import com.trustai.common.enums.PaymentGateway;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,7 @@ public class PendingDeposit {
 
     @Column(nullable = false)
     private Long userId;
+    private String imageUrl;
 
     @Column(nullable = false)
     private BigDecimal amount = BigDecimal.ZERO;
@@ -74,15 +76,19 @@ public class PendingDeposit {
     @Column(length = 255)
     private String rejectionReason;
 
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        this.createdBy = getCurrentUsername();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = getCurrentUsername();
     }
 
     public PendingDeposit(long userId, BigDecimal amount) {
@@ -91,10 +97,10 @@ public class PendingDeposit {
     }
 
     // For Manual Deposit:
-    public PendingDeposit(long userId, BigDecimal amount, String linkedAccountNumber) {
+    public PendingDeposit(long userId, BigDecimal amount, String linkedTxnId) {
         this.userId = userId;
         this.amount = amount;
-        this.linkedTxnId = linkedAccountNumber;
+        this.linkedTxnId = linkedTxnId;
     }
 
     // For Standard Deposit:
@@ -109,5 +115,10 @@ public class PendingDeposit {
         PENDING,
         APPROVED,
         REJECTED
+    }
+
+
+    private String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
     }
 }

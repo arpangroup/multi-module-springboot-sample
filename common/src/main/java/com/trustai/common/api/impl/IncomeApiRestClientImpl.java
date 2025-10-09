@@ -4,6 +4,7 @@ import com.trustai.common.api.IncomeApi;
 import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.dto.IncomeSummaryDto;
 import com.trustai.common.dto.UserInfo;
+import com.trustai.common.enums.IncomeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
@@ -62,6 +63,7 @@ public class IncomeApiRestClientImpl implements IncomeApi {
                     .body(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {});
         });
     }
+
 }
 
 /*

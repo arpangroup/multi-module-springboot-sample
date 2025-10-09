@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/profits")
+    @RequestMapping("/api/v1/transactions/profits")
 @RequiredArgsConstructor
 @Slf4j
 public class ProfitTransactionController {

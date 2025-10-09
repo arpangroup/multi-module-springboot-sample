@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface TemplateRepository extends JpaRepository<NotificationTemplate, Long> {
     Optional<NotificationTemplate> findByCodeAndNotificationChannel(String code, NotificationChannel notificationChannel);
+
+    boolean existsByCode(String code);
 }

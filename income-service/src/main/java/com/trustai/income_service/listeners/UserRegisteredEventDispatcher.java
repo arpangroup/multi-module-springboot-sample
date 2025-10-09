@@ -1,10 +1,15 @@
 package com.trustai.income_service.listeners;
 
 import com.trustai.common.event.UserRegisteredEvent;
+import com.trustai.income_service.referral.service.ReferralBonusService;
+import com.trustai.income_service.referral.service.SignupBonusService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
 
@@ -12,15 +17,25 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 @Slf4j
 public class UserRegisteredEventDispatcher {
-    @EventListener
+    private final SignupBonusService signupBonusService;
+    private final ReferralBonusService referralBonusService;
+
+//    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void dispatch(UserRegisteredEvent event) {
+        log.info("Handling UserRegisteredEvent AFTER COMMIT for userId={}", event.getRefereeId());
+
         // control order here
         Long refereeId = event.getRefereeId();
         Long referrerId = event.getReferrerId();
 
         // Step 1: Update the user hierarchy tree to reflect the new referral relationship
-        log.info("UserRegisteredEvent: Updating hierarchy - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
+        //log.info("UserRegisteredEvent: Updating hierarchy - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
         //userHierarchyService.updateHierarchy(event.getReferrerId(), event.getRefereeId());
+
+        // Step 2: Apply Signup Bonus for the newly registered user
+        log.info("UserRegisteredEvent: Apply Signup Bonus - Referrer ID: {}, Referee ID: {}", referrerId, refereeId);
+        signupBonusService.applySignupBonus(refereeId);
 
         // Step 2: Create a pending bonus (not immediately granted)
         /*
@@ -33,8 +48,8 @@ public class UserRegisteredEventDispatcher {
          * - Prevent abuse from fake/inactive sign-ups.
          * - Ensure bonuses are only rewarded for meaningful referrals.
          */
-        log.info("UserRegisteredEvent:  Creating pending bonus - Referrer ID: {}, Referee ID: {}, Trigger: {}", referrerId, refereeId, event.getTriggerType());
-        //referralBonusService.createPendingBonus(event.getReferrerId(), event.getRefereeId(), event.getTriggerType());
+        log.info("UserRegisteredEvent:  Creating pending referral bonus - Referrer ID: {}, Referee ID: {}, Trigger: {}", referrerId, refereeId, event.getTriggerType());
+        referralBonusService.createPendingBonus(event.getReferrerId(), event.getRefereeId(), event.getTriggerType());
 
         // Step 3: Evaluate and update the rankCode for both referee and referrer
         /**

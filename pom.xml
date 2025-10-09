@@ -33,6 +33,7 @@
     </properties>
 
     <modules>
+        <module>config-service</module>
         <module>aggregator</module>
         <module>common</module>
         <module>storage-service</module>
@@ -49,6 +50,16 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- Lombok (managed version) -->
             <dependency>
                 <groupId>org.projectlombok</groupId>

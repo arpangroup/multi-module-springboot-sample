@@ -1,0 +1,209 @@
+name: Deploy Aggregator (Docker + GHCR )
+
+on:
+  push:
+    branches: ["09-oct-fix1"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Override image tag to deploy (default: commit SHA)"
+        required: true
+        default: "latest"
+
+# Global environment variables (no interpolation here)
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_TAG: ${{ github.sha }}
+  REMOTE_USER: ${{ secrets.REMOTE_USER }}
+  REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+  REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
+  GHCR_USER: ${{ secrets.GHCR_USERNAME }}
+  GHCR_PAT: ${{ secrets.GHCR_PAT }}
+  DEPLOY_USER: "cicd_deploy"
+  CONFIG_SERVER_HOST: "72.60.101.185"
+  DEPLOY_HOME: "/home/cicd_deploy"
+  HOST_LOG_DIR: "/home/cicd_deploy/logs"
+  HOST_UPLOADS_DIR: "/home/cicd_deploy/uploads"
+  DEPLOY_PATH: "/home/cicd_deploy/trustaiapp"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: 📄 Create .env file from secrets
+        run: |
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
+
+      - name: ☕ Setup JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: 21
+
+      - name: 🏗️ Build the application
+        run: mvn -B package -DskipTests --file pom.xml
+
+      - name: 🔍 Verify build artifacts
+        run: ls -l aggregator/target
+
+      - name: ⚙️ Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Build & push Aggregator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          target: aggregator
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-aggregator:latest
+
+      - name: 🚪 Logout from GHCR
+        run: docker logout ${{ env.REGISTRY }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+#      - name: 🛠 Derive deploy paths
+#        run: |
+#          echo "DEPLOY_HOME=/home/${DEPLOY_USER}" >> $GITHUB_ENV
+#          echo "DEPLOY_PATH=/home/${DEPLOY_USER}/trustaiapp" >> $GITHUB_ENV
+#          echo "HOST_LOG_DIR=/home/${DEPLOY_USER}/logs" >> $GITHUB_ENV
+#          echo "HOST_UPLOADS_DIR=/home/${DEPLOY_USER}/uploads" >> $GITHUB_ENV
+
+      - name: 🏷️ Select image tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "val=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "val=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔑 Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🛡️ Add host key to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$REMOTE_SSH_PORT" "$REMOTE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 📄 Copy docker-compose.app.yml to server
+        run: |
+          scp -P "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no docker-compose.app.yml $REMOTE_USER@$REMOTE_HOST:$DEPLOY_PATH/
+
+      - name: 🚀 Run deploy-app.sh
+        run: bash scripts/deploy-app.sh
+        env:
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ steps.tag.outputs.val }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          GHCR_USER: ${{ env.GHCR_USER }}
+          GHCR_PAT: ${{ env.GHCR_PAT }}
+          CONFIG_SERVER_HOST: ${{ env.CONFIG_SERVER_HOST }}
+          HOST_LOG_DIR: ${{ env.HOST_LOG_DIR }}
+          HOST_UPLOADS_DIR: ${{ env.HOST_UPLOADS_DIR }}
+
+
+#      - name: 🚀 Deploy on remote server
+#        run: |
+#          # Precompute the image tag in the GH action shell
+#          IMAGE_TAG=${{ steps.tag.outputs.val }}
+#
+#          ssh -p "$REMOTE_SSH_PORT" -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+#            set -e
+#
+#            # Export environment variables for docker-compose
+#            export REGISTRY="$REGISTRY"
+#            export IMAGE_NAME="$IMAGE_NAME"
+#            export IMAGE_TAG="$IMAGE_TAG"
+#            export DB_NAME="$DB_NAME"
+#            export DB_USER="$DB_USER"
+#            export DB_PASSWORD="$DB_PASSWORD"
+#            export DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD"
+#            export CONFIG_SERVER_HOST="$CONFIG_SERVER_HOST"
+#
+#            # Log the image tag being deployed
+#            echo "Deploying image tag: $IMAGE_TAG"
+#
+#            echo "🔐 Logging in to GHCR..."
+#            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+#
+#            echo "📂 Switching to deploy directory: $DEPLOY_PATH"
+#            cd "$DEPLOY_PATH"
+#
+#            echo "📄 Updating .env variables"
+#            cat > .env << EOT
+#            REGISTRY=$REGISTRY
+#            IMAGE_NAME=$IMAGE_NAME
+#            IMAGE_TAG=$IMAGE_TAG
+#            DB_NAME=$DB_NAME
+#            DB_USER=$DB_USER
+#            DB_PASSWORD=$DB_PASSWORD
+#            DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+#            CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST
+#            EOT
+##            touch .env
+##            sed -i "s|^REGISTRY=.*|REGISTRY=$REGISTRY|" .env || echo "REGISTRY=$REGISTRY" >> .env
+##            sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=$IMAGE_NAME|" .env || echo "IMAGE_NAME=$IMAGE_NAME" >> .env
+##            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$IMAGE_TAG|" .env || echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+##            sed -i "s|^DB_NAME=.*|DB_NAME=$DB_NAME|" .env || echo "DB_NAME=$DB_NAME" >> .env
+##            sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" .env || echo "DB_USER=$DB_USER" >> .env
+##            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env || echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+##            sed -i "s|^DB_ROOT_PASSWORD=.*|DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD|" .env || echo "DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD" >> .env
+##            sed -i "s|^CONFIG_SERVER_HOST=.*|CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST|" .env || echo "CONFIG_SERVER_HOST=$CONFIG_SERVER_HOST" >> .env
+#
+#
+#            echo "⬇️ Pulling latest image"
+#            docker compose -f docker-compose.app.yml pull
+#
+#            echo "🔄 Restarting services"
+#            docker compose -f docker-compose.app.yml up -d
+#
+#            echo "🧹 Cleaning up unused Docker images"
+#            docker image prune -f
+#          EOF
+#
+#        env:
+#          REGISTRY: ${{ env.REGISTRY }}
+#          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+#          GHCR_USER: ${{ env.GHCR_USER }}
+#          GHCR_PAT: ${{ env.GHCR_PAT }}
+#          REMOTE_USER: ${{ env.REMOTE_USER }}
+#          REMOTE_HOST: ${{ env.REMOTE_HOST }}
+#          REMOTE_SSH_PORT: ${{ env.REMOTE_SSH_PORT }}
+#          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}

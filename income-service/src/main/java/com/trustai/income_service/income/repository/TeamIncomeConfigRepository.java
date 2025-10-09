@@ -10,5 +10,7 @@ import java.util.Optional;
 @Repository
 public interface TeamIncomeConfigRepository extends JpaRepository<TeamIncomeConfig, TeamIncomeKey> {
     //Optional<TeamIncomeConfig> findByRankCode(String rankCode);
-    Optional<TeamIncomeConfig> findById_UplineRankAndId_DownlineDepth(String uplineRank, int downlineDepth);
+//    Optional<TeamIncomeConfig> findById_UplineRankAndId_DownlineDepth(String uplineRank, int downlineDepth);
+
+    Optional<TeamIncomeConfig> findByIdUplineRankAndIdDownlineDepth(String uplineRank, int downlineDepth);
 }

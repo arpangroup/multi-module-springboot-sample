@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class NotificationController extends BaseController {
 
     // 1️⃣ Send Notification
     @PostMapping("/send")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> sendNotification(@RequestBody NotificationRequest request) {
         log.info("Sending notification: {}", request);
         notificationService.send(request);
@@ -48,6 +50,7 @@ public class NotificationController extends BaseController {
 
     // 3️⃣ Mark single notification as viewed/read
     @PatchMapping("/{id}/view")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> markAsViewed(@PathVariable Long id) {
         Long currentUserId = getCurrentUserId();
         log.info("Marking notification {} as viewed for user: {}", id, currentUserId);
@@ -58,6 +61,7 @@ public class NotificationController extends BaseController {
 
     // 4️⃣ Mark multiple notifications as viewed
     @PatchMapping("/view")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> markMultipleAsViewed(@RequestBody List<Long> ids) {
         Long currentUserId = getCurrentUserId();
         log.info("Marking multiple notifications as viewed for user: {}, IDs: {}", currentUserId, ids);
@@ -68,6 +72,7 @@ public class NotificationController extends BaseController {
 
     // 5️⃣ Delete single notification
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
         Long currentUserId = getCurrentUserId();
         log.info("Deleting notification {} for user: {}", id, currentUserId);
@@ -78,6 +83,7 @@ public class NotificationController extends BaseController {
 
     // 7️⃣ Delete multiple notifications
     @DeleteMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteMultipleNotifications(@RequestBody List<Long> ids) {
         Long currentUserId = getCurrentUserId();
         log.info("Deleting multiple notifications for user: {}, IDs: {}", currentUserId, ids);

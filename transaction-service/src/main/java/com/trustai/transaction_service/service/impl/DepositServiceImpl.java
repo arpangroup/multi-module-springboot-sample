@@ -1,9 +1,15 @@
 package com.trustai.transaction_service.service.impl;
 
+import com.trustai.common.api.FileUploadApi;
 import com.trustai.common.api.UserApi;
+import com.trustai.common.dto.NotificationRequest;
+import com.trustai.common.dto.UserInfo;
 import com.trustai.common.enums.CurrencyType;
 import com.trustai.common.enums.PaymentGateway;
 import com.trustai.common.enums.TransactionType;
+import com.trustai.common.event.DepositActivityEvent;
+import com.trustai.common.event.FirstDepositEvent;
+import com.trustai.common.event.NotificationEvent;
 import com.trustai.transaction_service.dto.response.DepositHistoryItem;
 import com.trustai.transaction_service.dto.request.DepositRequest;
 import com.trustai.transaction_service.dto.request.ManualDepositRequest;
@@ -19,12 +25,15 @@ import com.trustai.transaction_service.util.TransactionIdGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -41,61 +50,62 @@ public class DepositServiceImpl implements DepositService {
     private final UserApi userApi;
     private final PendingDepositRepository pendingDepositRepository;
     private final TransactionMapper mapper;
+    private final FileUploadApi fileUploadApi;
     private final List<TransactionType> DEPOSIT_TRANSACTIONS = List.of(TransactionType.DEPOSIT, TransactionType.DEPOSIT_MANUAL);
+    private final ApplicationEventPublisher publisher;
 
-    // Only by ADMIN
+    // Manual Deposit should be in PENDING state until its approved
     @Override
     @Transactional
-    public PendingDeposit depositManual(ManualDepositRequest request, String createdBy) {
-        log.info("Processing manual deposit for userId: {}, amount: {}", request.getUserId(), request.getAmount());
-        validateManualDepositRequest(request);
+    //public PendingDeposit depositManual(long userId, ManualDepositRequest request, String createdBy) {
+    public PendingDeposit depositManual(long userId, BigDecimal amount, String gateway, String txnId, MultipartFile screenshot) {
+        log.info("Starting manual deposit for userId={}, amount={}, txnId={}", userId, amount, txnId);
 
-        PaymentGateway paymentGateway = PaymentGateway.SYSTEM;
-        BigDecimal fee = calculateTxnFee(paymentGateway, request.getAmount());
-        BigDecimal netAmount = request.getAmount().subtract(fee);
+        validateManualDepositInput(amount, txnId);
+
+        // Check if exactly one pending deposit exists for user
+        long pendingCount = pendingDepositRepository.countByUserIdAndStatus(userId, PendingDeposit.DepositStatus.PENDING);
+        if (pendingCount == 1) {
+            log.info("User {} already has exactly one pending deposit.", userId);
+            throw new TransactionException("There is already a single pending deposit request for this user.");
+        }
+
+        if (pendingDepositRepository.existsByLinkedTxnId(txnId)) {
+            log.info("Duplicate transaction ID detected: [{}] already exists.", txnId);
+            throw new TransactionException("Transaction ID  is already exist");
+        }
+
+        String imageUrl = fileUploadApi.uploadFile(screenshot);
+        PaymentGateway paymentGateway = PaymentGateway.BINANCE; // or SYSTEM
+        BigDecimal fee = calculateTxnFee(paymentGateway, amount);
+        BigDecimal netAmount = amount.subtract(fee);
         log.debug("Calculated fee: {}, netAmount: {}", fee, netAmount);
 
-        String txnRefId = TransactionIdGenerator.generateTransactionId(); // As txnRefId empty for manual
 
         PendingDeposit deposit = buildPendingDeposit(
-                request.getUserId(),
-                request.getAmount(),
-                txnRefId,
-                BigDecimal.ZERO,
-                PaymentGateway.SYSTEM,
-                request.getRemarks(),
-                request.getMetaInfo(),
+                userId,
+                amount,
+                imageUrl,
+                txnId,
+                fee,
+                paymentGateway,
+                "Manual deposit Request for Binance Payment",
+                null,
                 CurrencyType.INR.name(), // or make this configurable
-                null, // linkedAccountId is required to identify from which account the txn happened (eg: upiID)
-                PendingDeposit.DepositStatus.APPROVED, // AS Deposited by ADMIN directly
-                createdBy // IMPORTANT for AUDIT
+                txnId, // linkedAccountId is required to identify from which account the txn happened (eg: upiID)
+                PendingDeposit.DepositStatus.PENDING, // AS Deposited by ADMIN directly
+                String.valueOf(userId) // IMPORTANT for AUDIT
         );
         pendingDepositRepository.save(deposit);
         log.info("Manual PendingDeposit created with ID: {} and status: {}", deposit.getId(), deposit.getStatus());
-
-        Transaction transaction = createAndSaveTransaction(
-                request.getUserId(),
-                request.getAmount(),
-                netAmount,
-                paymentGateway,
-                TransactionType.DEPOSIT_MANUAL,
-                Transaction.TransactionStatus.SUCCESS, // AS Deposited by ADMIN directly
-                txnRefId,
-                fee,
-                null, // no need of linkedTxnId as the txn is direct vis PaymentGateway, we can track via txnRefId and the gateway
-                "Deposit via " + paymentGateway.name(),
-                request.getMetaInfo(),
-                null // no sender for user-initiated
-        );
-        log.info("Deposit transaction created successfully with ID: {}", transaction.getId());
 
         return deposit;
     }
 
     @Override
     @Transactional
-    public PendingDeposit deposit(@NonNull DepositRequest request) {
-        log.info("Processing deposit for userId: {}, amount: {}", request.getUserId(), request.getAmount());
+    public PendingDeposit deposit(long userId, @NonNull DepositRequest request) {
+        log.info("Processing deposit for userId: {}, amount: {}", userId, request.getAmount());
         validateDepositRequest(request);
 
         PaymentGateway paymentGateway = PaymentGateway.valueOf(request.getPaymentGateway());
@@ -105,8 +115,9 @@ public class DepositServiceImpl implements DepositService {
 
 
         PendingDeposit deposit = buildPendingDeposit(
-                request.getUserId(),
+                userId,
                 request.getAmount(),
+                null,
                 request.getTxnRefId(),
                 fee,
                 paymentGateway,
@@ -114,59 +125,78 @@ public class DepositServiceImpl implements DepositService {
                 request.getMetaInfo(),
                 CurrencyType.INR.name(), // or make this configurable
                 null, // no linkedTxnId
-                PendingDeposit.DepositStatus.PENDING, // AS Deposited by PaymentGateway, and need to verify the payment
-                String.valueOf(request.getUserId())
+                PendingDeposit.DepositStatus.APPROVED, // AS Deposited by PaymentGateway, and need to verify the payment
+                String.valueOf(userId)
         );
         pendingDepositRepository.save(deposit);
         log.info("PendingDeposit created successfully with ID: {} and status: {}", deposit.getId(), deposit.getStatus());
 
 
-
+        approvePendingDeposit(deposit.getId(), PaymentGateway.SYSTEM.name());
         return deposit;
     }
 
     @Override
     @Transactional
     public PendingDeposit approvePendingDeposit(Long depositId, String adminUser) {
+        log.info("Admin '{}' is attempting to approve deposit with ID {}", adminUser, depositId);
+
         PendingDeposit deposit = pendingDepositRepository.findById(depositId)
-                .orElseThrow(() -> new TransactionException("PendingDeposit not found"));
+                .orElseThrow(() -> {
+                    log.error("Pending deposit not found for ID {}", depositId);
+                    return new TransactionException("PendingDeposit not found");
+                });
 
         if (deposit.getStatus() != PendingDeposit.DepositStatus.PENDING) {
+            log.warn("Deposit ID {} is not in PENDING status. Current status: {}", depositId, deposit.getStatus());
             throw new TransactionException("Only pending deposits can be approved.");
         }
 
         BigDecimal netAmount = deposit.getAmount().subtract(deposit.getTxnFee());
 
-        Transaction transaction = createAndSaveTransaction(
+        boolean isFirstDeposit = !transactionRepository.existsByUserIdAndTxnType(
+                String.valueOf(deposit.getUserId()),
+                TransactionType.DEPOSIT
+        );
+
+        log.info("Updating the wallet for UserID: {} with depositAmount: {}", deposit.getUserId(), deposit.getAmount());
+        Transaction transaction = walletService.updateWalletBalance(
                 deposit.getUserId(),
                 deposit.getAmount(),
-                netAmount,
-                deposit.getGateway(),
                 TransactionType.DEPOSIT,
-                Transaction.TransactionStatus.SUCCESS,
-                deposit.getTxnRefId(),
-                deposit.getTxnFee(),
-                deposit.getLinkedTxnId(),
+                "deposit-service",
+                true,
                 "Manual deposit approved",
-                deposit.getMetaInfo(),
-                null
+                deposit.getMetaInfo()
         );
+
 
         deposit.setStatus(PendingDeposit.DepositStatus.APPROVED);
         deposit.setApprovedBy(adminUser);
         deposit.setApprovedAt(LocalDateTime.now());
         deposit.setLinkedTxnId(transaction.getId().toString()); // link to created txn
 
+        log.info("Deposit ID {} approved by '{}'. Transaction ID: {}, Amount: {}, Net: {}",
+                depositId, adminUser, transaction.getId(), deposit.getAmount(), netAmount);
+
+
+        publishDepositApproveEvents(deposit.getUserId(), isFirstDeposit, transaction);
         return pendingDepositRepository.save(deposit);
     }
 
     @Override
     @Transactional
     public PendingDeposit rejectPendingDeposit(Long depositId, String adminUser, String reason) {
+        log.info("Admin '{}' is attempting to reject deposit with ID {}. Reason: {}", adminUser, depositId, reason);
+
         PendingDeposit deposit = pendingDepositRepository.findById(depositId)
-                .orElseThrow(() -> new TransactionException("PendingDeposit not found")); // IllegalArgumentException
+                .orElseThrow(() -> {
+                    log.error("Pending deposit not found for ID {}", depositId);
+                    return new TransactionException("PendingDeposit not found");
+                });
 
         if (deposit.getStatus() != PendingDeposit.DepositStatus.PENDING) {
+            log.warn("Deposit ID {} is not in PENDING status. Current status: {}", depositId, deposit.getStatus());
             throw new TransactionException("Only pending deposits can be rejected."); // IllegalStateException
         }
 
@@ -175,11 +205,12 @@ public class DepositServiceImpl implements DepositService {
         deposit.setRejectedAt(LocalDateTime.now());
         deposit.setRejectionReason(reason);
 
+        log.info("Deposit ID {} rejected by '{}'. Reason: {}", depositId, adminUser, reason);
         return pendingDepositRepository.save(deposit);
     }
 
     @Override
-    public BigDecimal getTotalDeposit(long userId) {
+    public BigDecimal getTotalDeposit(String userId) {
         BigDecimal total = transactionRepository.sumAmountByUserIdAndTxnTypeAndStatusIn(
                 userId,
                 List.of(TransactionType.DEPOSIT, TransactionType.DEPOSIT_MANUAL),
@@ -194,10 +225,11 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public Page<DepositHistoryItem> getDepositHistory(Long userId, Pageable pageable) {
+    public Page<DepositHistoryItem> getDepositHistory(Long userId, PendingDeposit.DepositStatus status, Pageable pageable) {
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"));
 
-        Page<Transaction> transactions = transactionRepository.findByUserIdAndTxnType(userId, TransactionType.DEPOSIT, pageable);
+        Page<PendingDeposit> transactions = pendingDepositRepository.findByUserIdAndStatus(userId, status, pageable);
+
         return transactions.map(mapper::mapToDepositHistory);
     }
 
@@ -230,11 +262,16 @@ public class DepositServiceImpl implements DepositService {
         throw new TransactionException("Transaction not found with reference: " + txnRefId); // IllegalArgumentException
     }
 
+    @Override
+    public BigDecimal getTotalDepositBalance(Long userId) {
+        log.info("Starting calculation of total deposit amount for userId: {}", userId);
+        BigDecimal total = transactionRepository.sumAmountByUserIdAndTxnType(String.valueOf(userId), TransactionType.DEPOSIT);
+        log.info("Calculated total deposit amount: {} for userId: {}", total, userId);
+        return total;
+    }
+
 
     private void validateDepositRequest(DepositRequest request) {
-        if (request.getUserId() == null || request.getUserId() <= 0) {
-            throw new TransactionException("Invalid user ID"); // IllegalArgumentException
-        }
         if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new TransactionException("Deposit amount must be greater than zero"); // IllegalArgumentException
         }
@@ -246,9 +283,6 @@ public class DepositServiceImpl implements DepositService {
         }*/
     }
     private void validateManualDepositRequest(ManualDepositRequest request) {
-        if (request.getUserId() == null || request.getUserId() <= 0) {
-            throw new TransactionException("Invalid user ID"); // IllegalArgumentException
-        }
         if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new TransactionException("Deposit amount must be greater than zero"); // IllegalArgumentException
         }
@@ -258,47 +292,11 @@ public class DepositServiceImpl implements DepositService {
         return BigDecimal.ZERO;
     }
 
-    private Transaction createAndSaveTransaction(
-            Long userId,
-            BigDecimal grossAmount,
-            BigDecimal netAmount,
-            PaymentGateway gateway,
-            TransactionType txnType,
-            Transaction.TransactionStatus status,
-            String txnRefId,
-            BigDecimal txnFee,
-            String linkedTxnId,
-            String remarks,
-            String metaInfo,
-            Long senderId
-    ) {
-        BigDecimal currentBalance = walletService.getWalletBalance(userId);
-        BigDecimal newBalance = currentBalance.add(netAmount);
-
-        Transaction txn = new Transaction(userId, grossAmount, txnType, newBalance, true);
-
-        txn.setTxnFee(txnFee);
-        txn.setLinkedTxnId(linkedTxnId);
-        txn.setGateway(gateway);
-        txn.setStatus(status);
-        txn.setRemarks(remarks);
-        txn.setMetaInfo(metaInfo);
-        txn.setSenderId(senderId);
-
-        if (txnRefId == null) {
-            txnRefId = TransactionIdGenerator.generateTransactionId();
-            txn.setTxnRefId(txnRefId);
-        }
-
-        transactionRepository.save(txn);
-        walletService.updateBalanceFromTransaction(userId, netAmount);
-
-        return txn;
-    }
 
     private PendingDeposit buildPendingDeposit(
             long userId,
             BigDecimal amount,
+            String imageUrl,
             String txnRefId,
             BigDecimal txnFee,
             PaymentGateway gateway,
@@ -310,7 +308,8 @@ public class DepositServiceImpl implements DepositService {
             String createdBy
     ) {
         if (txnRefId == null) txnRefId = TransactionIdGenerator.generateTransactionId();
-        return new PendingDeposit(userId, amount)
+        return new PendingDeposit(userId, amount, linkedTxnId)
+                .setImageUrl(imageUrl)
                 .setTxnRefId(txnRefId)
                 .setTxnFee(txnFee)
                 .setGateway(gateway)
@@ -318,8 +317,79 @@ public class DepositServiceImpl implements DepositService {
                 .setMetaInfo(metaInfo)
                 .setCurrencyCode(currencyCode)
                 .setLinkedTxnId(linkedTxnId)
-                .setStatus(status)
-                .setCreatedBy(createdBy);
+                .setStatus(status);
+    }
+
+    private void validateManualDepositInput(BigDecimal amount, String txnId) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Validation failed: amount is null or not greater than zero.");
+            throw new TransactionException("Deposit amount must be greater than zero.");
+        }
+
+        if (txnId == null || txnId.isEmpty()) {
+            log.warn("Validation failed: linkedTxnId is null or empty.");
+            throw new TransactionException("Transaction ID must not be null or empty.");
+        }
+
+        if (txnId.length() < 5) {
+            log.warn("Validation failed: linkedTxnId [{}] is shorter than 5 characters.", txnId);
+            throw new TransactionException("Transaction ID must be at least 5 characters long.");
+        }
+    }
+
+    @Async
+    private void publishDepositApproveEvents(Long userId, boolean isFirstDeposit, Transaction transaction) {
+        log.info("📥 Starting deposit approval event flow | userId={}, isFirstDeposit={}", userId, isFirstDeposit);
+
+        UserInfo userInfo = userApi.getUserById(userId);
+        String email = userInfo.getEmail();
+        BigDecimal amount = transaction.getAmount();
+
+        try {
+            if (isFirstDeposit) {
+                // 1. publish FirstDepositEvent: to apply the pending ReferralBonus and make the user ACTIVE
+                log.info("🚀 Publishing FirstDepositEvent | userId={}, amount={}", userId, amount);
+                publisher.publishEvent(new FirstDepositEvent(userId, amount));
+            }
+
+            // 2. Generic Deposit event --> may be useful to update current users rank
+            log.info("🚀 Publishing FirstDepositEvent | userId={}, amount={}", userId, amount);
+            publisher.publishEvent(new DepositActivityEvent(this, userId, transaction.getAmount(), isFirstDeposit));
+
+            // 3. Send Notifications
+            sendDepositSuccessNotifications(userInfo, transaction);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to publish deposit success events for userId={}", userId, e);
+        }
+    }
+
+    private void sendDepositSuccessNotifications(UserInfo userInfo, Transaction transaction) {
+        // 3. Notification content
+        String title = "Deposit Success";
+        String message = "Thanks for registering TrustAI";
+
+
+        // 4. Publish In-App Notification
+        log.info("📢 Publishing InApp Notification | userId={}, title='{}'", userInfo.getId(), title);
+        NotificationRequest inAppRequest = NotificationRequest.forInApp(
+                String.valueOf(userInfo.getId()),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, inAppRequest));
+
+
+        // 5. Publish Email Notification
+        log.info("📧 Publishing Email Notification | email={}, subject='{}'", userInfo.getEmail(), title);
+        NotificationRequest emailRequest = NotificationRequest.forEmail(
+                userInfo.getEmail(),
+                title,
+                message
+        );
+        publisher.publishEvent(new NotificationEvent(this, emailRequest));
+
+        log.info("✅ Deposit approval events completed successfully | userId={}", userInfo.getId());
     }
 
 }

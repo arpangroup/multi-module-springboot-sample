@@ -99,6 +99,11 @@ public class TeamIncomeConfigDataInitializer {
     public void init() {
         List<TeamIncomeConfig> configs = List.of(
                 // ===== RANK_1 =====
+                createRank("RANK_0", 1, new BigDecimal("0")), // Lv.A ==> 0%
+                createRank("RANK_0", 2, new BigDecimal("0")), // Lv.B ==> 0%
+                createRank("RANK_0", 3, new BigDecimal("0")), // Lv.C ==> 0%
+
+                // ===== RANK_1 =====
                 createRank("RANK_1", 1, new BigDecimal("0")), // Lv.A ==> 0%
                 createRank("RANK_1", 2, new BigDecimal("0")), // Lv.B ==> 0%
                 createRank("RANK_1", 3, new BigDecimal("0")), // Lv.C ==> 0%

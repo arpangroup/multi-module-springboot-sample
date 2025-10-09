@@ -17,7 +17,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String accountId;
     @Column(name = "username", unique = true, nullable = false, length = 100)
@@ -30,6 +30,7 @@ public class User {
     private String mobile;
     private String image;
     private int point = 100;
+    private String walletAddress;
 
     // Balance Related....................
     @Column(name = "wallet_balance", precision = 19, scale = 4)
@@ -49,7 +50,12 @@ public class User {
     private User referrer;
 
     @Column(name = "rank_code", nullable = true)
-    private String rankCode;
+    private String rankCode = "RANK_0";
+
+    private String state;
+    private String city;
+    private String address;
+    private String zipCode;
 
     // KycInfo..................
 //    @OneToOne(optional = false, cascade = CascadeType.ALL) // Makes the association required (not null)
@@ -89,6 +95,10 @@ public class User {
             inverseJoinColumns = {@JoinColumn(name = "role_id")})
     private Set<Role> roles = new HashSet<>();
 
+
+    public String getCountry() {
+        return "India";
+    }
 
 
 

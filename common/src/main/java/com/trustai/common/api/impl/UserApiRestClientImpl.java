@@ -7,6 +7,7 @@ import com.trustai.common.dto.UserMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -119,13 +120,19 @@ public class UserApiRestClientImpl implements UserApi {
         });
     }
 
+    @PutMapping("/updateWalletBalance/{userId}/{updatedNewBalance}")
     @Override
-    public void updateWalletBalance(Long userId, BigDecimal updatedNewBalance) {
+    public void updateWalletBalance(Long userId, BigDecimal updatedNewBalance, boolean isProfitWallet) {
         log.info("Calling updateWalletBalance with userId={}, updatedNewBalance={}", userId, updatedNewBalance);
 
         handleRestCall(() -> {
             restClient.put()
-                    .uri("/users/{userId}/wallet-balance", userId)
+                    //.uri("/users/{userId}/wallet-balance", userId)
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/users/{userId}/wallet-balance")
+                            .queryParam("isProfitWallet", isProfitWallet)
+                            .build(userId)
+                    )
                     .body(updatedNewBalance)
                     .retrieve()
                     .toBodilessEntity();
@@ -144,16 +151,28 @@ public class UserApiRestClientImpl implements UserApi {
     }
 
     @Override
-    public List<UserHierarchyDto> findByDescendant(Long descendant) {
+    public List<UserHierarchyDto> fetchUplines(Long descendant) {
         log.info("Calling findByDescendant with descendantId={}", descendant);
         return handleRestCall(() -> {
             UserHierarchyDto[] response = restClient.get()
-                    .uri("/hierarchy/descendant/{id}", descendant)
+                    .uri("/hierarchy/upline/{id}", descendant)
                     .retrieve()
                     .body(UserHierarchyDto[].class);
             return Arrays.asList(response);
         });
 
+    }
+
+    @Override
+    public List<UserHierarchyDto> fetchDownline(Long ancestor) {
+        log.info("Calling findByDescendant with ancestor={}", ancestor);
+        return handleRestCall(() -> {
+            UserHierarchyDto[] response = restClient.get()
+                    .uri("/hierarchy/downline/{id}", ancestor)
+                    .retrieve()
+                    .body(UserHierarchyDto[].class);
+            return Arrays.asList(response);
+        });
     }
 
 }

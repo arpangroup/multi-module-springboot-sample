@@ -11,7 +11,7 @@ verifying via **email link** is more secure and user-friendly than asking users 
 ## ✅ Recommended Approach for Email Link Verification
 ### Option 1: Add early availability check API
 ````http
-GET /api/auth/availability?username=arpan&email=arpan@example.com
+GET /api/auth/availability?username=john&email=john@example.com
 ````
 
 ````json

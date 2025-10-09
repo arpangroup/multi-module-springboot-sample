@@ -2,10 +2,14 @@ package com.trustai.common.controller;
 
 import com.trustai.common.constants.CommonConstants;
 import com.trustai.common.security.service.CustomUserDetails;
+import com.trustai.common.utils.RequestContextHolderUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class BaseController {
     @Autowired
@@ -25,6 +29,10 @@ public abstract class BaseController {
         return getExternalUserId(authentication);
     }
 
+    protected String getCurrentUsername() {
+        return RequestContextHolderUtils.getCurrentUsername();
+    }
+
     protected boolean isAdmin() {
         return hasRole("ADMIN"); // Check role from security context
     }
@@ -33,6 +41,18 @@ public abstract class BaseController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getAuthorities().stream()
                 .anyMatch(granted -> granted.getAuthority().equals("ROLE_" + role));
+    }
+
+    protected List<String> getCurrentUserRoles() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new SecurityException("No authenticated user found");
+        }
+
+        return auth.getAuthorities().stream()
+                .map(granted -> granted.getAuthority()) // e.g., "ROLE_ADMIN"
+                .collect(Collectors.toList());
     }
 
 

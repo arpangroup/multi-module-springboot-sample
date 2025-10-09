@@ -28,8 +28,8 @@ public class UserInitializer implements CommandLineRunner {
         ensureRoleExists(CommonConstants.ROLE_ADMIN);
         ensureRoleExists(CommonConstants.ROLE_USER);
 
-        createUserIfNotExists("root", "root@trustai.com", adminPassword, "REF1", CommonConstants.ROLE_ADMIN, new BigDecimal("50000"));
-        createUserIfNotExists("test1", "test1@test.com", testPassword1, "REF2", CommonConstants.ROLE_USER, new BigDecimal("50000"));
+        createUserIfNotExists("root", "trustaihelp@gmail.com", adminPassword, "REF1", CommonConstants.ROLE_ADMIN, new BigDecimal("50000"));
+        createUserIfNotExists("test1", "trustaihelp@gmail.com", testPassword1, "REF2", CommonConstants.ROLE_USER, new BigDecimal("50000"));
     }
 
     private void ensureRoleExists(String roleName) {

@@ -20,6 +20,7 @@ import com.trustai.transaction_service.util.TransactionRemarks;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@RefreshScope
 @Slf4j
 public class WithdrawalServiceImpl implements WithdrawalService {
     private final PendingWithdrawRepository pendingWithdrawRepository;

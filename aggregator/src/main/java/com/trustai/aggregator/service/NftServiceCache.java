@@ -41,9 +41,24 @@ public class NftServiceCache implements Reloadable {
     @PostConstruct
     public void preload() {
         log.info("Preloading nfts into cache...");
-        this.nfts = schemaRepository
+        /*this.nfts = schemaRepository
                 .findAll(Sort.by(Sort.Direction.DESC, "id"))
                 .stream()
+                .map(this::mapToNft)
+                .toList();*/
+
+        this.nfts = schemaRepository.findAll()
+                .stream()//
+                .sorted((a, b) -> {
+                    BigDecimal specialPrice = BigDecimal.valueOf(99999);
+
+                    // Push items with stakePrice = 99999 to the end
+                    if (a.getStakePrice().compareTo(specialPrice) == 0 && b.getStakePrice().compareTo(specialPrice) != 0) return 1; // a goes after b
+                    if (a.getStakePrice().compareTo(specialPrice) != 0 && b.getStakePrice().compareTo(specialPrice) == 0) return -1; // a goes before b
+
+                    // Otherwise, fallback to descending id
+                    return b.getId().compareTo(a.getId());
+                })
                 .map(this::mapToNft)
                 .toList();
     }

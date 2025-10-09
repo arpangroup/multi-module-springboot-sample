@@ -44,24 +44,24 @@ public class StakeDataInitializerV1 {
         imageList = loadImages();
 
         // RANK_0: 100-200
-        createStake( "RANK_0", 15, 90, 0, scheduleDaily);
+        createStake( "RANK_0", 99999, 90, 0, scheduleDaily);
         // RANK_1: 200-300
-        createStake( "RANK_1", 100, 90, 1.5f, scheduleDaily);
-        createStake( "RANK_2", 150, 90, 1.8f, scheduleDaily);
-        createStake( "RANK_2", 280, 90, 2.4f, scheduleDaily);
-        createStake( "RANK_2", 270, 90, 3.0f, scheduleDaily);
-        createStake( "RANK_2", 260, 90, 3.4f, scheduleDaily);
-        createStake( "RANK_2", 250, 90, 4.0f, scheduleDaily);
+        createStake( "RANK_1", 99999, 90, 1.5f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 1.8f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 2.4f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 3.0f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 3.4f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 4.0f, scheduleDaily);
         // RANK_2: 300-400
-        createStake( "RANK_2", 390, 90, 5.0f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 5.0f, scheduleDaily);
         // RANK_3: 400-500
-        createStake( "RANK_2", 490, 90, 6.0f, scheduleDaily);
+        createStake( "RANK_2", 99999, 90, 6.0f, scheduleDaily);
     }
 
     private void createStake(String rank, int stakePrice, int days, float roi, Schedule schedule) {
 
         //String stakeName = rank + " " + days + " days plan of " + stakePrice + " for roi " + roi;
-        String stakeName = "Stake " + count;
+        String stakeName = "Stake" + count;
 
         // Check if already exists
         if (schemaRepository.existsByName(stakeName)) {

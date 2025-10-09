@@ -1,3 +1,4 @@
+/*
 package com.trustai.investment_service.entity.data;
 
 import com.trustai.common.api.RankConfigApi;
@@ -44,7 +45,7 @@ public class StakeDataInitializerV1 {
         imageList = loadImages();
 
         // RANK_0: 100-200
-        createStake( "RANK_0", 99999, 90, 0, scheduleDaily);
+        createStake( "Royal Mint", 99999, 90, 0, scheduleDaily);
         // RANK_1: 200-300
         createStake( "RANK_1", 99999, 90, 1.5f, scheduleDaily);
         createStake( "RANK_2", 99999, 90, 1.8f, scheduleDaily);
@@ -110,3 +111,4 @@ public class StakeDataInitializerV1 {
                 .collect(Collectors.toList());
     }
 }
+*/

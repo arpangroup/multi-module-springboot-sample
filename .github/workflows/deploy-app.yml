@@ -2,7 +2,7 @@ name: Deploy Aggregator (Docker + GHCR )
 
 on:
   push:
-    branches: ["04-oct-2025-profit-wallet"]
+    branches: ["09-oct-fix1"]
   workflow_dispatch:
     inputs:
       image_tag:

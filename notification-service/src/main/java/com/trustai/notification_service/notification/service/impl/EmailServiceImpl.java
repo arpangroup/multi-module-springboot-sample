@@ -39,6 +39,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Simple email sent successfully to {}", to);
         } catch (Exception e) {
             log.error("Failed to send simple email to {}. Error: {}", to, e.getMessage(), e);
+            log.error("MAIL_PROPERTIES: {}", mailProperties.toString() );
             e.printStackTrace();
         }
     }

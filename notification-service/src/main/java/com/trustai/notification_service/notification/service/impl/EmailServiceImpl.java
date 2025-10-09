@@ -29,14 +29,15 @@ public class EmailServiceImpl implements EmailService {
     public void sendSimpleMail(String to, String subject, String text) {
         log.info("Sending simple text email to: {}, subject: {}", to, subject);
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            //message.setFrom("arpangroup1@gmail.com");
-            message.setFrom(mailProperties.getFrom().getAddress());
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            mailSender.send(message);
+//            SimpleMailMessage message = new SimpleMailMessage();
+//            //message.setFrom("arpangroup1@gmail.com");
+//            message.setFrom(mailProperties.getFrom().getAddress());
+//            message.setTo(to);
+//            message.setSubject(subject);
+//            message.setText(text);
+//            mailSender.send(message);
             log.info("Simple email sent successfully to {}", to);
+            throw new Exception("error");
         } catch (Exception e) {
             log.error("Failed to send simple email to {}. Error: {}", to, e.getMessage(), e);
             log.error("MAIL_PROPERTIES: {}", mailProperties.toString() );

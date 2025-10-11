@@ -37,7 +37,12 @@ public class AppConfigService {
             Map.entry("app.config.otp.delay.seconds", 30),
             Map.entry("app.config.support.telegram.link", "https://t.me/trustaiofficial"),
             Map.entry("app.config.support.whatsapp.link", "https://wa.me/919876543210"),
-            Map.entry("app.config.support.email.link", "trustaihelp@gmail.com")
+            Map.entry("app.config.support.email.link", "trustaihelp@gmail.com"),
+            // BANNER
+            Map.entry("banner.wallet.invite.title", "Cashback 100%"),
+            Map.entry("banner.wallet.invite.message", "Invite your friends and get Cashback"),
+            Map.entry("banner.wallet.invite.link", "https://trustai.co.in/referral")
+
     );
 
     public Map<String, Object> getFrontendConfig() {

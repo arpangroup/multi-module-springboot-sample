@@ -3,9 +3,11 @@ package com.trustai.aggregator.repository;
 import com.trustai.common.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 
+@Repository
 public interface DashboardRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(u) FROM User u")
     long countRegisteredUsers();

@@ -1,4 +1,4 @@
-package com.trustai.aggregator;
+package com.trustai.aggregator.data;
 
 import com.trustai.common.auth.repository.RoleRepository;
 import com.trustai.common.constants.CommonConstants;

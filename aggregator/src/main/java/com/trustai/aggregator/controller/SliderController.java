@@ -36,6 +36,7 @@ public class SliderController {
         Slider existing = sliderRepo.findById(id).orElseThrow(() -> new RuntimeException("Slider not found"));
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
+        existing.setActive(updated.isActive());
         existing.getSlides().clear();
         updated.getSlides().forEach(s -> {
             s.setSlider(existing);

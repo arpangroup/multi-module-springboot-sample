@@ -76,7 +76,8 @@ public class DepositServiceImpl implements DepositService {
         }
 
         String imageUrl = fileUploadApi.uploadFile(screenshot);
-        PaymentGateway paymentGateway = PaymentGateway.BINANCE; // or SYSTEM
+        //PaymentGateway paymentGateway = PaymentGateway.BINANCE; // or SYSTEM
+        PaymentGateway paymentGateway = PaymentGateway.valueOf(gateway);
         BigDecimal fee = calculateTxnFee(paymentGateway, amount);
         BigDecimal netAmount = amount.subtract(fee);
         log.debug("Calculated fee: {}, netAmount: {}", fee, netAmount);
@@ -105,7 +106,7 @@ public class DepositServiceImpl implements DepositService {
     @Override
     @Transactional
     public PendingDeposit deposit(long userId, @NonNull DepositRequest request) {
-        log.info("Processing deposit for userId: {}, amount: {}", userId, request.getAmount());
+        log.info("Processing deposit for userId: {}, amount: {}, gateway: {}", userId, request.getAmount(), request.getPaymentGateway());
         validateDepositRequest(request);
 
         PaymentGateway paymentGateway = PaymentGateway.valueOf(request.getPaymentGateway());

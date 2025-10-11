@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
-@RequestMapping("/api/nfts")
+@RequestMapping("/api/app/nfts")
 @RequiredArgsConstructor
 public class NftController {
     private final NftServiceCache nftServiceCache;

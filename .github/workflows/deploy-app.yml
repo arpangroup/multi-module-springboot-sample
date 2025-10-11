@@ -2,7 +2,7 @@ name: Deploy TrustAI Backend Aggregator (Docker + GHCR )
 
 on:
   push:
-    branches: ["09-oct-fix1"]
+    branches: ["11-oct-fix2"]
   workflow_dispatch:
     inputs:
       image_tag:

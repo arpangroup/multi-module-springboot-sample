@@ -67,15 +67,16 @@ public class DepositController extends BaseController {
     @PostMapping(value = "/manual", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse> manualDeposit(
-            @RequestParam("amount") BigDecimal amount,
-            @RequestParam("paymentGateway") String paymentGateway,
-            @RequestParam("txnId") String txnId,
+//            @RequestParam("amount") BigDecimal amount,
+//            @RequestParam("paymentGateway") String paymentGateway,
+//            @RequestParam("txnId") String txnId,
+            @Valid @ModelAttribute DepositRequest request,
             @RequestPart("screenshot") MultipartFile screenshot
     ) {
         //return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Automatic Deposit is Currently Disabled in Backend"));
         Long currentUserId = getCurrentUserId();
-        log.info("Received deposit request for userId: {}, amount: {}, txnId: {}", currentUserId, amount, txnId);
-        PendingDeposit deposit = depositService.depositManual(currentUserId, amount, paymentGateway, txnId, screenshot);
+        log.info("Received deposit request for userId: {}, amount: {}, txnId: {}", currentUserId, request.getAmount(), request.getTxnRefId());
+        PendingDeposit deposit = depositService.depositManual(currentUserId, request.getAmount(), request.getPaymentGateway(), request.getTxnRefId(), screenshot);
         log.info("Standard deposit completed for userId: {}. Transaction ID: {}", currentUserId, deposit.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Deposit successfully completed."));
     }

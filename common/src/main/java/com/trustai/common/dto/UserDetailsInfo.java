@@ -34,6 +34,8 @@ public class UserDetailsInfo {
     private KycInfo kyc;
 
     //Address:
+    private String country;
+    private String countryCode;
     private String state;
     private String city;
     private String address;

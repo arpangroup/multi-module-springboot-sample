@@ -52,6 +52,8 @@ public class User {
     @Column(name = "rank_code", nullable = true)
     private String rankCode = "RANK_0";
 
+    private String country;
+    private String countryCode;
     private String state;
     private String city;
     private String address;
@@ -96,9 +98,6 @@ public class User {
     private Set<Role> roles = new HashSet<>();
 
 
-    public String getCountry() {
-        return "India";
-    }
 
 
 

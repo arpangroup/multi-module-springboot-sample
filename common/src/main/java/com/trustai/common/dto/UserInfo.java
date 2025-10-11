@@ -23,6 +23,7 @@ public class UserInfo {
     private int point;
     private String image;
     private String country;
+    private String countryCode;
     private String walletAddress;
     // Balance
     private BigDecimal walletBalance;

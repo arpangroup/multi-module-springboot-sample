@@ -38,6 +38,7 @@ public class UserMapper {
                 .point(user.getPoint())
                 .image(user.getImage())
                 .country(user.getCountry())
+                .countryCode(user.getCountryCode())
                 .walletAddress(user.getWalletAddress())
                 // Balance:
                 .walletBalance(user.getWalletBalance())
@@ -80,6 +81,8 @@ public class UserMapper {
                 // KYC:
                 //.kyc(convert(user.getKycInfo()))
                 // Address
+                .country(user.getCountry())
+                .countryCode(user.getCountryCode())
                 .state(user.getState())
                 .city(user.getCity())
                 .address(user.getAddress())

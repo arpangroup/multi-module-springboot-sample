@@ -75,7 +75,8 @@ public class DefaultTeamIncomeStrategy implements TeamIncomeStrategy {
                         true,
                         "team-income",
                         Remarks.TEAM_INCOME,
-                        metaInfo
+                        metaInfo,
+                        true
                 );
 
                 //userClient.deposit(upline.getId(), teamIncome, Remarks.TEAM_INCOME, getMetaInfo(incomeHistory));

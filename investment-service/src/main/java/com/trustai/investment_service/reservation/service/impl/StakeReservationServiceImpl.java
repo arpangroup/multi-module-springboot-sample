@@ -165,7 +165,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
         String remarks = "Investment reserved: for reservationId: " + reservation.getId() +
                 " and amount: " + reservation.getReservedAmount() +
                 " at " + DateUtils.formatDisplayDate(LocalDateTime.now());
-        TransactionDto walletTxn = updateWalletBalance(userId, reserveAmount, false, remarks);
+        TransactionDto walletTxn = updateWalletBalance(userId, reserveAmount, false, remarks, false);
         log.info("Wallet debited successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, reserveAmount);
 
         // Step 6: Save the reservation
@@ -224,7 +224,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 ", gain: " + realizedGain +
                 ", at: " + DateUtils.formatDisplayDate(LocalDateTime.now());
 
-        TransactionDto walletTxn = updateWalletBalance(userId, reservedAmount, true, remarks);
+        TransactionDto walletTxn = updateWalletBalance(userId, reservedAmount, true, remarks, false);
         log.info("Wallet credited successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, soldAmount);
 
         // Step 5: Persist updated reservation
@@ -304,7 +304,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
      * @param userId        ID of the user
      * @param amount Amount to deduct from the wallet
      */
-    private TransactionDto updateWalletBalance(Long userId, BigDecimal amount, boolean isCredit, String remarks) {
+    private TransactionDto updateWalletBalance(Long userId, BigDecimal amount, boolean isCredit, String remarks, boolean isProfitWallet) {
         String operation = isCredit ? "Crediting" : "Debiting";
         log.info("{} wallet balance - userId: {}, amount: {}", operation, userId, amount);
 
@@ -315,7 +315,7 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 "investment-reserved",
                 remarks,
                 null,
-                true
+                isProfitWallet // reserve profit will credit to profit wallet and reserve will deduct from main wallet
         );
         TransactionDto txn = walletApi.updateWalletBalance(userId, walletUpdateRequest);
         if (txn == null || txn.getId() == null) {

@@ -92,7 +92,8 @@ public class IncomeDistributionService {
                 true,
                 "daily-income",
                 Remarks.DAILY_INCOME,
-                metaInfo
+                metaInfo,
+                true
         );
         walletApi.updateWalletBalance(sellerId, depositRequest);
         log.info("Wallet updated successfully for sellerId={}", sellerId);

@@ -34,7 +34,7 @@ public class TeamIncomeConfigCache implements Reloadable {
                         cfg -> cfg.getPayoutPercentage()
                                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
                 ));
-       /* payoutCache = repository.findAll().stream()
+       /*payoutCache = repository.findAll().stream()
                 .collect(Collectors.toMap(
                         TeamIncomeConfig::getId,
                         TeamIncomeConfig::getPayoutPercentage // No division here

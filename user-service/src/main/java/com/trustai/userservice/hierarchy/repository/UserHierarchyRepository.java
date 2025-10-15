@@ -10,8 +10,14 @@ import java.util.List;
 
 @Repository
 public interface UserHierarchyRepository extends JpaRepository<UserHierarchy, Long> {
+    //@Query("SELECT u FROM UserHierarchy u WHERE u.ancestor = :ancestor AND u.active = true")
     List<UserHierarchy> findByAncestor(Long ancestor);
+
+    //@Query("SELECT u FROM UserHierarchy u WHERE u.descendant = :descendant AND u.active = true")
     List<UserHierarchy> findByDescendant(Long descendant);
+
+    List<UserHierarchy> findByDescendantAndActiveTrue(Long descendant);
+    List<UserHierarchy> findByAncestorAndActiveTrue(Long ancestor);
 
     @Query("SELECT uh FROM UserHierarchy uh WHERE uh.ancestor = :ancestor AND uh.depth = :depth")
     List<UserHierarchy> findByAncestorAndDepth(Long ancestor, int depth);

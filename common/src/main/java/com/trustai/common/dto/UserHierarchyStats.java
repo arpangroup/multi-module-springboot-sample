@@ -9,5 +9,6 @@ import java.util.Map;
 @Builder
 public class UserHierarchyStats {
     private Map<Integer, Long> depthWiseCounts; // e.g., {1=3, 2=5, 3=10}
+    private Map<Integer, Long> activeDepthWiseCounts;
     private long totalTeamSize;                 // sum of depth > 0
 }

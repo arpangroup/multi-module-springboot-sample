@@ -17,6 +17,7 @@ public class UserTreeNode {
     private Long userId;
     private String username;
     private BigDecimal walletBalance;
+    private boolean isActive;
     private String userRank;
     private List<UserTreeNode> children = new ArrayList<>();
 

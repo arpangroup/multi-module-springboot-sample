@@ -48,10 +48,21 @@ public class MemberSummaryService {
                 ));
         log.debug("Depth-wise team counts for userId={}: {}", userId, depthCounts);
 
+        Map<Integer, Long> activeDepthCounts = downlines.stream()
+                .filter(uh -> uh.getDepth() > 0)
+                .filter(UserHierarchy::isActive)  // Only active users
+                .collect(Collectors.groupingBy(
+                        UserHierarchy::getDepth,
+                        Collectors.counting()
+                ));
+
+        log.debug("Depth-wise ACTIVE user counts for userId={}: {}", userId, activeDepthCounts);
+
         long teamSize = depthCounts.values().stream().mapToLong(Long::longValue).sum();
 
         UserHierarchyStats stats = UserHierarchyStats.builder()
                 .depthWiseCounts(depthCounts)
+                .activeDepthWiseCounts(activeDepthCounts)
                 .totalTeamSize(teamSize)
                 .build();
 

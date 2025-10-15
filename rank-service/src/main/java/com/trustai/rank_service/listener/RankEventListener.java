@@ -50,6 +50,7 @@ public class RankEventListener {
         if (event.isFirstDeposit()) { // update all upline users rank
             List<UserHierarchyDto> uplines = userApi.fetchUplines(userId);
             List<Long> uplineIds = uplines.stream()
+                    .filter(UserHierarchyDto::isActive)
                     .map(UserHierarchyDto::getAncestor)
                     .filter(ancestorId -> !ancestorId.equals(event.getUserId()))
                     .toList();

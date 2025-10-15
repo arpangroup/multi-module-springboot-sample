@@ -12,7 +12,7 @@ public class RequiredLevelCountsSpec implements RankSpecification {
     @Override
     public boolean isSatisfied(UserInfo user, UserMetrics metrics, RankConfig config) {
         Map<Integer, Integer> required = config.getRequiredLevelCounts();
-        Map<Integer, Long> actual = metrics.getUserHierarchyStats().getDepthWiseCounts();
+        Map<Integer, Long> actual = metrics.getUserHierarchyStats().getActiveDepthWiseCounts();
 
         for (Map.Entry<Integer, Integer> entry : required.entrySet()) {
             if (actual.getOrDefault(entry.getKey(), 0L) < entry.getValue()) {

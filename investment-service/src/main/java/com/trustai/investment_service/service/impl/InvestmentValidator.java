@@ -69,9 +69,15 @@ public class InvestmentValidator {
         // Wallet Check
         //BigDecimal walletBalance = walletClient.getWalletBalance(user.getId());
         BigDecimal walletBalance = user.getProfitWallet(); // we will use only profit balance to subscribe stake
+        String walletLabel = "profit";
+        if (investmentAmount.equals(BigDecimal.valueOf(15))) {
+            walletBalance = user.getWalletBalance();
+            walletLabel = "main";
+        }
+
         if (walletBalance.compareTo(investmentAmount) < 0) {
             log.warn("User {} has insufficient balance: required={}, actual={}", user.getId(), investmentAmount, walletBalance);
-            throw new ValidationException("Insufficient profit wallet balance", ErrorCode.INSUFFICIENT_BALANCE);
+            throw new ValidationException("Insufficient " + walletLabel + " wallet balance", ErrorCode.INSUFFICIENT_BALANCE);
         }
 
         // Rank config check

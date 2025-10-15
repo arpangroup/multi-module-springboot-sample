@@ -262,7 +262,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                 "investment-profit",
                 "Total profit for investment " + schema.getName(),
                 null,
-                investment.isProfitWallet()
+                true
         );
         walletApi.updateWalletBalance(investment.getUserId(), profitCreditReq);
         log.debug("👛 Wallet credited with stake profit: UserID={}, Amount={}", investment.getUserId(), totalProfit);

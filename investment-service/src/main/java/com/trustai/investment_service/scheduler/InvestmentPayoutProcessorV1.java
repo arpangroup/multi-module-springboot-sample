@@ -40,7 +40,8 @@ public class InvestmentPayoutProcessorV1 {
                 true,
                 "investment-profit",
                 "Daily profit for investment #" + inv.getId(),
-                null
+                null,
+                true
         );
         walletApi.updateWalletBalance(inv.getUserId(), creditReq);
 

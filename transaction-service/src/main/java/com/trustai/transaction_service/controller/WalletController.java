@@ -40,7 +40,7 @@ public class WalletController extends BaseController {
         log.info("Initiating wallet update [{}] for userId: {}, amount: {}, type: {}, remarks: {}, source: {}",
                 request.isCredit() ? "CREDIT" : "DEBIT",  userId, request.amount(), request.transactionType(), request.remarks(), request.sourceModule());
 
-        Transaction txn = walletService.updateWalletBalance(userId, request.amount(), request.transactionType(), request.sourceModule(), request.isCredit(), request.remarks(), request.metaInfo());
+        Transaction txn = walletService.updateWalletBalance(userId, request.amount(), request.transactionType(), request.sourceModule(), request.isCredit(), request.remarks(), request.metaInfo(), request.isProfitWallet());
 
         log.info("Wallet transaction successful for userId: {}, txnId: {}, newBalance: {}", userId, txn.getId(), txn.getBalance());
         return ResponseEntity.ok(txn);

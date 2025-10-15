@@ -94,6 +94,7 @@ public class UserInvestment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InvestmentStatus status;
+    boolean isProfitWallet = false;
 
 
     @Column(nullable = false, updatable = false)

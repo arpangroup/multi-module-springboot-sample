@@ -67,6 +67,11 @@ public class InvestmentServiceImpl implements InvestmentService {
         // Step 2. Calculate deduct amount
         BigDecimal totalDeduct = investmentAmount.add(schema.getHandlingFee());
 
+        boolean isProfitWallet = true;
+        if("RANK_0".equals(user.getRankCode()) && new BigDecimal("15").equals(investmentAmount)) { // exceptional case
+            isProfitWallet = false;
+        }
+
         // Deduct wallet balance
         String remarks = "Invested in Stake: for scheme: " + schema.getName() +
                 " and amount: " + totalDeduct +
@@ -75,7 +80,8 @@ public class InvestmentServiceImpl implements InvestmentService {
                 userId,
                 investmentAmount,
                 false,
-                remarks
+                remarks,
+                isProfitWallet
         );
         log.info("Investment deducted successfully - txnId: {}, userId: {}, amount: {}", walletTxn.getId(), userId, investmentAmount);
 
@@ -110,6 +116,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                 .nextPayoutAt(nextPayout)
                 .maturityAt(maturity)
                 .status(InvestmentStatus.ACTIVE)
+                .isProfitWallet(isProfitWallet)
                 .build();
 
         // Step 6: Save the investment
@@ -254,7 +261,8 @@ public class InvestmentServiceImpl implements InvestmentService {
                 true,
                 "investment-profit",
                 "Total profit for investment " + schema.getName(),
-                null
+                null,
+                investment.isProfitWallet()
         );
         walletApi.updateWalletBalance(investment.getUserId(), profitCreditReq);
         log.debug("👛 Wallet credited with stake profit: UserID={}, Amount={}", investment.getUserId(), totalProfit);
@@ -270,7 +278,8 @@ public class InvestmentServiceImpl implements InvestmentService {
                 true,
                 "investment-maturity",
                 "Maturity payout for investment #" + investment.getId(),
-                null
+                null,
+                investment.isProfitWallet()
         );
         walletApi.updateWalletBalance(investment.getUserId(), creditReq);
         log.debug("👛 Wallet credited with stake capital: UserID={}, Amount={}", investment.getUserId(), investmentAmount);
@@ -406,9 +415,11 @@ public class InvestmentServiceImpl implements InvestmentService {
 
 
 
-    private TransactionDto updateWalletBalance(Long userId, BigDecimal amount, boolean isCredit, String remarks) {
+    private TransactionDto updateWalletBalance(Long userId, BigDecimal amount, boolean isCredit, String remarks, boolean isProfitWallet) {
         String operation = isCredit ? "Crediting" : "Debiting";
         log.info("{} wallet balance - userId: {}, amount: {}", operation, userId, amount);
+
+
 
         WalletUpdateRequest walletUpdateRequest = new WalletUpdateRequest(
                 amount,
@@ -416,7 +427,8 @@ public class InvestmentServiceImpl implements InvestmentService {
                 isCredit,
                 "investment",
                 remarks,
-                null
+                null,
+                isProfitWallet
         );
 
         TransactionDto txn = walletApi.updateWalletBalance(userId, walletUpdateRequest);

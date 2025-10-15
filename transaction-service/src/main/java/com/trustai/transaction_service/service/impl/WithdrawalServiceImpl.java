@@ -259,7 +259,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 "withdraw-service",
                 false,
                 TransactionRemarks.WITHDRAW_REQUESTED,
-                null
+                null,
+                isWithdrawFromProfit
         );
 
         // 7️⃣ Create PendingWithdraw record
@@ -391,6 +392,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 "withdraw-service",
                 true,
                 TransactionRemarks.WITHDRAW_REJECTED + ":" + rejectReason,
+                null,
                 null
         );
 

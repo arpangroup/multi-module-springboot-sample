@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import static com.trustai.common.enums.TransactionType.INVESTMENT;
+import static com.trustai.common.enums.TransactionType.INVESTMENT_MATURITY;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -67,17 +70,23 @@ public class WalletServiceImpl implements WalletService {
     @Deprecated
     @Override
     @Transactional
-    public Transaction updateWalletBalance(Long userId, BigDecimal amount, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo) {
-        return this.updateWalletBalance(userId, amount, BigDecimal.ZERO, transactionType, sourceModule, isCredit, remarks, metaInfo);
+    public Transaction updateWalletBalance(Long userId, BigDecimal amount, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo, Boolean isProfitWallet) {
+        return this.updateWalletBalance(userId, amount, BigDecimal.ZERO, transactionType, sourceModule, isCredit, remarks, metaInfo, isProfitWallet);
     }
 
     @Override
-    public Transaction updateWalletBalance(Long userId, BigDecimal amount, BigDecimal txnFee, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo) {
+    public Transaction updateWalletBalance(Long userId, BigDecimal amount, BigDecimal txnFee, TransactionType transactionType, String sourceModule, boolean isCredit, String remarks, String metaInfo, Boolean isProfitWallet) {
         log.info("Starting wallet transaction [{}] for userId: {}, amount: {}, type: {}, remarks: {}, source: {}",
                 isCredit ? "CREDIT" : "DEBIT", userId, amount, transactionType, remarks, sourceModule);
 
 
-        boolean isProfitWallet = TransactionType.getProfitTypes().contains(transactionType);
+        if (isProfitWallet == null) {
+            isProfitWallet = TransactionType.getProfitTypes().contains(transactionType);
+
+            if ((INVESTMENT == transactionType || INVESTMENT_MATURITY == transactionType) && amount.equals(new BigDecimal("15"))) {
+                isProfitWallet = false; // for any 15$ investment
+            }
+        }
 
 
         // Load current balance

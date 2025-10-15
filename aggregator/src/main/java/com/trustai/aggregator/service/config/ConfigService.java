@@ -5,10 +5,15 @@ import com.trustai.aggregator.dto.ConfigProperty;
 import com.trustai.common.exceptions.RestCallException;
 import com.trustai.common.lifecycle.ReloadManager;
 import com.trustai.income_service.income.service.IncomeDistributionService;
+import com.trustai.notification_service.config.MailConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.cloud.context.refresh.ContextRefresher;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -25,6 +30,8 @@ public class ConfigService {
     private final ContextRefresher contextRefresher;
     private final IncomeDistributionService incomeDistributionService;
     private final ReloadManager reloadManager;
+    private final ApplicationContext applicationContext;
+    private final MailConfig mailConfig;
 
     @Value("${config.server.url}")
     private String configServerUrl;
@@ -55,12 +62,12 @@ public class ConfigService {
             Set<String> updatedKeys = contextRefresher.refresh();
             log.info("✅ Spring context reloaded. Updated keys: {}", updatedKeys);
 
-
             // refresh cache from config server
             loadFromServer();
 
             // refresh
             reloadManager.reloadAll();
+            reloadMailSender();
 
             return updatedKeys;
         } catch (Exception ex) {
@@ -80,6 +87,29 @@ public class ConfigService {
             log.error("❌ Error while reloading config: {}", ex.getMessage(), ex);
             throw new RestCallException("Failed to reload config: " +  ex.getMessage(), ex.getCause());
         }*/
+    }
+
+    public void reloadMailSender() {
+        log.info("reloadMailSender........");
+        if (applicationContext instanceof ConfigurableApplicationContext configurableContext) {
+            ConfigurableListableBeanFactory beanFactory = configurableContext.getBeanFactory();
+
+            if (beanFactory instanceof DefaultListableBeanFactory defaultFactory) {
+                // Destroy old singleton
+                if (defaultFactory.containsSingleton("javaMailSender")) {
+                    defaultFactory.destroySingleton("javaMailSender");
+                }
+
+                // Re-register new instance built from latest properties
+                defaultFactory.registerSingleton("javaMailSender", mailConfig.getJavaMailSender());
+
+                log.info("✅ JavaMailSender reloaded with latest mail configuration");
+            } else {
+                log.warn("⚠️ BeanFactory is not a DefaultListableBeanFactory — cannot reload mail sender");
+            }
+        } else {
+            log.warn("⚠️ ApplicationContext is not configurable — cannot reload mail sender");
+        }
     }
 
     public String addConfig(ConfigProperty request) {

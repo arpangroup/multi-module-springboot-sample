@@ -168,7 +168,8 @@ public class DepositServiceImpl implements DepositService {
                 "deposit-service",
                 true,
                 "Manual deposit approved",
-                deposit.getMetaInfo()
+                deposit.getMetaInfo(),
+                false // deposit should always be in main wallet
         );
 
 

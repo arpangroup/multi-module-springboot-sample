@@ -10,6 +10,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.util.Properties;
 
+@RefreshScope
 @Configuration
 @RequiredArgsConstructor
 public class MailConfig {

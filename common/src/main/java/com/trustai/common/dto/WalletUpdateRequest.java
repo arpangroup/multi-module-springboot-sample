@@ -25,6 +25,6 @@ public record WalletUpdateRequest (
             String remarks,
             String metaInfo
     ) {
-        this(amount, transactionType, isCredit, sourceModule, remarks, metaInfo, false); // default: false
+        this(amount, transactionType, isCredit, sourceModule, remarks, metaInfo, null); // default: false
     }
 }

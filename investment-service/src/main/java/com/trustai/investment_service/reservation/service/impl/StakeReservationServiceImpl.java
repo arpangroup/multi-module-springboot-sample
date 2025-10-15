@@ -314,7 +314,8 @@ public class StakeReservationServiceImpl implements StakeReservationService {
                 isCredit,
                 "investment-reserved",
                 remarks,
-                null
+                null,
+                true
         );
         TransactionDto txn = walletApi.updateWalletBalance(userId, walletUpdateRequest);
         if (txn == null || txn.getId() == null) {

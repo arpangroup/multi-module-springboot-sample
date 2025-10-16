@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,7 +51,7 @@ public class UserHierarchyServiceImpl implements UserHierarchyService {
         User root = userRepository.findById(rootUserId).orElse(null);
         if (root == null) return null;
 
-        UserTreeNode rootNode = new UserTreeNode(root.getId(), root.getUsername(), root.getWalletBalance(), root.getRankCode());
+        UserTreeNode rootNode = new UserTreeNode(root.getId(), root.getUsername(), root.getWalletBalance(), root.getRankCode(), root.isActive());
         buildTreeRecursively(rootNode, 1, maxLevel); // max level 3
         return rootNode;
     }
@@ -74,6 +72,32 @@ public class UserHierarchyServiceImpl implements UserHierarchyService {
     @Override
     public List<UserHierarchy> findByDescendant(Long descendant) {
         return hierarchyRepo.findByDescendant(descendant);
+    }
+
+    @Override
+    public List<UserTreeNode> getUplineTree(Long userId) {
+        log.info("Fetching uplines for userId: {}", userId);
+        List<UserHierarchy> paths = hierarchyRepo.findByDescendant(userId);
+        if (paths.isEmpty()) return Collections.emptyList();
+
+        // Sort by depth ascending (1 = direct upline)
+        paths.sort(Comparator.comparingInt(UserHierarchy::getDepth));
+
+        List<UserTreeNode> uplines = new ArrayList<>();
+        for (UserHierarchy path : paths) {
+            User upline = userRepository.findById(path.getAncestor()).orElse(null);
+            if (upline != null) {
+                uplines.add(new UserTreeNode(
+                        upline.getId(),
+                        upline.getUsername(),
+                        upline.getWalletBalance(),
+                        upline.getRankCode(),
+                        upline.isActive(),
+                        path.getDepth()
+                ));
+            }
+        }
+        return uplines;
     }
 
     @Override
@@ -142,7 +166,7 @@ public class UserHierarchyServiceImpl implements UserHierarchyService {
             Long childId = path.getDescendant();
             User childUser = userRepository.findById(childId).orElse(null);
             if (childUser != null) {
-                UserTreeNode childNode = new UserTreeNode(childUser.getId(), childUser.getUsername(), childUser.getWalletBalance(), childUser.getRankCode());
+                UserTreeNode childNode = new UserTreeNode(childUser.getId(), childUser.getUsername(), childUser.getWalletBalance(), childUser.getRankCode(), childUser.isActive());
                 parentNode.addChild(childNode);
                 buildTreeRecursively(childNode, currentLevel + 1, maxLevel);
             }

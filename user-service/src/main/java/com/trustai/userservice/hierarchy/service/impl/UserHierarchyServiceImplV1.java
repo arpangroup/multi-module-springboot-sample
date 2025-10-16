@@ -93,6 +93,11 @@ public class UserHierarchyServiceImplV1 implements UserHierarchyService {
     }
 
     @Override
+    public List<UserTreeNode> getUplineTree(Long userId) {
+        return List.of();
+    }
+
+    @Override
     public void activateUserHierarchy(Long userId) {
 
     }
@@ -101,7 +106,7 @@ public class UserHierarchyServiceImplV1 implements UserHierarchyService {
         User user = userMap.get(userId);
         if (user == null || currentLevel > maxLevel) return null;
 
-        UserTreeNode node = new UserTreeNode(user.getId(), user.getUsername(), user.getWalletBalance(), user.getRankCode());
+        UserTreeNode node = new UserTreeNode(user.getId(), user.getUsername(), user.getWalletBalance(), user.getRankCode(), user.isActive());
 
         List<Long> childrenIds = childrenMap.getOrDefault(userId, Collections.emptyList());
         for (Long childId : childrenIds) {

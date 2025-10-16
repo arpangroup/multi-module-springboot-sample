@@ -2,7 +2,6 @@ package com.trustai.income_service.income.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trustai.common.api.RankConfigApi;
 import com.trustai.common.api.UserApi;
 import com.trustai.common.api.WalletApi;
 import com.trustai.common.dto.RankConfigDto;
@@ -14,10 +13,10 @@ import com.trustai.common.enums.TransactionType;
 import com.trustai.income_service.constant.Remarks;
 import com.trustai.income_service.income.dto.UplineIncomeLog;
 import com.trustai.income_service.income.entity.IncomeHistory;
+import com.trustai.common.domain.log.PrintLog;
 import com.trustai.income_service.income.repository.IncomeHistoryRepository;
-import com.trustai.income_service.income.repository.TeamIncomeConfigRepository;
+import com.trustai.common.repository.log.PrintLogRepository;
 import com.trustai.income_service.income.strategy.TeamIncomeStrategy;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,9 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +40,7 @@ public class IncomeDistributionService {
     private final UserApi userApi;
     private final WalletApi walletApi;
     private final RankConfigApiCache rankConfigApi;
+    private final PrintLogRepository printLogRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void distributeIncome(Long sellerId, BigDecimal saleAmount) {
@@ -204,6 +204,15 @@ public class IncomeDistributionService {
 
         summary.append("==================================================\n");
         //System.out.println(summary);  // or log.info(summary.toString());
+
+        // Save to DB
+        PrintLog printLog = PrintLog.builder()
+                .userId(sellerId)
+                .logType(PrintLog.LogType.INCOME_HISTORY)
+                .logContent(summary.toString())
+                .createdAt(LocalDateTime.now())
+                .build();
+        printLogRepository.save(printLog);
 
         // ✅ Use logger instead of System.out
         log.info(summary.toString());

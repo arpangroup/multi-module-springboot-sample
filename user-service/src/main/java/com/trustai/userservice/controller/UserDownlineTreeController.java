@@ -24,6 +24,12 @@ public class UserDownlineTreeController {
         return ResponseEntity.ok(tree);
     }
 
+    @GetMapping("/upline/{userId}")
+    public ResponseEntity<List<UserTreeNode>> getUplineTree(@PathVariable Long userId) {
+        List<UserTreeNode> uplines = userHierarchyService.getUplineTree(userId);
+        return ResponseEntity.ok(uplines);
+    }
+
     @GetMapping("/hierarchy/{userId}")
     public ResponseEntity<Map<Integer, List<Long>>> userHierarchy(@PathVariable Long userId) {
         return ResponseEntity.ok(userHierarchyService.getDownlinesGroupedByLevel(userId));

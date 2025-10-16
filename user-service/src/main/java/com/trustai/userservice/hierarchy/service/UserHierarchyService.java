@@ -11,6 +11,7 @@ public interface UserHierarchyService {
     UserTreeNode getDownlineTree(Long rootUserId, int maxLevel);
     Map<Integer, List<Long>> getDownlinesGroupedByLevel(Long userId);
     List<UserHierarchy> findByDescendant(Long descendant);
+    List<UserTreeNode> getUplineTree(Long userId);
 
     /**
      * Activate all hierarchy paths where the given user is a descendant.

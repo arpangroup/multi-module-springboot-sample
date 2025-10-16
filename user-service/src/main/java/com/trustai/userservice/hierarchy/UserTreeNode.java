@@ -21,6 +21,8 @@ public class UserTreeNode {
     private String userRank;
     private List<UserTreeNode> children = new ArrayList<>();
 
+    private int depth; // require for upline calculation
+
     public UserTreeNode(Long userId, String username, BigDecimal walletBalance, int rank) {
         this.userId = userId;
         this.username = username;
@@ -28,11 +30,21 @@ public class UserTreeNode {
         this.userRank = getRank(rank);
     }
 
-    public UserTreeNode(Long userId, String username, BigDecimal walletBalance, String rankCode) {
+    public UserTreeNode(Long userId, String username, BigDecimal walletBalance, String rankCode, boolean isActive) {
         this.userId = userId;
         this.username = username;
         this.walletBalance = walletBalance;
         this.userRank = rankCode;
+        this.isActive = isActive;
+    }
+
+    public UserTreeNode(Long userId, String username, BigDecimal walletBalance, String rankCode, boolean isActive, int depth) {
+        this.userId = userId;
+        this.username = username;
+        this.walletBalance = walletBalance;
+        this.userRank = rankCode;
+        this.isActive = isActive;
+        this.depth = depth;
     }
 
     private String getRank(int rank) {

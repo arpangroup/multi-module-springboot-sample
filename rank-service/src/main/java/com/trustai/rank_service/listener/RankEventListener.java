@@ -2,13 +2,10 @@ package com.trustai.rank_service.listener;
 
 import com.trustai.common.api.UserApi;
 import com.trustai.common.dto.UserHierarchyDto;
-import com.trustai.common.dto.UserHierarchyStats;
-import com.trustai.common.dto.UserMetrics;
 import com.trustai.common.event.DepositActivityEvent;
 import com.trustai.common.event.ReferralJoinedActivityEvent;
 import com.trustai.common.event.UserActivatedActivityEvent;
 import com.trustai.rank_service.service.RankCalculationOrchestrationService;
-import com.trustai.rank_service.service.RankEvaluatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -38,7 +35,7 @@ public class RankEventListener {
     }
 
 
-    @EventListener
+    //@EventListener
     public void onDeposit(DepositActivityEvent event) {
         Long userId = event.getUserId();
         String correlationId = UUID.randomUUID().toString();
@@ -60,12 +57,12 @@ public class RankEventListener {
         }
     }
 
-    @EventListener
+    //@EventListener
     public void handleUserActivated(UserActivatedActivityEvent event) {
         reevaluateWithCorrelation(event.getUserId(), RankTriggerSource.USER_ACTIVATED.name());
     }
 
-    @EventListener
+    //@EventListener
     public void handleReferralJoined(ReferralJoinedActivityEvent event) {
         reevaluateWithCorrelation(event.getReferrerId(), RankTriggerSource.REFERRAL_JOINED.name());
     }
@@ -84,9 +81,6 @@ public class RankEventListener {
         }
     }
 
-    /**
-     * 🔹 Async bulk reevaluation of uplines (resilient per upline)
-     */
     @Async
     protected void reevaluateUplinesAsync(List<Long> uplineIds, String correlationId) {
         MDC.put("correlationId", correlationId);

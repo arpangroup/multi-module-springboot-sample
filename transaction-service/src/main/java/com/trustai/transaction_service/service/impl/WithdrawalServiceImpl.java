@@ -393,7 +393,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 true,
                 TransactionRemarks.WITHDRAW_REJECTED + ":" + rejectReason,
                 null,
-                null
+                withdraw.isProfitWallet()
         );
 
         withdraw.setStatus(PendingWithdraw.WithdrawStatus.REJECTED);

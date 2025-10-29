@@ -25,6 +25,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.Async;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 @Service
 @Primary
 @RequiredArgsConstructor
+@RefreshScope
 @Slf4j
 public class StakeReservationServiceImpl implements StakeReservationService {
     private final UserReservationRepository reservationRepository;
